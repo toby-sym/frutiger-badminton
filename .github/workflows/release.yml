@@ -1,0 +1,101 @@
+name: Release Windows build
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Semantic version bump
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+      - name: Prepare release branch and version
+        id: release-version
+        shell: pwsh
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git fetch origin main release --tags
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B release origin/release
+          git merge --no-edit origin/main
+          $valid = @(git tag --list --sort=-version:refname 'v*' | Where-Object { $_ -match '^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$' })
+          if ($valid.Count -eq 0) { $version = '0.1.0' }
+          else {
+            $parsed = [regex]::Match($valid[0], '^v(\d+)\.(\d+)\.(\d+)$')
+            $major = [int]$parsed.Groups[1].Value
+            $minor = [int]$parsed.Groups[2].Value
+            $patch = [int]$parsed.Groups[3].Value
+            switch ($env:BUMP) {
+              'major' { $major++; $minor = 0; $patch = 0 }
+              'minor' { $minor++; $patch = 0 }
+              default { $patch++ }
+            }
+            $version = "$major.$minor.$patch"
+          }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+      - name: Wait for Docker
+        shell: pwsh
+        run: |
+          $maxRetries = 10
+          for ($i = 0; $i -lt $maxRetries; $i++) {
+            $service = Get-Service docker -ErrorAction SilentlyContinue
+            if ($service -and $service.Status -eq 'Running') {
+              docker version 2>$null
+              if ($LASTEXITCODE -eq 0) { exit 0 }
+            }
+            if ($service -and $service.Status -eq 'Stopped') {
+              Start-Service docker -ErrorAction SilentlyContinue
+            }
+            Start-Sleep -Seconds 6
+          }
+          throw 'Docker did not become ready for GameCI.'
+      - name: Build release player with GameCI
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: .
+          unityVersion: 6000.0.64f1
+          targetPlatform: StandaloneWindows64
+          buildsPath: build
+          buildName: FrutigerBadminton
+          buildMethod: FrutigerBadminton.Editor.WindowsBuild.BuildWindowsGameCiRelease
+          customParameters: -releaseVersion ${{ steps.release-version.outputs.version }}
+          allowDirtyBuild: true
+      - name: Package release player
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.release-version.outputs.version }}
+        run: ./scripts/build-windows.ps1 -PackageOnly -OutputDirectory 'build/StandaloneWindows64/FrutigerBadminton' -ArchivePath "artifacts/windows-release-v$env:RELEASE_VERSION.zip"
+      - name: Commit version and publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.release-version.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git add Assets Packages ProjectSettings
+          if (git diff --cached --quiet) { throw 'No release version or generated Unity project state was recorded.' }
+          git commit -m "Release $env:RELEASE_VERSION"
+          $tag = "v$env:RELEASE_VERSION"
+          git tag -a $tag -m "Frutiger Badminton $tag"
+          git push --atomic origin HEAD:refs/heads/release "refs/tags/$tag"
+          gh release create $tag "artifacts/windows-release-v$env:RELEASE_VERSION.zip" --repo "$env:GITHUB_REPOSITORY" --target release --generate-notes --title "Frutiger Badminton $tag"
