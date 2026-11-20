@@ -195,6 +195,7 @@ namespace FrutigerBadminton
                            : style == ShotStyle.Drop ? 1.27f
                            : style == ShotStyle.Drive ? 1.22f
                            : .83f;
+            AeroHitEffect.Spawn(shuttle.position, ShotTint(style), style == ShotStyle.Smash ? 1.55f : 1f);
             Launch(shuttle.position, target, duration, false, true);
             if (playerAnimation) playerAnimation.Swing(style == ShotStyle.Smash);
             rallyHits++;
@@ -228,6 +229,7 @@ namespace FrutigerBadminton
             rallyHits = 0;
             Vector3 start = rival.position + Vector3.up * 1.45f;
             Vector3 target = new Vector3(Mathf.Clamp(player.position.x + Random.Range(-1.1f, 1.1f), -2.2f, 2.2f), GroundY + .11f, Random.Range(-5.7f, -2.1f));
+            AeroHitEffect.Spawn(start, new Color(.42f, .96f, 1f), .9f);
             Launch(start, target, 1.42f, true, false);
             if (rivalAnimation) rivalAnimation.Swing(false);
             ShowMessage("Return the serve.", 1.1f);
@@ -239,6 +241,7 @@ namespace FrutigerBadminton
             float targetX = Mathf.Clamp(player.position.x + Random.Range(-1.6f, 1.6f), -2.45f, 2.45f);
             Vector3 start = rival.position + Vector3.up * 1.4f;
             Vector3 target = new Vector3(targetX, GroundY + .11f, targetZ);
+            AeroHitEffect.Spawn(start, new Color(1f, .72f, .63f), .95f);
             Launch(start, target, Random.Range(1.24f, 1.43f), true, false);
             if (rivalAnimation) rivalAnimation.Swing(false);
         }
@@ -307,6 +310,14 @@ namespace FrutigerBadminton
             if (Input.GetKeyDown(KeyCode.F)) return ShotStyle.Drive;
             if (Input.GetKeyDown(KeyCode.R)) return ShotStyle.Smash;
             return ShotStyle.Clear;
+        }
+
+        Color ShotTint(ShotStyle style)
+        {
+            if (style == ShotStyle.Drop) return new Color(.57f, 1f, .8f);
+            if (style == ShotStyle.Drive) return new Color(1f, .52f, .72f);
+            if (style == ShotStyle.Smash) return new Color(1f, .84f, .48f);
+            return new Color(.34f, .97f, 1f);
         }
 
         void CreateShuttlecock()
