@@ -200,7 +200,6 @@ namespace FrutigerBadminton
             cameraObject.tag = "MainCamera";
             cameraObject.transform.position = new Vector3(12f, 10f, -19f);
             cameraObject.transform.LookAt(new Vector3(0f, .3f, 0f));
-            cameraObject.AddComponent<AudioListener>();
         }
 
         void Limb(Transform parent, Vector3 from, Vector3 to, float radius, Color color)
