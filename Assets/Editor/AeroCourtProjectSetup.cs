@@ -26,6 +26,7 @@ namespace FrutigerBadminton.Editor
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var root = new GameObject("Frutiger Badminton");
             var court = root.AddComponent<AeroCourtScene>();
+            root.AddComponent<AeroRallyController>();
             var shader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/Shaders/VertexColorSky.shader");
             if (shader)
             {
@@ -57,6 +58,39 @@ namespace FrutigerBadminton.Editor
 
     public static class WindowsBuild
     {
+        const string GameCiOutput = "build/StandaloneWindows64/FrutigerBadminton";
+
+        public static void BuildWindowsGameCiDevelopment()
+        {
+            ConfigureGameCiBuild("Development");
+            BuildWindows();
+        }
+
+        public static void BuildWindowsGameCiRelease()
+        {
+            ConfigureGameCiBuild("Release");
+            string version = GetCommandLineArgument("-releaseVersion");
+            if (string.IsNullOrEmpty(version))
+                throw new System.ArgumentException("The GameCI release build requires -releaseVersion.");
+            System.Environment.SetEnvironmentVariable("RELEASE_VERSION", version);
+            BuildWindows();
+        }
+
+        static void ConfigureGameCiBuild(string configuration)
+        {
+            System.Environment.SetEnvironmentVariable("BUILD_OUTPUT", GameCiOutput);
+            System.Environment.SetEnvironmentVariable("BUILD_CONFIGURATION", configuration);
+        }
+
+        static string GetCommandLineArgument(string name)
+        {
+            string[] arguments = System.Environment.GetCommandLineArgs();
+            for (int i = 0; i < arguments.Length - 1; i++)
+                if (string.Equals(arguments[i], name, System.StringComparison.OrdinalIgnoreCase))
+                    return arguments[i + 1];
+            return null;
+        }
+
         public static void BuildWindows()
         {
             AeroCourtProjectSetup.EnsureProjectAssets();

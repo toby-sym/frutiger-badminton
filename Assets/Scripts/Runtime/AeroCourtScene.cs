@@ -120,10 +120,10 @@ namespace FrutigerBadminton
             Line("Center line far", new Vector3(0f, lineY, 3.7f), new Vector3(.075f, .015f, 3.45f), Color.white);
             Line("Long service line near", new Vector3(0f, lineY, -5.95f), new Vector3(CourtWidth, .015f, .075f), new Color(.74f, 1f, 1f));
             Line("Long service line far", new Vector3(0f, lineY, 5.95f), new Vector3(CourtWidth, .015f, .075f), new Color(.74f, 1f, 1f));
-            CreatePlayer("Player", new Vector3(0f, top, -4.6f), new Color(.22f, .98f, .91f));
-            CreatePlayer("Rival", new Vector3(0f, top, 4.6f), new Color(1f, .52f, .62f));
-            CreateRacket(new Vector3(.62f, .42f, -4.6f), new Color(.8f, 1f, .98f));
-            CreateRacket(new Vector3(-.62f, .42f, 4.6f), new Color(1f, .88f, .77f));
+            var player = CreatePlayer("Player", new Vector3(0f, top, -4.6f), new Color(.22f, .98f, .91f));
+            var rival = CreatePlayer("Rival", new Vector3(0f, top, 4.6f), new Color(1f, .52f, .62f));
+            CreateRacket(player, new Vector3(.62f, .42f, -4.6f), new Color(.8f, 1f, .98f));
+            CreateRacket(rival, new Vector3(-.62f, .42f, 4.6f), new Color(1f, .88f, .77f));
         }
 
         void CreateNet()
@@ -138,9 +138,10 @@ namespace FrutigerBadminton
                 Cube("Net mesh horizontal", new Vector3(0f, y + .11f + i * .2f, -.026f), new Vector3(6.08f, .012f, .012f), new Color(.77f, 1f, 1f), .1f, .1f);
         }
 
-        void CreatePlayer(string name, Vector3 basePosition, Color suit)
+        Transform CreatePlayer(string name, Vector3 basePosition, Color suit)
         {
             var root = new GameObject(name + " silhouette"); root.transform.position = basePosition;
+            if (name == "Rival") root.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
             var torso = Sphere("Glossy sport jacket", root.transform.position + new Vector3(0f, .92f, 0f), new Vector3(.62f, .82f, .38f), suit, .35f, .5f);
             torso.transform.SetParent(root.transform, true);
             Sphere("Head", root.transform.position + new Vector3(0f, 1.66f, 0f), new Vector3(.36f, .39f, .35f), new Color(.94f, .72f, .56f), .2f, .05f).transform.SetParent(root.transform, true);
@@ -148,14 +149,18 @@ namespace FrutigerBadminton
             Limb(root.transform, new Vector3(.18f, .58f, 0f), new Vector3(.32f, .07f, 0f), .16f, suit);
             Limb(root.transform, new Vector3(-.3f, 1.08f, 0f), new Vector3(-.48f, .52f, .05f), .12f, suit);
             Limb(root.transform, new Vector3(.3f, 1.08f, 0f), new Vector3(.52f, 1.38f, 0f), .12f, suit);
+            return root.transform;
         }
 
-        void CreateRacket(Vector3 center, Color color)
+        void CreateRacket(Transform player, Vector3 center, Color color)
         {
             var ring = new GameObject("Carbon racket oval"); ring.transform.position = center; ring.transform.rotation = Quaternion.Euler(14f, 0f, 18f);
             var mf = ring.AddComponent<MeshFilter>(); var mr = ring.AddComponent<MeshRenderer>();
             mf.sharedMesh = BuildRing(.29f, .235f, .04f, 48); mr.sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", color, .68f, .65f);
-            Cylinder("Racket grip", center + new Vector3(.26f, -.25f, 0f), new Vector3(.055f, .28f, .055f), new Color(.13f, .32f, .39f), .35f, .2f).transform.rotation = Quaternion.Euler(0f, 0f, -18f);
+            ring.transform.SetParent(player, true);
+            var grip = Cylinder("Racket grip", center + new Vector3(.26f, -.25f, 0f), new Vector3(.055f, .28f, .055f), new Color(.13f, .32f, .39f), .35f, .2f);
+            grip.transform.rotation = Quaternion.Euler(0f, 0f, -18f);
+            grip.transform.SetParent(player, true);
         }
 
         void CreateCloudBanks()
@@ -192,6 +197,7 @@ namespace FrutigerBadminton
             var cameraObject = new GameObject("Court camera");
             var camera = cameraObject.AddComponent<Camera>();
             camera.fieldOfView = 44f; camera.nearClipPlane = .1f; camera.farClipPlane = 250f;
+            cameraObject.tag = "MainCamera";
             cameraObject.transform.position = new Vector3(12f, 10f, -19f);
             cameraObject.transform.LookAt(new Vector3(0f, .3f, 0f));
             cameraObject.AddComponent<AudioListener>();
