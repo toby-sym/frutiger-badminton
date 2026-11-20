@@ -11,38 +11,54 @@ permissions:
 jobs:
   build:
     name: Build portable Windows x64 player
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-      - name: Verify Unity editor and Windows module
+      - name: Wait for Docker
         shell: pwsh
-        env:
-          UNITY_EDITOR_PATH: ${{ vars.UNITY_EDITOR_PATH }}
         run: |
-          if (-not $env:UNITY_EDITOR_PATH -or -not (Test-Path -LiteralPath $env:UNITY_EDITOR_PATH -PathType Leaf)) {
-            throw 'Unity 6000.0.64f1 is not installed on this runner. Configure the UNITY_EDITOR_PATH repository variable to a Unity.exe with the Windows Standalone module.'
+          $maxRetries = 10
+          for ($i = 0; $i -lt $maxRetries; $i++) {
+            $service = Get-Service docker -ErrorAction SilentlyContinue
+            if ($service -and $service.Status -eq 'Running') {
+              docker version 2>$null
+              if ($LASTEXITCODE -eq 0) { exit 0 }
+            }
+            if ($service -and $service.Status -eq 'Stopped') {
+              Start-Service docker -ErrorAction SilentlyContinue
+            }
+            Start-Sleep -Seconds 6
           }
-          $module = Join-Path (Split-Path $env:UNITY_EDITOR_PATH -Parent) 'Data\PlaybackEngines\WindowsStandaloneSupport'
-          if (-not (Test-Path -LiteralPath $module -PathType Container)) {
-            throw "The Unity Windows Standalone module is missing at $module."
-          }
-      - name: Build and package
+          throw 'Docker did not become ready for GameCI.'
+      - name: Build Windows x64 player with GameCI
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: .
+          unityVersion: 6000.0.64f1
+          targetPlatform: StandaloneWindows64
+          buildsPath: build
+          buildName: FrutigerBadminton
+          buildMethod: FrutigerBadminton.Editor.WindowsBuild.BuildWindowsGameCiDevelopment
+          allowDirtyBuild: true
+      - name: Package portable player
+        id: package
         shell: pwsh
         env:
-          UNITY_EDITOR_PATH: ${{ vars.UNITY_EDITOR_PATH }}
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          BUILD_OUTPUT: Build/Windows
-        run: ./scripts/build-windows.ps1
-      - name: Prepare artifact name
-        id: artifact-name
-        shell: pwsh
+          BUILD_OUTPUT: build/StandaloneWindows64/FrutigerBadminton
         run: |
           $safe = $env:GITHUB_REF_NAME -replace '[^A-Za-z0-9._-]', '-'
+          $archive = "artifacts/windows-$safe-$env:GITHUB_SHA.zip"
+          ./scripts/build-windows.ps1 -PackageOnly -OutputDirectory $env:BUILD_OUTPUT -ArchivePath $archive
           "branch=$safe" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "archive=$archive" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
       - name: Upload portable player
         uses: actions/upload-artifact@v4
         with:
-          name: windows-${{ steps.artifact-name.outputs.branch }}-${{ github.sha }}
-          path: artifacts/windows-*.zip
+          name: windows-${{ steps.package.outputs.branch }}-${{ github.sha }}
+          path: ${{ steps.package.outputs.archive }}
           if-no-files-found: error
           retention-days: 30

@@ -17,7 +17,13 @@ The batch build requires Unity `6000.0.64f1` with **Windows Build Support** inst
 ./scripts/build-windows.ps1
 ```
 
-The script builds a Development player folder and zips the executable with its `*_Data` runtime folder into `artifacts/`. GitHub Actions runs the same build on every branch push. The Windows runner must have the pinned Unity editor and Windows module installed; configure repository variable `UNITY_EDITOR_PATH`. If the license is not already activated on that runner, add the Unity `.ulf` license contents as the repository Actions secret `UNITY_LICENSE`.
+The script builds a Development player folder and zips the executable with its `*_Data` runtime folder into `artifacts/`. GitHub Actions uses the open-source GameCI Unity Builder to build a Windows x64 Development player on every branch push. The manually triggered release workflow also builds through GameCI. Both workflows need these repository Actions secrets under **Settings → Secrets and variables → Actions**:
+
+- `UNITY_LICENSE`: full contents of the Unity `.ulf` file
+- `UNITY_EMAIL`: email for the Unity account that owns the Personal license
+- `UNITY_PASSWORD`: password for that Unity account
+
+Keep the `.ulf` file out of the repository. GameCI uses Docker on the Windows runner and activates the supplied Personal license for its build.
 
 The manually triggered **Release Windows build** workflow runs from `main`, merges the latest `origin/main` into `release`, applies the selected semantic version bump (first release `0.1.0`), builds a non-development Windows player, and atomically pushes the release branch and annotated tag before creating a GitHub Release with generated notes and the zip.
 
