@@ -1,1 +1,1 @@
-# frutigerball
+# frutiger-badminton
