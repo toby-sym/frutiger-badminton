@@ -1,0 +1,48 @@
+name: Windows development player
+
+on:
+  push:
+    branches:
+      - '**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build portable Windows x64 player
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Unity editor and Windows module
+        shell: pwsh
+        env:
+          UNITY_EDITOR_PATH: ${{ vars.UNITY_EDITOR_PATH }}
+        run: |
+          if (-not $env:UNITY_EDITOR_PATH -or -not (Test-Path -LiteralPath $env:UNITY_EDITOR_PATH -PathType Leaf)) {
+            throw 'Unity 6000.0.64f1 is not installed on this runner. Configure the UNITY_EDITOR_PATH repository variable to a Unity.exe with the Windows Standalone module.'
+          }
+          $module = Join-Path (Split-Path $env:UNITY_EDITOR_PATH -Parent) 'Data\PlaybackEngines\WindowsStandaloneSupport'
+          if (-not (Test-Path -LiteralPath $module -PathType Container)) {
+            throw "The Unity Windows Standalone module is missing at $module."
+          }
+      - name: Build and package
+        shell: pwsh
+        env:
+          UNITY_EDITOR_PATH: ${{ vars.UNITY_EDITOR_PATH }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          BUILD_OUTPUT: Build/Windows
+        run: ./scripts/build-windows.ps1
+      - name: Prepare artifact name
+        id: artifact-name
+        shell: pwsh
+        run: |
+          $safe = $env:GITHUB_REF_NAME -replace '[^A-Za-z0-9._-]', '-'
+          "branch=$safe" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+      - name: Upload portable player
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ steps.artifact-name.outputs.branch }}-${{ github.sha }}
+          path: artifacts/windows-*.zip
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,71 @@
+name: Release Windows build
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Semantic version bump
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+      - name: Verify Unity editor and Windows module
+        shell: pwsh
+        env:
+          UNITY_EDITOR_PATH: ${{ vars.UNITY_EDITOR_PATH }}
+        run: |
+          if (-not $env:UNITY_EDITOR_PATH -or -not (Test-Path -LiteralPath $env:UNITY_EDITOR_PATH -PathType Leaf)) {
+            throw 'Unity 6000.0.64f1 is not installed on this runner. Configure the UNITY_EDITOR_PATH repository variable to a Unity.exe with the Windows Standalone module.'
+          }
+          $module = Join-Path (Split-Path $env:UNITY_EDITOR_PATH -Parent) 'Data\PlaybackEngines\WindowsStandaloneSupport'
+          if (-not (Test-Path -LiteralPath $module -PathType Container)) { throw "The Unity Windows Standalone module is missing at $module." }
+      - name: Merge main, version, build, and publish release
+        shell: pwsh
+        env:
+          UNITY_EDITOR_PATH: ${{ vars.UNITY_EDITOR_PATH }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          GH_TOKEN: ${{ github.token }}
+          BUMP: ${{ inputs.bump }}
+          BUILD_OUTPUT: Build/Windows
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git fetch origin main release --tags
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B release origin/release
+          git merge --no-edit origin/main
+          $valid = @(git tag --list --sort=-version:refname 'v*' | Where-Object { $_ -match '^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$' })
+          if ($valid.Count -eq 0) { $version = '0.1.0' }
+          else {
+            $matches = [regex]::Match($valid[0], '^v(\d+)\.(\d+)\.(\d+)$')
+            $major = [int]$matches.Groups[1].Value; $minor = [int]$matches.Groups[2].Value; $patch = [int]$matches.Groups[3].Value
+            switch ($env:BUMP) {
+              'major' { $major++; $minor = 0; $patch = 0 }
+              'minor' { $minor++; $patch = 0 }
+              default { $patch++ }
+            }
+            $version = "$major.$minor.$patch"
+          }
+          $env:RELEASE_VERSION = $version
+          $env:BUILD_CONFIGURATION = 'Release'
+          ./scripts/build-windows.ps1 -OutputDirectory $env:BUILD_OUTPUT -ArchivePath "artifacts/windows-release-v$version.zip"
+          git add Assets Packages ProjectSettings
+          if (git diff --cached --quiet) { throw 'No release version or generated Unity project state was recorded.' }
+          git commit -m "Release $version"
+          $tag = "v$version"
+          git tag -a $tag -m "Frutiger Badminton $tag"
+          git push --atomic origin HEAD:refs/heads/release "refs/tags/$tag"
+          gh release create $tag "artifacts/windows-release-v$version.zip" --repo "$env:GITHUB_REPOSITORY" --target release --generate-notes --title "Frutiger Badminton $tag"
