@@ -1,10 +1,10 @@
 # Development plan
 
-1. Establish the glossy cloud-court art direction with a fully procedural environment. **In progress:** initial scene, lighting, court, net, character silhouettes, and generated racket geometry.
-2. Add animated badminton characters, a generated shuttlecock, and expressive movement effects.
-3. Build the local rally loop with aiming, shot types, movement, air dashes, and smashes.
-4. Add opponents, AI teammates, and run-based solo upgrades.
+1. **In progress — cloud court presentation:** the procedural island, sky, clouds, badminton court, lighting, and net are in place. Finish and visually inspect the first polished court through the artifact smoke test.
+2. **In progress — character and shuttle presentation:** the shuttlecock and trail are generated in C#. Add responsive character movement and racket-swing animation, then improve hit feedback.
+3. **Implemented — local rally:** movement, jumping, dashes, aimed clears, drops, drives, smashes, scoring, and a returning rival form a playable practice loop.
+4. Add AI teammates and run-based solo upgrades.
 5. Add competitive online 3v3 after the local rally is solid.
-6. Improve menus, feedback, presentation, and replayability.
+6. Continue improving menus, feedback, presentation, and replayability.
 
-The first step must be built and visually inspected in Unity before it can be marked complete. Imported 3D models and image textures are out of scope; use procedural meshes, materials, and shaders.
+Keep the visual direction procedural: use generated geometry, materials, and shaders without imported 3D models or image textures. Build and inspect each increment before moving on.

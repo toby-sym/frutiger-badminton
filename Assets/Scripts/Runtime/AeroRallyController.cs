@@ -17,6 +17,8 @@ namespace FrutigerBadminton
         Transform player;
         Transform rival;
         Transform shuttle;
+        AeroPlayerAnimation playerAnimation;
+        AeroPlayerAnimation rivalAnimation;
         TrailRenderer shuttleTrail;
         Material shuttleMaterial;
         Material corkMaterial;
@@ -61,6 +63,8 @@ namespace FrutigerBadminton
 
             player = playerObject.transform;
             rival = rivalObject.transform;
+            playerAnimation = playerObject.GetComponent<AeroPlayerAnimation>();
+            rivalAnimation = rivalObject.GetComponent<AeroPlayerAnimation>();
             player.position = new Vector3(0f, GroundY, -4.6f);
             rival.position = new Vector3(0f, GroundY, 4.6f);
             CreateShuttlecock();
@@ -192,6 +196,7 @@ namespace FrutigerBadminton
                            : style == ShotStyle.Drive ? 1.22f
                            : .83f;
             Launch(shuttle.position, target, duration, false, true);
+            if (playerAnimation) playerAnimation.Swing(style == ShotStyle.Smash);
             rallyHits++;
             string hit = style == ShotStyle.Clear ? "Aqua clear"
                        : style == ShotStyle.Drop ? "Feather drop"
@@ -224,6 +229,7 @@ namespace FrutigerBadminton
             Vector3 start = rival.position + Vector3.up * 1.45f;
             Vector3 target = new Vector3(Mathf.Clamp(player.position.x + Random.Range(-1.1f, 1.1f), -2.2f, 2.2f), GroundY + .11f, Random.Range(-5.7f, -2.1f));
             Launch(start, target, 1.42f, true, false);
+            if (rivalAnimation) rivalAnimation.Swing(false);
             ShowMessage("Return the serve.", 1.1f);
         }
 
@@ -234,6 +240,7 @@ namespace FrutigerBadminton
             Vector3 start = rival.position + Vector3.up * 1.4f;
             Vector3 target = new Vector3(targetX, GroundY + .11f, targetZ);
             Launch(start, target, Random.Range(1.24f, 1.43f), true, false);
+            if (rivalAnimation) rivalAnimation.Swing(false);
         }
 
         void Launch(Vector3 start, Vector3 target, float duration, bool receiverIsPlayer, bool playerShot)
