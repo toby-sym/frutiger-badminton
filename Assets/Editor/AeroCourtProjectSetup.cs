@@ -20,6 +20,7 @@ namespace FrutigerBadminton.Editor
         public static void EnsureProjectAssets()
         {
             if (EditorApplication.isCompiling || EditorApplication.isUpdating) return;
+            EnsureControllerInput();
             EnsurePipeline();
             if (File.Exists(ScenePath)) return;
             Directory.CreateDirectory("Assets/Scenes");
@@ -38,6 +39,13 @@ namespace FrutigerBadminton.Editor
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets();
             Debug.Log("Created the procedural Aero Court scene. Press Play to explore it.");
+        }
+
+        static void EnsureControllerInput()
+        {
+            const int BothInputBackends = 2;
+            if (PlayerSettings.GetPropertyInt("activeInputHandler", BuildTargetGroup.Unknown) != BothInputBackends)
+                PlayerSettings.SetPropertyInt("activeInputHandler", BothInputBackends, BuildTargetGroup.Unknown);
         }
 
         static void EnsurePipeline()

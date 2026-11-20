@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 
 namespace FrutigerBadminton
 {
-    /// <summary>Runs a local practice rally using generated shuttle geometry and classic keyboard/mouse input.</summary>
+    /// <summary>Runs a local practice rally using generated shuttle geometry and controller-first input.</summary>
     public sealed class AeroRallyController : MonoBehaviour
     {
         const float GroundY = -.72f;
@@ -85,23 +86,31 @@ namespace FrutigerBadminton
             MovePlayer(deltaTime);
             MoveRival(deltaTime);
             if (flightActive) UpdateShuttlecock(deltaTime);
-            if (flightActive && playerMustReturn && IsShotInput() && !MouseIsOverHud()) TryPlayerShot();
+            if (flightActive && playerMustReturn && IsShotInput()
+                && (!IsMouseShotInput() || !MouseIsOverHud())) TryPlayerShot();
         }
 
         void MovePlayer(float deltaTime)
         {
-            float horizontal = (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow) ? 1f : 0f)
-                             - (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow) ? 1f : 0f);
-            float vertical = (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow) ? 1f : 0f)
-                           - (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow) ? 1f : 0f);
-            Vector3 direction = new Vector3(horizontal, 0f, vertical);
-            if (direction.sqrMagnitude > 1f) direction.Normalize();
+            Gamepad gamepad = Gamepad.current;
+            Vector2 directionInput = gamepad != null ? gamepad.leftStick.ReadValue() : Vector2.zero;
+            if (gamepad != null && gamepad.dpad.ReadValue().sqrMagnitude > directionInput.sqrMagnitude)
+                directionInput = gamepad.dpad.ReadValue();
 
-            if (Input.GetKeyDown(KeyCode.Space) && jumpHeight <= .01f)
+            Vector2 keyboardInput = new Vector2(
+                (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow) ? 1f : 0f)
+                - (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow) ? 1f : 0f),
+                (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow) ? 1f : 0f)
+                - (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow) ? 1f : 0f));
+            if (keyboardInput.sqrMagnitude > directionInput.sqrMagnitude) directionInput = keyboardInput;
+            directionInput = Vector2.ClampMagnitude(directionInput, 1f);
+            Vector3 direction = new Vector3(directionInput.x, 0f, directionInput.y);
+
+            if ((Input.GetKeyDown(KeyCode.Space) || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame)) && jumpHeight <= .01f)
                 jumpVelocity = 5.1f;
-            if (Input.GetKeyDown(KeyCode.LeftShift) && dashCooldown <= 0f)
+            if ((Input.GetKeyDown(KeyCode.LeftShift) || (gamepad != null && gamepad.rightShoulder.wasPressedThisFrame)) && dashCooldown <= 0f)
             {
-                dashDirection = direction.sqrMagnitude > .01f ? direction : Vector3.forward;
+                dashDirection = direction.sqrMagnitude > .01f ? direction.normalized : Vector3.forward;
                 dashTime = .16f;
                 dashCooldown = 1.05f;
                 isDashing = true;
@@ -211,7 +220,17 @@ namespace FrutigerBadminton
             float maxZ = style == ShotStyle.Drop ? 3.1f : CourtHalfLength - .45f;
             Vector3 target = new Vector3(-player.position.x * .45f, GroundY + .11f, 5.65f);
             Camera camera = Camera.main;
-            if (camera)
+            Gamepad gamepad = Gamepad.current;
+            Vector2 stickAim = gamepad != null ? gamepad.rightStick.ReadValue() : Vector2.zero;
+            if (gamepad != null)
+            {
+                if (stickAim.sqrMagnitude > .035f)
+                {
+                    target.x = stickAim.x * (CourtHalfWidth - .35f);
+                    target.z = Mathf.Lerp(minZ, maxZ, Mathf.Clamp01((stickAim.y + 1f) * .5f));
+                }
+            }
+            else if (camera && Mouse.current != null)
             {
                 Ray ray = camera.ScreenPointToRay(Input.mousePosition);
                 Plane court = new Plane(Vector3.up, new Vector3(0f, GroundY + .11f, 0f));
@@ -295,7 +314,21 @@ namespace FrutigerBadminton
         bool IsShotInput()
         {
             return Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1)
-                || Input.GetKeyDown(KeyCode.F) || Input.GetKeyDown(KeyCode.R);
+                || Input.GetKeyDown(KeyCode.F) || Input.GetKeyDown(KeyCode.R)
+                || IsGamepadShotInput();
+        }
+
+        bool IsMouseShotInput()
+        {
+            return Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1);
+        }
+
+        bool IsGamepadShotInput()
+        {
+            Gamepad gamepad = Gamepad.current;
+            return gamepad != null && (gamepad.leftShoulder.wasPressedThisFrame
+                || gamepad.buttonWest.wasPressedThisFrame || gamepad.buttonEast.wasPressedThisFrame
+                || gamepad.buttonNorth.wasPressedThisFrame);
         }
 
         bool MouseIsOverHud()
@@ -306,9 +339,10 @@ namespace FrutigerBadminton
 
         ShotStyle CurrentShotStyle()
         {
-            if (Input.GetMouseButtonDown(1)) return ShotStyle.Drop;
-            if (Input.GetKeyDown(KeyCode.F)) return ShotStyle.Drive;
-            if (Input.GetKeyDown(KeyCode.R)) return ShotStyle.Smash;
+            Gamepad gamepad = Gamepad.current;
+            if (Input.GetMouseButtonDown(1) || (gamepad != null && gamepad.buttonWest.wasPressedThisFrame)) return ShotStyle.Drop;
+            if (Input.GetKeyDown(KeyCode.F) || (gamepad != null && gamepad.buttonEast.wasPressedThisFrame)) return ShotStyle.Drive;
+            if (Input.GetKeyDown(KeyCode.R) || (gamepad != null && gamepad.buttonNorth.wasPressedThisFrame)) return ShotStyle.Smash;
             return ShotStyle.Clear;
         }
 
@@ -441,13 +475,15 @@ namespace FrutigerBadminton
 
             Color previous = GUI.color;
             GUI.color = new Color(.025f, .15f, .2f, .84f);
-            GUI.Box(new Rect(16f, 16f, 272f, 158f), GUIContent.none);
+            GUI.Box(new Rect(16f, 16f, 320f, 180f), GUIContent.none);
             GUI.color = Color.white;
-            GUI.Label(new Rect(28f, 22f, 250f, 30f), "FRUTIGER BADMINTON", labelStyle);
-            GUI.Label(new Rect(28f, 52f, 250f, 28f), "WASD / arrows  Move", labelStyle);
-            GUI.Label(new Rect(28f, 78f, 250f, 28f), "Space  Jump     Shift  Dash", labelStyle);
-            GUI.Label(new Rect(28f, 104f, 250f, 28f), "Aim + click  Clear     Right click  Drop", labelStyle);
-            GUI.Label(new Rect(28f, 130f, 250f, 28f), "F  Drive     R  Smash (airborne)", labelStyle);
+            GUI.Label(new Rect(28f, 22f, 298f, 30f), "FRUTIGER BADMINTON", labelStyle);
+            bool controllerConnected = Gamepad.current != null;
+            GUI.Label(new Rect(28f, 52f, 298f, 24f), controllerConnected ? "Left stick / D-pad   Move" : "WASD / arrows   Move", labelStyle);
+            GUI.Label(new Rect(28f, 76f, 298f, 24f), controllerConnected ? "Right stick   Aim" : "Mouse   Aim", labelStyle);
+            GUI.Label(new Rect(28f, 100f, 298f, 24f), controllerConnected ? "A   Jump       RB   Dash" : "Space   Jump       Shift   Dash", labelStyle);
+            GUI.Label(new Rect(28f, 124f, 298f, 24f), controllerConnected ? "LB   Clear       X   Drop" : "Click   Clear       Right click   Drop", labelStyle);
+            GUI.Label(new Rect(28f, 148f, 298f, 24f), controllerConnected ? "B   Drive       Y   Smash" : "F   Drive       R   Smash (airborne)", labelStyle);
 
             GUI.color = new Color(.02f, .23f, .29f, .9f);
             GUI.Box(new Rect(Screen.width * .5f - 118f, 18f, 236f, 48f), GUIContent.none);
