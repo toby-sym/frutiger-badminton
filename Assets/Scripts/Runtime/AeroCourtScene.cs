@@ -13,6 +13,7 @@ namespace FrutigerBadminton
         readonly List<Mesh> ownedMeshes = new List<Mesh>();
         readonly List<CloudDrift> cloudDrifts = new List<CloudDrift>();
         readonly List<LanternOrbit> lanternOrbits = new List<LanternOrbit>();
+        readonly List<CloudDrift> bubbleDrifts = new List<CloudDrift>();
         readonly Dictionary<string, Material> materialCache = new Dictionary<string, Material>();
 
         struct CloudDrift
@@ -76,6 +77,13 @@ namespace FrutigerBadminton
                 orbit.lantern.position = new Vector3(Mathf.Cos(angle) * orbit.radius, orbit.baseHeight + bob, Mathf.Sin(angle) * orbit.radius);
                 orbit.lantern.localScale = Vector3.one * (.22f * (1f + twinkle));
             }
+
+            for (int i = 0; i < bubbleDrifts.Count; i++)
+            {
+                CloudDrift bubble = bubbleDrifts[i];
+                float phase = time * bubble.speed + bubble.phase;
+                bubble.root.position = bubble.origin + new Vector3(Mathf.Sin(phase) * .28f, Mathf.Sin(phase * .7f) * .35f, 0f);
+            }
         }
 
         void OnDestroy()
@@ -114,6 +122,7 @@ namespace FrutigerBadminton
             CreateSkyDome();
             CreateFloatingIsland();
             CreateCourt();
+            CreatePavilion();
             CreateNet();
             CreateCloudBanks();
             CreateSpectatorOrbs();
@@ -261,9 +270,9 @@ namespace FrutigerBadminton
         void CreateCourt()
         {
             float top = -.72f;
-            Cube("Iridescent badminton court", new Vector3(0f, top, 0f), new Vector3(CourtWidth, .12f, CourtLength), new Color(.035f, .22f, .34f), .86f, .06f);
-            Cube("Far service box", new Vector3(0f, top + .068f, 3.05f), new Vector3(CourtWidth - .14f, .015f, 2.45f), new Color(.08f, .46f, .59f), .7f, .04f);
-            Cube("Near service box", new Vector3(0f, top + .068f, -3.05f), new Vector3(CourtWidth - .14f, .015f, 2.45f), new Color(.055f, .34f, .48f), .74f, .04f);
+            Cube("Iridescent badminton court", new Vector3(0f, top, 0f), new Vector3(CourtWidth, .12f, CourtLength), new Color(.015f, .22f, .56f), .92f, .035f);
+            Cube("Far service box", new Vector3(0f, top + .068f, 3.05f), new Vector3(CourtWidth - .14f, .015f, 2.45f), new Color(.025f, .33f, .61f), .88f, .025f);
+            Cube("Near service box", new Vector3(0f, top + .068f, -3.05f), new Vector3(CourtWidth - .14f, .015f, 2.45f), new Color(.02f, .28f, .56f), .9f, .025f);
             float lineY = top + .09f;
             Line("Left sideline", new Vector3(-CourtWidth / 2f, lineY, 0f), new Vector3(.075f, .015f, CourtLength), Color.white);
             Line("Right sideline", new Vector3(CourtWidth / 2f, lineY, 0f), new Vector3(.075f, .015f, CourtLength), Color.white);
@@ -298,11 +307,11 @@ namespace FrutigerBadminton
             ownedMeshes.Add(mesh);
             overlay.AddComponent<MeshFilter>().sharedMesh = mesh;
             var material = new Material(shader) { name = "Procedural aqua court glaze" };
-            material.SetColor("_BaseColor", new Color(.08f, .32f, .46f, 1f));
-            material.SetColor("_GlintColor", new Color(.68f, .94f, 1f, 1f));
-            material.SetFloat("_Opacity", .27f);
-            material.SetFloat("_WaveScale", 9f);
-            material.SetFloat("_FlowSpeed", .18f);
+            material.SetColor("_BaseColor", new Color(.025f, .27f, .58f, 1f));
+            material.SetColor("_GlintColor", new Color(.55f, .92f, 1f, 1f));
+            material.SetFloat("_Opacity", .62f);
+            material.SetFloat("_WaveScale", 7f);
+            material.SetFloat("_FlowSpeed", .1f);
             material.SetFloat("_FresnelStrength", .46f);
             ownedMaterials.Add(material);
 
@@ -310,6 +319,72 @@ namespace FrutigerBadminton
             renderer.sharedMaterial = material;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
+        }
+
+        void CreatePavilion()
+        {
+            // An open-sided pavilion frames the view without putting geometry between the camera and play.
+            Color frame = new Color(.20f, .42f, .56f);
+            Color trim = new Color(.63f, .88f, .94f);
+            const float back = 9.1f;
+            const float left = -7.25f;
+            const float height = 6.4f;
+            for (int i = 0; i <= 8; i++)
+            {
+                float x = Mathf.Lerp(-7.25f, 7.25f, i / 8f);
+                Cube("Pavilion rear mullion", new Vector3(x, 2.5f, back), new Vector3(.07f, height, .11f), frame, .8f, .025f);
+            }
+            for (int i = 0; i <= 6; i++)
+            {
+                float z = Mathf.Lerp(-9f, back, i / 6f);
+                Cube("Pavilion side mullion", new Vector3(left, 2.5f, z), new Vector3(.11f, height, .07f), frame, .8f, .025f);
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                float y = .25f + i * 2.25f;
+                Cube("Pavilion rear rail", new Vector3(0f, y, back), new Vector3(14.5f, .055f, .09f), trim, .8f, .025f);
+                Cube("Pavilion side rail", new Vector3(left, y, .05f), new Vector3(.09f, .055f, 18.1f), trim, .8f, .025f);
+            }
+            Cube("Pavilion rear crown", new Vector3(0f, 5.7f, back), new Vector3(14.6f, .18f, .22f), frame, .88f, .04f);
+            Cube("Pavilion side crown", new Vector3(left, 5.7f, .05f), new Vector3(.22f, .18f, 18.2f), frame, .88f, .04f);
+
+            Shader glassShader = Resources.Load<Shader>("AeroGlass");
+            if (!glassShader) return;
+            var glass = new Material(glassShader) { name = "Pavilion pearl glass" };
+            glass.SetColor("_Tint", new Color(.55f, .83f, .94f));
+            glass.SetFloat("_Opacity", .035f);
+            glass.SetFloat("_RimOpacity", .12f);
+            ownedMaterials.Add(glass);
+            AddGlassPrimitive(PrimitiveType.Cube, "Rear glass", new Vector3(0f, 2.5f, back + .06f), new Vector3(14.45f, 6.3f, .02f), glass);
+            AddGlassPrimitive(PrimitiveType.Cube, "Side glass", new Vector3(left - .06f, 2.5f, .05f), new Vector3(.02f, 6.3f, 18f), glass);
+
+            var bubbleMaterial = new Material(glassShader) { name = "Floating pearl bubbles" };
+            bubbleMaterial.SetColor("_Tint", new Color(.65f, .91f, 1f));
+            bubbleMaterial.SetFloat("_Opacity", .018f);
+            bubbleMaterial.SetFloat("_RimOpacity", .48f);
+            ownedMaterials.Add(bubbleMaterial);
+            for (int i = 0; i < 11; i++)
+            {
+                float side = i % 2 == 0 ? -1f : 1f;
+                Vector3 position = new Vector3(side * (4.5f + (i % 3) * .6f), .8f + (i % 4) * .7f, -5.5f + (i % 6) * 2.3f);
+                float size = .26f + (i % 4) * .1f;
+                var bubble = AddGlassPrimitive(PrimitiveType.Sphere, "Drifting glass bubble", position, Vector3.one * size, bubbleMaterial);
+                bubbleDrifts.Add(new CloudDrift(bubble.transform, position, i * 1.1f, .35f + i * .015f));
+            }
+        }
+
+        GameObject AddGlassPrimitive(PrimitiveType type, string objectName, Vector3 position, Vector3 scale, Material material)
+        {
+            var obj = GameObject.CreatePrimitive(type);
+            obj.name = objectName;
+            obj.transform.position = position;
+            obj.transform.localScale = scale;
+            obj.GetComponent<Collider>().enabled = false;
+            var renderer = obj.GetComponent<Renderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            return obj;
         }
 
         static Mesh BuildCourtSheenMesh(float width, float length, float height)
@@ -348,8 +423,8 @@ namespace FrutigerBadminton
             var pose = new GameObject("Animated pose").transform;
             pose.SetParent(root.transform, false);
 
-            Sphere("Glossy sport jacket", pose.TransformPoint(new Vector3(0f, .92f, 0f)), new Vector3(.62f, .82f, .38f), suit, .35f, .5f).transform.SetParent(pose, true);
-            Sphere("Head", pose.TransformPoint(new Vector3(0f, 1.66f, 0f)), new Vector3(.36f, .39f, .35f), new Color(.94f, .72f, .56f), .2f, .05f).transform.SetParent(pose, true);
+            Sphere("Glossy sport jacket", pose.TransformPoint(new Vector3(0f, .92f, 0f)), new Vector3(.62f, .82f, .38f), suit, .9f, .07f).transform.SetParent(pose, true);
+            Sphere("Head", pose.TransformPoint(new Vector3(0f, 1.66f, 0f)), new Vector3(.36f, .39f, .35f), new Color(.94f, .72f, .56f), .55f, .025f).transform.SetParent(pose, true);
             Transform leftLeg = Limb(pose, "Left leg", new Vector3(-.18f, .58f, 0f), new Vector3(-.32f, .07f, 0f), .16f, suit);
             Transform rightLeg = Limb(pose, "Right leg", new Vector3(.18f, .58f, 0f), new Vector3(.32f, .07f, 0f), .16f, suit);
             Transform leftArm = Limb(pose, "Left arm", new Vector3(-.3f, 1.08f, 0f), new Vector3(-.48f, .52f, .05f), .12f, suit);
@@ -498,7 +573,7 @@ namespace FrutigerBadminton
             joint.SetParent(parent, false);
             joint.localPosition = from;
 
-            var limb = Cylinder("Stylized " + name.ToLowerInvariant(), Vector3.zero, new Vector3(radius, delta.magnitude * .5f, radius), color, .25f, .25f);
+            var limb = Cylinder("Stylized " + name.ToLowerInvariant(), Vector3.zero, new Vector3(radius, delta.magnitude * .5f, radius), color, .84f, .06f);
             limb.transform.SetParent(joint, false);
             limb.transform.localPosition = delta * .5f;
             limb.transform.localRotation = Quaternion.FromToRotation(Vector3.up, delta.normalized);
