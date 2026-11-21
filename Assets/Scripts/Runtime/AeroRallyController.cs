@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 
 namespace FrutigerBadminton
 {
-    /// <summary>Runs a local practice rally using generated shuttle geometry and controller-first input.</summary>
+    /// <summary>Runs a local doubles practice rally using generated characters and controller-first input.</summary>
     public sealed class AeroRallyController : MonoBehaviour
     {
         const float GroundY = -.72f;
@@ -20,10 +20,12 @@ namespace FrutigerBadminton
         readonly List<Object> ownedObjects = new List<Object>();
         readonly MaterialPropertyBlock landingMarkerProperties = new MaterialPropertyBlock();
         Transform player;
+        Transform partner;
         Transform rival;
         Transform shuttle;
         Transform landingMarker;
         AeroPlayerAnimation playerAnimation;
+        AeroPlayerAnimation partnerAnimation;
         AeroPlayerAnimation rivalAnimation;
         TrailRenderer shuttleTrail;
         TrailRenderer dashTrail;
@@ -62,19 +64,23 @@ namespace FrutigerBadminton
         void Start()
         {
             var playerObject = GameObject.Find("Player silhouette");
+            var partnerObject = GameObject.Find("Partner silhouette");
             var rivalObject = GameObject.Find("Rival silhouette");
-            if (!playerObject || !rivalObject)
+            if (!playerObject || !partnerObject || !rivalObject)
             {
-                Debug.LogError("The Aero Court scene needs both generated player silhouettes before the rally can start.");
+                Debug.LogError("The Aero Court scene needs generated player, partner, and rival silhouettes before the rally can start.");
                 enabled = false;
                 return;
             }
 
             player = playerObject.transform;
+            partner = partnerObject.transform;
             rival = rivalObject.transform;
             playerAnimation = playerObject.GetComponent<AeroPlayerAnimation>();
+            partnerAnimation = partnerObject.GetComponent<AeroPlayerAnimation>();
             rivalAnimation = rivalObject.GetComponent<AeroPlayerAnimation>();
             player.position = new Vector3(0f, GroundY, -4.6f);
+            partner.position = new Vector3(-1.65f, GroundY, -4.8f);
             rival.position = new Vector3(0f, GroundY, 4.6f);
             CreateShuttlecock();
             CreateLandingMarker();
@@ -94,8 +100,13 @@ namespace FrutigerBadminton
             if (dashCooldown > 0f) dashCooldown -= deltaTime;
 
             MovePlayer(deltaTime);
+            MovePartner(deltaTime);
             MoveRival(deltaTime);
-            if (flightActive) UpdateShuttlecock(deltaTime);
+            if (flightActive)
+            {
+                UpdateShuttlecock(deltaTime);
+                if (flightActive && playerMustReturn) TryPartnerReturn();
+            }
             UpdateLandingMarker();
             if (flightActive && playerMustReturn && IsShotInput()
                 && (!IsMouseShotInput() || !MouseIsOverHud())) TryPlayerShot();
@@ -166,6 +177,50 @@ namespace FrutigerBadminton
             rival.position = Vector3.MoveTowards(rival.position, destination, 5.1f * deltaTime);
         }
 
+        void MovePartner(float deltaTime)
+        {
+            if (!partner) return;
+
+            Vector3 destination = new Vector3(player.position.x >= 0f ? -1.65f : 1.65f, GroundY, -4.8f);
+            if (flightActive && playerMustReturn)
+            {
+                float timeToLanding = Mathf.Max(0f, flightDuration - flightElapsed);
+                float playerDistance = HorizontalDistance(player.position, flightTarget);
+                float partnerDistance = HorizontalDistance(partner.position, flightTarget);
+                float playerReach = 1.7f + jumpHeight * .5f;
+                bool playerCannotReach = playerDistance - playerReach > timeToLanding * 4.6f;
+                bool partnerHasCoverageAdvantage = partnerDistance + .85f < playerDistance;
+                if (playerCannotReach || partnerHasCoverageAdvantage)
+                {
+                    destination.x = Mathf.Clamp(flightTarget.x, -CourtHalfWidth + .45f, CourtHalfWidth - .45f);
+                    destination.z = Mathf.Clamp(flightTarget.z, -CourtHalfLength + .45f, -.42f);
+                }
+            }
+
+            partner.position = Vector3.MoveTowards(partner.position, destination, 5.2f * deltaTime);
+        }
+
+        bool TryPartnerReturn()
+        {
+            if (!partner || !flightActive || !playerMustReturn || shuttle.position.z >= -.15f) return false;
+
+            bool playerCanReturn = HorizontalDistance(player.position, shuttle.position) <= 1.7f + jumpHeight * .5f
+                && shuttle.position.y <= GroundY + 2.9f + jumpHeight;
+            if (playerCanReturn || shuttle.position.y > GroundY + 2.85f
+                || HorizontalDistance(partner.position, shuttle.position) > 1.5f) return false;
+
+            Vector3 target = new Vector3(
+                Mathf.Clamp(-rival.position.x * .55f + Random.Range(-.85f, .85f), -CourtHalfWidth + .35f, CourtHalfWidth - .35f),
+                GroundY + .11f,
+                Random.Range(4.25f, 5.85f));
+            AeroHitEffect.Spawn(shuttle.position, new Color(.73f, 1f, .48f), .98f);
+            Launch(shuttle.position, target, Random.Range(1.16f, 1.36f), false, true);
+            if (partnerAnimation) partnerAnimation.Swing(false);
+            rallyHits++;
+            ShowMessage("Partner return  •  Rally " + rallyHits, .9f);
+            return true;
+        }
+
         void UpdateShuttlecock(float deltaTime)
         {
             previousShuttlePosition = shuttle.position;
@@ -187,6 +242,7 @@ namespace FrutigerBadminton
             shuttle.position = flightTarget;
             if (playerMustReturn)
             {
+                if (TryPartnerReturn()) return;
                 AwardRivalPoint("The shuttle landed before your return.");
                 return;
             }

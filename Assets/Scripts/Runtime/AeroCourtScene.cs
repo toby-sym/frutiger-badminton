@@ -186,6 +186,7 @@ namespace FrutigerBadminton
             Line("Long service line far", new Vector3(0f, lineY, 5.95f), new Vector3(CourtWidth, .015f, .075f), new Color(.74f, 1f, 1f));
             CreateCourtSheen(top);
             CreatePlayer("Player", new Vector3(0f, top, -4.6f), new Color(.22f, .98f, .91f));
+            CreatePlayer("Partner", new Vector3(-1.65f, top, -4.8f), new Color(.66f, .95f, .55f));
             CreatePlayer("Rival", new Vector3(0f, top, 4.6f), new Color(1f, .52f, .62f));
         }
 
