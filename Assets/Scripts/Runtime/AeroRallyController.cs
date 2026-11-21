@@ -18,6 +18,7 @@ namespace FrutigerBadminton
         const int UpgradeScoreInterval = 3;
         const int MaxUpgradeLevel = 5;
         const float CameraShakeDuration = .18f;
+        static readonly Rect ControlsPanelRect = new Rect(16f, 16f, 320f, 360f);
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         static readonly int ColorId = Shader.PropertyToID("_Color");
         static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
@@ -1136,8 +1137,7 @@ namespace FrutigerBadminton
         bool MouseIsOverHud()
         {
             Vector3 mouse = Input.mousePosition;
-            return mouse.x >= 16f && mouse.x <= 336f
-                && mouse.y >= Screen.height - 242f && mouse.y <= Screen.height - 16f;
+            return ControlsPanelRect.Contains(new Vector2(mouse.x, Screen.height - mouse.y));
         }
 
         ShotStyle CurrentShotStyle()
@@ -1534,7 +1534,7 @@ namespace FrutigerBadminton
             }
 
             GUI.color = new Color(.02f, .105f, .16f, .91f);
-            GUI.Box(new Rect(16f, 16f, 320f, 360f), GUIContent.none);
+            GUI.Box(ControlsPanelRect, GUIContent.none);
             GUI.color = new Color(.38f, .94f, .91f, .9f);
             GUI.DrawTexture(new Rect(17f, 17f, 318f, 2f), Texture2D.whiteTexture);
             GUI.color = new Color(.49f, 1f, .94f);
