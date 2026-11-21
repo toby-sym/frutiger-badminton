@@ -2,6 +2,7 @@ using System.IO;
 using System.Reflection;
 using FrutigerBadminton;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEditor.Build.Profile;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -113,6 +114,8 @@ namespace FrutigerBadminton.Editor
 
         static void ConfigureGameCiBuild(string configuration)
         {
+            if (configuration == "Development")
+                PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, ScriptingImplementation.Mono2x);
             System.Environment.SetEnvironmentVariable("BUILD_OUTPUT", GameCiOutput);
             System.Environment.SetEnvironmentVariable("BUILD_CONFIGURATION", configuration);
         }
