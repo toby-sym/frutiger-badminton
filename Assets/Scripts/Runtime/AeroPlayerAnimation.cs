@@ -60,6 +60,24 @@ namespace FrutigerBadminton
             swingPower = smash ? 1.25f : 1f;
         }
 
+        public void ResetMotion()
+        {
+            previousRootPosition = transform.position;
+            gaitBlend = 0f;
+            gaitBlendVelocity = 0f;
+            landingPulse = 0f;
+            swingRemaining = 0f;
+            wasAirborne = false;
+            pose.localPosition = poseRestPosition;
+            pose.localScale = poseRestScale;
+            pose.localRotation = poseRestRotation;
+            leftArm.localRotation = leftArmRestRotation;
+            rightArm.localRotation = rightArmRestRotation;
+            leftLeg.localRotation = leftLegRestRotation;
+            rightLeg.localRotation = rightLegRestRotation;
+            racket.localRotation = racketRestRotation;
+        }
+
         void LateUpdate()
         {
             if (!pose || !leftArm || !rightArm || !leftLeg || !rightLeg || !racket) return;
@@ -88,13 +106,14 @@ namespace FrutigerBadminton
             float airStretch = airborne ? Mathf.Clamp01((transform.position.y - groundHeight) * .22f) * .07f : 0f;
             float squash = landingPulse;
             pose.localScale = new Vector3(
-                poseRestScale.x * (1f - squash * .2f - airStretch * .25f),
-                poseRestScale.y * (1f + squash * .3f + airStretch),
-                poseRestScale.z * (1f - squash * .2f - airStretch * .25f));
+                poseRestScale.x * (1f + squash * .2f - airStretch * .25f),
+                poseRestScale.y * (1f - squash * .3f + airStretch),
+                poseRestScale.z * (1f + squash * .2f - airStretch * .25f));
 
             float pitch = Mathf.Clamp(localMovement.z * 2.3f, -14f, 14f) + (dashing ? 12f : 0f) + (airborne ? -5f : 0f);
             float roll = Mathf.Clamp(-localMovement.x * 3.4f, -12f, 12f);
-            pose.localRotation = poseRestRotation * Quaternion.Euler(pitch, 0f, roll);
+            Quaternion targetRotation = poseRestRotation * Quaternion.Euler(pitch, 0f, roll);
+            pose.localRotation = Quaternion.Slerp(pose.localRotation, targetRotation, 1f - Mathf.Exp(-14f * deltaTime));
 
             float raisedArms = airborne ? -24f : dashing ? -12f : 0f;
             leftArm.localRotation = leftArmRestRotation * Quaternion.Euler(-step * 18f + raisedArms, 0f, -Mathf.Abs(step) * 5f);
@@ -107,7 +126,7 @@ namespace FrutigerBadminton
                 swingRemaining = Mathf.Max(0f, swingRemaining - deltaTime);
                 float progress = 1f - swingRemaining / swingDuration;
                 float anticipation = Mathf.SmoothStep(0f, 1f, progress / .18f);
-                float followThrough = 1f - Mathf.SmoothStep(.22f, .85f, progress);
+                float followThrough = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.22f, .85f, progress));
                 float pulse = anticipation * followThrough;
                 rightArmPose *= Quaternion.Euler(-56f * swingPower * pulse, 0f, 24f * swingPower * pulse);
                 racket.localRotation = racketRestRotation * Quaternion.Euler(0f, 0f, -70f * swingPower * pulse);

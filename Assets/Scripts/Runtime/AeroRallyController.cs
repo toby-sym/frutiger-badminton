@@ -1002,6 +1002,12 @@ namespace FrutigerBadminton
             rival.position = new Vector3(0f, GroundY, 4.6f);
             rivalPartner.position = new Vector3(1.65f, GroundY, 4.8f);
             rivalWing.position = new Vector3(-1.65f, GroundY, 4.2f);
+            if (playerAnimation) playerAnimation.ResetMotion();
+            if (partnerAnimation) partnerAnimation.ResetMotion();
+            if (partnerTwoAnimation) partnerTwoAnimation.ResetMotion();
+            if (rivalAnimation) rivalAnimation.ResetMotion();
+            if (rivalPartnerAnimation) rivalPartnerAnimation.ResetMotion();
+            if (rivalWingAnimation) rivalWingAnimation.ResetMotion();
             if (dashTrail)
             {
                 dashTrail.Clear();
