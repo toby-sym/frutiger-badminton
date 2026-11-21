@@ -111,6 +111,10 @@ namespace FrutigerBadminton
         int playerScore;
         int rivalScore;
         int rallyHits;
+        int longestRallyHits;
+        int smashesHit;
+        int partnerReturns;
+        int dashUses;
         int nextUpgradeScore = UpgradeScoreInterval;
         int upgradeOfferCount;
         int selectedUpgrade;
@@ -331,6 +335,7 @@ namespace FrutigerBadminton
                 dashTime = .16f;
                 dashCooldown = Mathf.Max(.55f, 1.05f - upgradeLevels[(int)SoloUpgrade.TurboDash] * .1f);
                 isDashing = true;
+                dashUses++;
                 if (dashTrail)
                 {
                     dashTrail.Clear();
@@ -532,6 +537,7 @@ namespace FrutigerBadminton
             AeroPlayerAnimation returnerAnimation = returner == partner ? partnerAnimation : partnerTwoAnimation;
             if (returnerAnimation) returnerAnimation.Swing(false);
             rallyHits++;
+            partnerReturns++;
             ShowMessage("Partner return  •  Rally " + rallyHits, .9f);
             return true;
         }
@@ -600,6 +606,7 @@ namespace FrutigerBadminton
             Launch(shuttle.position, target, duration, false, true, style);
             if (playerAnimation) playerAnimation.Swing(style == ShotStyle.Smash);
             rallyHits++;
+            if (style == ShotStyle.Smash) smashesHit++;
             string hit = style == ShotStyle.Clear ? "Aqua clear"
                        : style == ShotStyle.Drop ? "Feather drop"
                        : style == ShotStyle.Drive ? "Glass drive" : "Sky smash";
@@ -628,6 +635,7 @@ namespace FrutigerBadminton
             Launch(start, target, duration, false, true, style);
             if (playerAnimation) playerAnimation.Swing(style == ShotStyle.Smash);
             rallyHits++;
+            if (style == ShotStyle.Smash) smashesHit++;
             string hit = style == ShotStyle.Clear ? "Aqua clear"
                        : style == ShotStyle.Drop ? "Feather drop"
                        : style == ShotStyle.Drive ? "Glass drive" : "Sky smash";
@@ -819,6 +827,7 @@ namespace FrutigerBadminton
 
         void FinishPoint(string result, bool offerUpgrade = false, bool endRun = false, bool won = false)
         {
+            longestRallyHits = Mathf.Max(longestRallyHits, rallyHits);
             flightActive = false;
             playerMustReturn = false;
             shuttleTrail.Clear();
@@ -843,6 +852,10 @@ namespace FrutigerBadminton
             playerScore = 0;
             rivalScore = 0;
             rallyHits = 0;
+            longestRallyHits = 0;
+            smashesHit = 0;
+            partnerReturns = 0;
+            dashUses = 0;
             nextUpgradeScore = UpgradeScoreInterval;
             System.Array.Clear(upgradeLevels, 0, upgradeLevels.Length);
             runComplete = false;
@@ -1550,21 +1563,55 @@ namespace FrutigerBadminton
             }
 
             float panelWidth = Mathf.Min(540f, Screen.width - 32f);
-            float panelHeight = 310f;
+            float panelHeight = 430f;
             float left = (Screen.width - panelWidth) * .5f;
             float top = (Screen.height - panelHeight) * .5f;
             GUI.color = new Color(.02f, .13f, .19f, .97f);
             GUI.Box(new Rect(left, top, panelWidth, panelHeight), GUIContent.none);
             GUI.color = runWon ? new Color(.55f, 1f, .83f) : new Color(1f, .63f, .69f);
-            GUI.Label(new Rect(left + 24f, top + 28f, panelWidth - 48f, 46f), runWon ? "RUN COMPLETE" : "RUN OVER", scoreStyle);
+            GUI.Label(new Rect(left + 24f, top + 22f, panelWidth - 48f, 46f), runWon ? "RUN COMPLETE" : "RUN OVER", scoreStyle);
             GUI.color = Color.white;
-            GUI.Label(new Rect(left + 24f, top + 92f, panelWidth - 48f, 40f), "SOLO RALLY   " + playerScore + "  —  " + rivalScore, scoreStyle);
-            GUI.Label(new Rect(left + 24f, top + 146f, panelWidth - 48f, 28f), "First to 7 points, win by 2 (cap 9)", labelStyle);
-            GUI.Label(new Rect(left + 24f, top + 178f, panelWidth - 48f, 24f), "Upgrades reset when you start a new run.", hintStyle);
-            if (GUI.Button(new Rect(left + 115f, top + 218f, panelWidth - 230f, 42f), "START A NEW RUN", upgradeButtonStyle))
+            GUI.Label(new Rect(left + 24f, top + 72f, panelWidth - 48f, 40f), "SOLO RALLY   " + playerScore + "  —  " + rivalScore, scoreStyle);
+            GUI.color = new Color(.68f, .91f, .95f);
+            GUI.Label(new Rect(left + 24f, top + 119f, panelWidth - 48f, 20f), "RUN STATS", hintStyle);
+
+            const float statGap = 8f;
+            float statWidth = (panelWidth - 48f - statGap * 3f) / 4f;
+            float statTop = top + 145f;
+            string[] statNames = { "BEST RALLY", "SMASHES", "TEAM SAVES", "AERO DASHES" };
+            int[] statValues = { longestRallyHits, smashesHit, partnerReturns, dashUses };
+            for (int i = 0; i < statNames.Length; i++)
+            {
+                float x = left + 24f + i * (statWidth + statGap);
+                GUI.color = new Color(.06f, .23f, .29f, .96f);
+                GUI.Box(new Rect(x, statTop, statWidth, 78f), GUIContent.none);
+                GUI.color = new Color(.61f, .91f, .94f);
+                GUI.Label(new Rect(x + 4f, statTop + 8f, statWidth - 8f, 20f), statNames[i], scoreTeamStyle);
+                GUI.color = Color.white;
+                GUI.Label(new Rect(x + 4f, statTop + 30f, statWidth - 8f, 40f), statValues[i].ToString(), scoreStyle);
+            }
+
+            GUI.color = new Color(.08f, .27f, .32f, .92f);
+            GUI.Box(new Rect(left + 24f, top + 234f, panelWidth - 48f, 48f), GUIContent.none);
+            GUI.color = new Color(.82f, .98f, 1f);
+            GUI.Label(new Rect(left + 34f, top + 238f, panelWidth - 68f, 40f), RunUpgradeSummary(), upgradeDescriptionStyle);
+            GUI.color = Color.white;
+            GUI.Label(new Rect(left + 24f, top + 290f, panelWidth - 48f, 22f), "First to 7 points, win by 2 (cap 9)", labelStyle);
+            GUI.Label(new Rect(left + 24f, top + 315f, panelWidth - 48f, 22f), "Upgrades reset when you start a new run.", hintStyle);
+            if (GUI.Button(new Rect(left + 115f, top + 348f, panelWidth - 230f, 42f), "START A NEW RUN", upgradeButtonStyle))
                 StartNewRun();
-            GUI.Label(new Rect(left + 24f, top + 270f, panelWidth - 48f, 22f),
+            GUI.Label(new Rect(left + 24f, top + 394f, panelWidth - 48f, 22f),
                 controllerConnected ? "Press A to play again" : "Press Enter to play again", hintStyle);
+        }
+
+        string RunUpgradeSummary()
+        {
+            var activeUpgrades = new List<string>();
+            for (int i = 0; i < upgradeLevels.Length; i++)
+                if (upgradeLevels[i] > 0) activeUpgrades.Add(UpgradeShortNames[i] + " " + upgradeLevels[i]);
+            return activeUpgrades.Count == 0
+                ? "RUN BUILD  ·  No upgrades"
+                : "RUN BUILD  ·  " + string.Join("  ·  ", activeUpgrades);
         }
 
         void DrawUpgradeDraft(bool controllerConnected)
