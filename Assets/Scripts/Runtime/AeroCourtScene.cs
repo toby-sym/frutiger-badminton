@@ -155,9 +155,19 @@ namespace FrutigerBadminton
 
         void CreateFloatingIsland()
         {
-            var island = Cube("Floating court island", Vector3.zero, new Vector3(15.5f, .7f, 20.5f), new Color(.15f, .78f, .82f), .78f, .15f);
+            var island = new GameObject("Beveled floating court island");
             island.transform.position = new Vector3(0f, -1.1f, 0f);
-            Cube("Glowing lower rim", new Vector3(0f, -1.55f, 0f), new Vector3(14.9f, .18f, 19.9f), new Color(.26f, .96f, 1f), .4f, 1.3f);
+            Mesh islandMesh = BuildFloatingIslandMesh();
+            ownedMeshes.Add(islandMesh);
+            island.AddComponent<MeshFilter>().sharedMesh = islandMesh;
+            island.AddComponent<MeshRenderer>().sharedMaterials = new[]
+            {
+                MakeMaterial("Universal Render Pipeline/Lit", new Color(.2f, .75f, .83f), .78f, .12f),
+                MakeMaterial("Universal Render Pipeline/Lit", new Color(.08f, .42f, .56f), .82f, .2f),
+                MakeMaterial("Universal Render Pipeline/Lit", new Color(.3f, .96f, 1f), .5f, 1.35f),
+                MakeMaterial("Universal Render Pipeline/Lit", new Color(.08f, .34f, .6f), .76f, .24f),
+                MakeMaterial("Universal Render Pipeline/Lit", new Color(.045f, .19f, .43f), .68f, .2f)
+            };
             for (int i = 0; i < 9; i++)
             {
                 float x = -6.3f + i * 1.58f;
@@ -165,6 +175,81 @@ namespace FrutigerBadminton
                 var support = Cylinder("Crystal island support", new Vector3(x, -2.2f, z), new Vector3(.35f, 2.2f, .35f), new Color(.24f, .72f, .9f), .7f, .3f);
                 support.transform.rotation = Quaternion.Euler(0f, 0f, (i % 2 == 0 ? -1f : 1f) * 11f);
             }
+        }
+
+        static Mesh BuildFloatingIslandMesh()
+        {
+            const int materialCount = 5;
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>[materialCount];
+            for (int i = 0; i < triangles.Length; i++) triangles[i] = new List<int>();
+
+            // The chamfered rings keep the court's large, level top while giving the island a clear crystal-mesa silhouette.
+            float[] widths = { 15.1f, 15.5f, 15.5f, 15.5f, 15.1f, 15.1f, 14.7f, 13.8f, 11.8f, 8.6f };
+            float[] lengths = { 20.1f, 20.5f, 20.5f, 20.5f, 20.1f, 20.1f, 19.7f, 18.8f, 16.7f, 13.8f };
+            float[] heights = { .35f, .1f, -.28f, -.4f, -.52f, -.62f, -1.08f, -1.78f, -2.4f, -2.78f };
+            float[,] corners =
+            {
+                { -.36f, -.5f }, { .36f, -.5f }, { .5f, -.36f }, { .5f, .36f },
+                { .36f, .5f }, { -.36f, .5f }, { -.5f, .36f }, { -.5f, -.36f }
+            };
+
+            Vector3 Point(int ring, int corner) => new Vector3(
+                corners[corner, 0] * widths[ring], heights[ring], corners[corner, 1] * lengths[ring]);
+
+            Vector3 topCenter = new Vector3(0f, heights[0], 0f);
+            for (int corner = 0; corner < 8; corner++)
+                AddIslandTriangle(vertices, triangles[0], topCenter, Point(0, (corner + 1) % 8), Point(0, corner));
+
+            int[] segmentMaterials = { 0, 1, 1, 1, 2, 2, 3, 4, 4 };
+            for (int ring = 0; ring < heights.Length - 1; ring++)
+            {
+                List<int> materialTriangles = triangles[segmentMaterials[ring]];
+                for (int corner = 0; corner < 8; corner++)
+                {
+                    int next = (corner + 1) % 8;
+                    AddIslandQuad(vertices, materialTriangles,
+                        Point(ring, corner), Point(ring, next), Point(ring + 1, next), Point(ring + 1, corner));
+                }
+            }
+
+            Vector3 bottomCenter = new Vector3(0f, heights[heights.Length - 1], 0f);
+            for (int corner = 0; corner < 8; corner++)
+                AddIslandTriangle(vertices, triangles[4], bottomCenter, Point(heights.Length - 1, corner), Point(heights.Length - 1, (corner + 1) % 8));
+
+            var mesh = new Mesh { name = "Generated beveled floating island" };
+            mesh.SetVertices(vertices);
+            mesh.subMeshCount = materialCount;
+            for (int i = 0; i < triangles.Length; i++) mesh.SetTriangles(triangles[i], i, false);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        static void AddIslandTriangle(List<Vector3> vertices, List<int> triangles, Vector3 a, Vector3 b, Vector3 c)
+        {
+            int first = vertices.Count;
+            vertices.Add(a);
+            vertices.Add(b);
+            vertices.Add(c);
+            triangles.Add(first);
+            triangles.Add(first + 1);
+            triangles.Add(first + 2);
+        }
+
+        static void AddIslandQuad(List<Vector3> vertices, List<int> triangles, Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+        {
+            int first = vertices.Count;
+            vertices.Add(a);
+            vertices.Add(b);
+            vertices.Add(c);
+            vertices.Add(d);
+            triangles.Add(first);
+            triangles.Add(first + 1);
+            triangles.Add(first + 2);
+            triangles.Add(first);
+            triangles.Add(first + 2);
+            triangles.Add(first + 3);
         }
 
         void CreateCourt()
