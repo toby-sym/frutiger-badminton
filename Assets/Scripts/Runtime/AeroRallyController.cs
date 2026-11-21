@@ -1739,10 +1739,7 @@ namespace FrutigerBadminton
                 return;
             }
 
-            GUI.color = new Color(.02f, .105f, .16f, .91f);
-            GUI.Box(ControlsPanelRect, GUIContent.none);
-            GUI.color = new Color(.38f, .94f, .91f, .9f);
-            GUI.DrawTexture(new Rect(17f, 17f, 318f, 2f), Texture2D.whiteTexture);
+            DrawGlassPanel(ControlsPanelRect, new Color(.035f, .19f, .25f, .94f), new Color(.01f, .065f, .12f, .95f));
             GUI.color = new Color(.49f, 1f, .94f);
             GUI.Label(new Rect(28f, 22f, 298f, 24f), "FRUTIGER BADMINTON", labelStyle);
             GUI.color = new Color(.67f, .86f, .9f);
@@ -1782,8 +1779,9 @@ namespace FrutigerBadminton
             float scoreLeft = Mathf.Max(16f, Screen.width - 388f);
             bool serveLabelVisible = servePending || upgradeDraftActive || playerServeReady || flightActive;
             bool playerServing = servePending || upgradeDraftActive ? playerServesNext : !playerServesNext;
-            GUI.color = scorePanel;
-            GUI.Box(new Rect(scoreLeft, 16f, 372f, 60f), GUIContent.none);
+            Color scoreTop = new Color(Mathf.Min(1f, scorePanel.r + .05f), Mathf.Min(1f, scorePanel.g + .08f),
+                Mathf.Min(1f, scorePanel.b + .08f), scorePanel.a);
+            DrawGlassPanel(new Rect(scoreLeft, 16f, 372f, 60f), scoreTop, scorePanel);
             GUI.color = new Color(.45f, 1f, .91f);
             GUI.Label(new Rect(scoreLeft + 18f, 18f, 128f, 20f),
                 serveLabelVisible && playerServing ? "AQUA  ·  SERVING" : "AQUA  ·  YOU", scoreTeamStyle);
@@ -1804,9 +1802,9 @@ namespace FrutigerBadminton
 
             if (!runComplete && !upgradeDraftActive && !isPaused && messageDelay > 0f)
             {
-                GUI.color = new Color(.02f, .16f, .22f, .82f);
                 float messageTop = Mathf.Max(16f, Screen.height - 64f);
-                GUI.Box(new Rect(Screen.width * .5f - 235f, messageTop, 470f, 48f), GUIContent.none);
+                DrawGlassPanel(new Rect(Screen.width * .5f - 235f, messageTop, 470f, 48f),
+                    new Color(.045f, .24f, .29f, .9f), new Color(.01f, .09f, .15f, .92f));
                 GUI.color = Color.white;
                 GUI.Label(new Rect(Screen.width * .5f - 225f, messageTop + 4f, 450f, 40f), message, scoreStyle);
             }
@@ -1863,8 +1861,8 @@ namespace FrutigerBadminton
             Rect mainPanel = new Rect(left, top, mainWidth, panelHeight);
             Rect sidePanel = new Rect(left + mainWidth + 20f, top, sideWidth, panelHeight);
 
-            DrawTitleGlassPanel(mainPanel, new Color(.045f, .25f, .32f, .94f), new Color(.012f, .075f, .14f, .95f));
-            DrawTitleGlassPanel(sidePanel, new Color(.08f, .33f, .39f, .90f), new Color(.02f, .12f, .19f, .92f));
+            DrawGlassPanel(mainPanel, new Color(.045f, .25f, .32f, .94f), new Color(.012f, .075f, .14f, .95f));
+            DrawGlassPanel(sidePanel, new Color(.08f, .33f, .39f, .90f), new Color(.02f, .12f, .19f, .92f));
 
             GUI.color = new Color(.48f, 1f, .94f);
             GUI.Label(new Rect(mainPanel.x + 36f, top + 28f, mainWidth - 72f, 22f),
@@ -1988,7 +1986,7 @@ namespace FrutigerBadminton
             GUI.matrix = previousMatrix;
         }
 
-        void DrawTitleGlassPanel(Rect rect, Color top, Color bottom)
+        void DrawGlassPanel(Rect rect, Color top, Color bottom)
         {
             if (Event.current.type != EventType.Repaint) return;
             Color previous = GUI.color;
@@ -2035,8 +2033,8 @@ namespace FrutigerBadminton
             float panelHeight = 350f;
             float left = (Screen.width - panelWidth) * .5f;
             float top = (Screen.height - panelHeight) * .5f;
-            GUI.color = new Color(.02f, .13f, .19f, .97f);
-            GUI.Box(new Rect(left, top, panelWidth, panelHeight), GUIContent.none);
+            DrawGlassPanel(new Rect(left, top, panelWidth, panelHeight),
+                new Color(.045f, .24f, .3f, .97f), new Color(.012f, .075f, .13f, .97f));
             GUI.color = new Color(.55f, 1f, .92f);
             GUI.Label(new Rect(left + 24f, top + 24f, panelWidth - 48f, 46f), "RALLY PAUSED", scoreStyle);
             GUI.color = Color.white;
@@ -2074,8 +2072,8 @@ namespace FrutigerBadminton
             float panelHeight = 430f;
             float left = (Screen.width - panelWidth) * .5f;
             float top = (Screen.height - panelHeight) * .5f;
-            GUI.color = new Color(.02f, .13f, .19f, .97f);
-            GUI.Box(new Rect(left, top, panelWidth, panelHeight), GUIContent.none);
+            DrawGlassPanel(new Rect(left, top, panelWidth, panelHeight),
+                new Color(.045f, .24f, .3f, .97f), new Color(.012f, .075f, .13f, .97f));
             GUI.color = runWon ? new Color(.55f, 1f, .83f) : new Color(1f, .63f, .69f);
             GUI.Label(new Rect(left + 24f, top + 22f, panelWidth - 48f, 46f), runWon ? "RUN COMPLETE" : "RUN OVER", scoreStyle);
             GUI.color = Color.white;
@@ -2137,8 +2135,8 @@ namespace FrutigerBadminton
             float panelHeight = 310f;
             float left = (Screen.width - panelWidth) * .5f;
             float top = (Screen.height - panelHeight) * .5f;
-            GUI.color = new Color(.02f, .13f, .19f, .96f);
-            GUI.Box(new Rect(left, top, panelWidth, panelHeight), GUIContent.none);
+            DrawGlassPanel(new Rect(left, top, panelWidth, panelHeight),
+                new Color(.045f, .24f, .3f, .97f), new Color(.012f, .075f, .13f, .97f));
             GUI.color = Color.white;
             GUI.Label(new Rect(left + 20f, top + 16f, panelWidth - 40f, 36f), "RALLY BREAKTHROUGH", scoreStyle);
             GUI.Label(new Rect(left + 20f, top + 54f, panelWidth - 40f, 28f), "Choose one upgrade for this run", labelStyle);
