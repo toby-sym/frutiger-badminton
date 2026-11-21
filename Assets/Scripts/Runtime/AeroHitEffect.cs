@@ -99,14 +99,14 @@ namespace FrutigerBadminton
             float progress = Mathf.Clamp01(elapsed / Duration);
             float fade = 1f - progress;
             float expansion = Mathf.SmoothStep(0f, 1f, Mathf.Min(1f, progress * 1.45f));
-            float retract = 1f - Mathf.SmoothStep(.68f, 1f, progress) * .82f;
+            float retract = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.68f, 1f, progress)) * .82f;
 
             ring.localScale = Vector3.one * Mathf.Lerp(.12f, .95f * strength, expansion) * retract;
             ring.localRotation = Quaternion.Euler(0f, 0f, progress * 36f);
             SetGlow(ringRenderer, tint, fade, 2.8f);
 
             float flashIn = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / .055f));
-            float flashOut = 1f - Mathf.SmoothStep(.08f, .31f, elapsed);
+            float flashOut = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.08f, .31f, elapsed));
             flash.localScale = Vector3.one * Mathf.Lerp(.08f, .4f * strength, flashIn) * flashOut;
             SetGlow(flashRenderer, Color.Lerp(tint, Color.white, .65f), flashOut, 4.2f);
 
