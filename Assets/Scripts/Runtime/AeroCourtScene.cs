@@ -122,6 +122,7 @@ namespace FrutigerBadminton
             fill.transform.rotation = Quaternion.Euler(18f, 150f, 0f);
 
             CreateSkyDome();
+            CreateHorizonLandscape();
             CreateFloatingIsland();
             CreateCourt();
             CreatePavilion();
@@ -168,6 +169,55 @@ namespace FrutigerBadminton
             dome.transform.position = new Vector3(0f, -5f, 0f);
             dome.AddComponent<MeshFilter>().sharedMesh = mesh;
             dome.AddComponent<MeshRenderer>().sharedMaterial = MakeMaterial("Frutiger/Vertex Color", Color.white, 0f, .2f, vertexColorShader);
+        }
+
+        void CreateHorizonLandscape()
+        {
+            Shader shader = Resources.Load<Shader>("HorizonLandscape");
+            if (!shader) return;
+            var material = new Material(shader) { name = "Procedural horizon colours" };
+            ownedMaterials.Add(material);
+
+            for (int layer = 0; layer < 2; layer++)
+            {
+                const int segments = 64;
+                float depth = layer == 0 ? 70f : 80f;
+                float topOffset = layer == 0 ? -2f : -.4f;
+                var vertices = new List<Vector3>((segments + 1) * 3);
+                var colors = new List<Color>((segments + 1) * 3);
+                var triangles = new List<int>(segments * 12);
+                Color ridge = layer == 0 ? new Color(.36f, .72f, .25f, .82f) : new Color(.49f, .77f, .36f, .64f);
+                Color mid = layer == 0 ? new Color(.18f, .57f, .42f, .55f) : new Color(.28f, .63f, .48f, .42f);
+                Color mist = new Color(.58f, .86f, .86f, 0f);
+                for (int i = 0; i <= segments; i++)
+                {
+                    float x = Mathf.Lerp(-85f, 85f, i / (float)segments);
+                    float crest = topOffset + Mathf.Sin(x * .052f + layer * 1.4f) * 1.1f + Mathf.Sin(x * .11f + .7f) * .35f;
+                    vertices.Add(new Vector3(x, -13f, depth)); colors.Add(mist);
+                    vertices.Add(new Vector3(x, Mathf.Lerp(-13f, crest, .6f), depth)); colors.Add(mid);
+                    vertices.Add(new Vector3(x, crest, depth)); colors.Add(ridge);
+                    if (i == segments) continue;
+                    int first = i * 3;
+                    for (int row = 0; row < 2; row++)
+                    {
+                        int a = first + row;
+                        triangles.Add(a); triangles.Add(a + 3); triangles.Add(a + 1);
+                        triangles.Add(a + 1); triangles.Add(a + 3); triangles.Add(a + 4);
+                    }
+                }
+                var mesh = new Mesh { name = "Generated horizon ridge " + layer };
+                mesh.SetVertices(vertices);
+                mesh.SetColors(colors);
+                mesh.SetTriangles(triangles, 0);
+                mesh.RecalculateBounds();
+                ownedMeshes.Add(mesh);
+                var ridgeObject = new GameObject("Distant meadow ridge " + layer);
+                ridgeObject.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var renderer = ridgeObject.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = material;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+            }
         }
 
         void CreateFloatingIsland()
