@@ -31,6 +31,7 @@
 - The rally HUD shows a compact six-chip run build with the current level of each upgrade, including the new Prism Strings effect.
 - The run-end screen now recaps longest rally, smashes, partner saves, dash uses, and the completed run build before replay.
 - The shuttlecock's generated feather vanes now display their aqua-to-pearl vertex gradient through a custom two-sided Fresnel shader; clears, drops, drives, and smashes each have distinct in-flight axial spin.
+- Smoke-test startup failures are fixed: MaterialPropertyBlocks are created in Awake, and generated Resources material templates retain the URP Lit, Unlit, and Particle Unlit shaders needed by runtime-created materials in player builds.
 - A solo run ends at 7 points with a two-point lead (hard cap 9), shows a win/loss screen, and lets the player replay with scores and upgrades reset.
 - Controller-first gamepad mappings and keyboard/mouse fallback are built with both input backends enabled from startup in `ProjectSettings/ProjectSettings.asset`. GameCI run `44843252147` passed in 8m39, uploaded a Windows artifact, and saved a compatible 765 MB Unity Library cache. Verify gamepad behavior in the artifact.
 - Incoming shots now display a generated segmented landing reticle that follows the shuttle's predicted landing spot and pulses from aqua to coral as impact approaches. The HUD explains the cue. Fixed shuttle setup to assign its generated feather mesh directly instead of retrieving it from a mixed object list; artifact verification is pending.

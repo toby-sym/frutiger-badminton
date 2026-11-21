@@ -41,8 +41,8 @@ namespace FrutigerBadminton
         readonly int[] upgradeLevels = new int[6];
         readonly SoloUpgrade[] upgradeOffers = new SoloUpgrade[3];
         readonly AudioClip[] shotAudioClips = new AudioClip[4];
-        readonly MaterialPropertyBlock landingMarkerProperties = new MaterialPropertyBlock();
-        readonly MaterialPropertyBlock aimMarkerProperties = new MaterialPropertyBlock();
+        MaterialPropertyBlock landingMarkerProperties;
+        MaterialPropertyBlock aimMarkerProperties;
         Transform player;
         Transform partner;
         Transform partnerTwo;
@@ -135,6 +135,12 @@ namespace FrutigerBadminton
         bool runComplete;
         bool runWon;
         string message = "Move under the return, then time your shot.";
+
+        void Awake()
+        {
+            landingMarkerProperties = new MaterialPropertyBlock();
+            aimMarkerProperties = new MaterialPropertyBlock();
+        }
 
         void Start()
         {
@@ -1327,7 +1333,7 @@ namespace FrutigerBadminton
 
         Material CreateMaterial(string shaderName, Color color, float smoothness, float emission, Shader explicitShader = null)
         {
-            Shader shader = explicitShader ? explicitShader : Shader.Find(shaderName) ?? Shader.Find("Standard");
+            Shader shader = explicitShader ? explicitShader : AeroRuntimeShaderLibrary.Resolve(shaderName);
             var material = new Material(shader) { name = "Rally " + ColorUtility.ToHtmlStringRGBA(color) };
             if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color); else material.color = color;
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", smoothness);
