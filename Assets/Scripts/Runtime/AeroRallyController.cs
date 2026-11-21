@@ -50,6 +50,7 @@ namespace FrutigerBadminton
         Transform rival;
         Transform rivalPartner;
         Transform rivalWing;
+        Transform assignedOpponentReceiver;
         Transform shuttle;
         Transform landingMarker;
         Transform aimMarker;
@@ -485,7 +486,7 @@ namespace FrutigerBadminton
 
         void MoveRival(float deltaTime)
         {
-            if (!flightActive || playerMustReturn || !IsClosestOpponent(rival)) return;
+            if (!flightActive || playerMustReturn || assignedOpponentReceiver != rival) return;
             Vector3 destination = new Vector3(flightTarget.x, GroundY, flightTarget.z + .25f);
             destination.x = Mathf.Clamp(destination.x, -CourtHalfWidth + .35f, CourtHalfWidth - .35f);
             destination.z = Mathf.Clamp(destination.z, .42f, CourtHalfLength - .45f);
@@ -494,19 +495,19 @@ namespace FrutigerBadminton
 
         void MoveRivalPartner(float deltaTime)
         {
-            MoveRivalSupport(rivalPartner, -1.65f, 4.8f, deltaTime);
+            MoveRivalSupport(rivalPartner, 1.65f, 4.8f, deltaTime);
         }
 
         void MoveRivalWing(float deltaTime)
         {
-            MoveRivalSupport(rivalWing, 1.65f, 4.2f, deltaTime);
+            MoveRivalSupport(rivalWing, -1.65f, 4.2f, deltaTime);
         }
 
         void MoveRivalSupport(Transform member, float homeX, float homeZ, float deltaTime)
         {
             if (!member) return;
             Vector3 destination = new Vector3(homeX, GroundY, homeZ);
-            if (flightActive && !playerMustReturn && IsClosestOpponent(member))
+            if (flightActive && !playerMustReturn && assignedOpponentReceiver == member)
             {
                 destination.x = Mathf.Clamp(flightTarget.x, -CourtHalfWidth + .45f, CourtHalfWidth - .45f);
                 destination.z = Mathf.Clamp(flightTarget.z, .42f, CourtHalfLength - .45f);
@@ -514,12 +515,7 @@ namespace FrutigerBadminton
             member.position = Vector3.MoveTowards(member.position, destination, 5.1f * deltaTime);
         }
 
-        bool IsClosestOpponent(Transform member)
-        {
-            return GetClosestOpponent() == member;
-        }
-
-        Transform GetClosestOpponent()
+        Transform ChooseClosestOpponent()
         {
             Transform closest = rival;
             float closestDistance = HorizontalDistance(rival.position, flightTarget);
@@ -592,7 +588,7 @@ namespace FrutigerBadminton
         void UpdateAIReceiverMarkers()
         {
             Transform friendlyReceiver = GetAssignedFriendlyReceiver();
-            Transform opponentReceiver = flightActive && !playerMustReturn ? GetClosestOpponent() : null;
+            Transform opponentReceiver = flightActive && !playerMustReturn ? assignedOpponentReceiver : null;
             UpdateReceiverMarker(partnerReceiverMarker, partner, friendlyReceiver);
             UpdateReceiverMarker(partnerTwoReceiverMarker, partnerTwo, friendlyReceiver);
             UpdateReceiverMarker(rivalReceiverMarker, rival, opponentReceiver);
@@ -688,7 +684,12 @@ namespace FrutigerBadminton
                 return;
             }
 
-            Transform returner = GetClosestOpponent();
+            Transform returner = assignedOpponentReceiver;
+            if (!returner)
+            {
+                AwardPlayerPoint("Clean winner.");
+                return;
+            }
             if (HorizontalDistance(returner.position, flightTarget) > 1.05f)
             {
                 AwardPlayerPoint("Clean winner.");
@@ -866,6 +867,7 @@ namespace FrutigerBadminton
             playerServeReady = false;
             flightStart = start;
             flightTarget = target;
+            assignedOpponentReceiver = receiverIsPlayer ? null : ChooseClosestOpponent();
             if (playerShot)
                 duration *= Mathf.Lerp(1f, .875f, upgradeLevels[(int)SoloUpgrade.PrismStrings] / (float)MaxUpgradeLevel);
             flightDuration = duration;
@@ -957,6 +959,7 @@ namespace FrutigerBadminton
         {
             longestRallyHits = Mathf.Max(longestRallyHits, rallyHits);
             flightActive = false;
+            assignedOpponentReceiver = null;
             playerMustReturn = false;
             shuttleTrail.Clear();
             shuttle.position = new Vector3(0f, GroundY + .25f, 0f);
@@ -998,6 +1001,7 @@ namespace FrutigerBadminton
             upgradeDraftActive = false;
             servePending = false;
             flightActive = false;
+            assignedOpponentReceiver = null;
             playerMustReturn = false;
             isDashing = false;
             dashTime = 0f;
