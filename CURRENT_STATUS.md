@@ -9,6 +9,7 @@
 - The impact feedback Windows build passed in run `44836155335` (10m) and uploaded its artifact. The direct merge to `main` passed in run `44837552946` (10m20s) and saved a 746 MB `Library` cache for the default branch.
 - Procedural body pivots, responsive run/jump/dash/racket-swing animation, and generated shock rings and sparks at racket contact are implemented.
 - Racket hoops now render double-sided and use generated crossed string-bed meshes; the artifact visual check is pending.
+- Player silhouettes now have generated shorts, headbands, hair locks, pearl court shoes, bright traction soles, and team-colored side flashes; visual check is pending.
 - Controller-first gamepad mappings and keyboard/mouse fallback are built with both input backends enabled from startup in `ProjectSettings/ProjectSettings.asset`. GameCI run `44843252147` passed in 8m39, uploaded a Windows artifact, and saved a compatible 765 MB Unity Library cache. Verify gamepad behavior in the artifact.
 - Incoming shots now display a generated segmented landing reticle that follows the shuttle's predicted landing spot and pulses from aqua to coral as impact approaches. The HUD explains the cue. Fixed shuttle setup to assign its generated feather mesh directly instead of retrieving it from a mixed object list; artifact verification is pending.
 - Player dashes now emit a short transparent aqua trail from a torso anchor and a procedural impact burst; artifact verification is pending.
