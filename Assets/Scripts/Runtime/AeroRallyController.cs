@@ -18,6 +18,7 @@ namespace FrutigerBadminton
         const int UpgradeScoreInterval = 3;
         const int MaxUpgradeLevel = 5;
         const float CameraShakeDuration = .18f;
+        const float ShotInputBufferDuration = .18f;
         static readonly Rect ControlsPanelRect = new Rect(16f, 16f, 320f, 360f);
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         static readonly int ColorId = Shader.PropertyToID("_Color");
@@ -113,6 +114,7 @@ namespace FrutigerBadminton
         Color scorePulseColor = Color.white;
         float serveDelay;
         float messageDelay;
+        float shotInputBufferRemaining;
         int playerScore;
         int rivalScore;
         int rallyHits;
@@ -125,11 +127,13 @@ namespace FrutigerBadminton
         int selectedUpgrade;
         int upgradeInputFrame = -1;
         ShotStyle flightShotStyle;
+        ShotStyle bufferedShotStyle;
         bool playerMustReturn;
         bool playerServeReady;
         bool playerServesNext = true;
         bool flightWasPlayerShot;
         bool flightActive;
+        bool shotInputBuffered;
         bool servePending;
         bool isDashing;
         bool isPaused;
@@ -250,10 +254,32 @@ namespace FrutigerBadminton
             UpdateAIReceiverMarkers();
             UpdateLandingMarker();
             UpdateAimMarker();
-            if (playerServeReady && IsShotInput()
-                && (!IsMouseShotInput() || !MouseIsOverHud())) TryPlayerServe();
-            else if (flightActive && playerMustReturn && IsShotInput()
-                && (!IsMouseShotInput() || !MouseIsOverHud())) TryPlayerShot();
+            bool shotPressed = IsShotInput() && (!IsMouseShotInput() || !MouseIsOverHud());
+            if (playerServeReady && shotPressed) TryPlayerServe();
+            else if (flightActive && playerMustReturn)
+            {
+                if (shotPressed)
+                {
+                    bufferedShotStyle = CurrentShotStyle();
+                    shotInputBuffered = true;
+                    shotInputBufferRemaining = ShotInputBufferDuration;
+                }
+                if (shotInputBuffered)
+                {
+                    if (TryPlayerShot(bufferedShotStyle)) shotInputBuffered = false;
+                    else
+                    {
+                        shotInputBufferRemaining -= deltaTime;
+                        if (shotInputBufferRemaining <= 0f)
+                        {
+                            shotInputBuffered = false;
+                            ShowMessage(bufferedShotStyle == ShotStyle.Smash && jumpHeight < .8f
+                                ? "Jump before a smash." : "Move closer to the shuttle.", .8f);
+                        }
+                    }
+                }
+            }
+            else shotInputBuffered = false;
         }
 
         void UpdateTitleScreen()
@@ -696,22 +722,15 @@ namespace FrutigerBadminton
             AwardPlayerPoint("Clean winner.");
         }
 
-        void TryPlayerShot()
+        bool TryPlayerShot(ShotStyle style)
         {
-            if (shuttle.position.z >= -.15f) return;
+            if (shuttle.position.z >= -.15f) return false;
             float reach = 1.7f + upgradeLevels[(int)SoloUpgrade.ExtendedSweetSpot] * .16f + jumpHeight * .5f;
             if (HorizontalDistance(player.position, shuttle.position) > reach || shuttle.position.y > GroundY + 2.9f + jumpHeight)
-            {
-                ShowMessage("Move closer to the shuttle.", .8f);
-                return;
-            }
+                return false;
 
-            ShotStyle style = CurrentShotStyle();
             if (style == ShotStyle.Smash && jumpHeight < .8f)
-            {
-                ShowMessage("Jump before a smash.", .8f);
-                return;
-            }
+                return false;
 
             Vector3 target = AimTarget(style);
             float duration = style == ShotStyle.Clear ? 1.48f
@@ -728,6 +747,7 @@ namespace FrutigerBadminton
                        : style == ShotStyle.Drop ? "Feather drop"
                        : style == ShotStyle.Drive ? "Glass drive" : "Sky smash";
             ShowMessage(hit + "  •  Rally " + rallyHits, .85f);
+            return true;
         }
 
         void TryPlayerServe()
@@ -957,6 +977,7 @@ namespace FrutigerBadminton
         {
             longestRallyHits = Mathf.Max(longestRallyHits, rallyHits);
             flightActive = false;
+            shotInputBuffered = false;
             assignedOpponentReceiver = null;
             playerMustReturn = false;
             shuttleTrail.Clear();
@@ -999,6 +1020,7 @@ namespace FrutigerBadminton
             upgradeDraftActive = false;
             servePending = false;
             flightActive = false;
+            shotInputBuffered = false;
             assignedOpponentReceiver = null;
             playerMustReturn = false;
             isDashing = false;
@@ -1335,6 +1357,7 @@ namespace FrutigerBadminton
 
         ShotStyle PreviewShotStyle()
         {
+            if (shotInputBuffered) return bufferedShotStyle;
             Gamepad gamepad = Gamepad.current;
             if (Input.GetMouseButton(1) || (gamepad != null && gamepad.buttonWest.isPressed)) return ShotStyle.Drop;
             if (Input.GetKey(KeyCode.F) || (gamepad != null && gamepad.buttonEast.isPressed)) return ShotStyle.Drive;
