@@ -17,6 +17,7 @@ namespace FrutigerBadminton
         const int SoloRunMaximumScore = 9;
         const int UpgradeScoreInterval = 3;
         const int MaxUpgradeLevel = 5;
+        const float CameraShakeDuration = .18f;
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         static readonly int ColorId = Shader.PropertyToID("_Color");
         static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
@@ -60,6 +61,7 @@ namespace FrutigerBadminton
         AeroPlayerAnimation rivalWingAnimation;
         TrailRenderer shuttleTrail;
         TrailRenderer dashTrail;
+        Transform courtCamera;
         Renderer landingMarkerRenderer;
         Renderer aimMarkerRenderer;
         Mesh landingMarkerMesh;
@@ -78,12 +80,15 @@ namespace FrutigerBadminton
         Vector3 flightVelocity;
         Vector3 previousShuttlePosition;
         Vector3 dashDirection;
+        Vector3 cameraRestPosition;
         float flightDuration;
         float flightElapsed;
         float dashTime;
         float dashCooldown;
         float jumpHeight;
         float jumpVelocity;
+        float cameraShakeRemaining;
+        float cameraShakeStrength;
         float scorePulseStart = -10f;
         Color scorePulseColor = Color.white;
         float serveDelay;
@@ -134,6 +139,12 @@ namespace FrutigerBadminton
             rivalAnimation = rivalObject.GetComponent<AeroPlayerAnimation>();
             rivalPartnerAnimation = rivalPartnerObject.GetComponent<AeroPlayerAnimation>();
             rivalWingAnimation = rivalWingObject.GetComponent<AeroPlayerAnimation>();
+            Camera mainCamera = Camera.main;
+            if (mainCamera)
+            {
+                courtCamera = mainCamera.transform;
+                cameraRestPosition = courtCamera.position;
+            }
             player.position = new Vector3(0f, GroundY, -4.6f);
             partner.position = new Vector3(-1.65f, GroundY, -4.8f);
             partnerTwo.position = new Vector3(1.65f, GroundY, -4.2f);
@@ -150,9 +161,10 @@ namespace FrutigerBadminton
 
         void Update()
         {
+            float deltaTime = Mathf.Min(Time.deltaTime, .05f);
+            UpdateCameraFeedback(deltaTime);
             if (upgradeDraftActive || runComplete) return;
 
-            float deltaTime = Mathf.Min(Time.deltaTime, .05f);
             if (servePending)
             {
                 serveDelay -= deltaTime;
@@ -619,6 +631,10 @@ namespace FrutigerBadminton
             shuttleTrail.endColor = new Color(trailTint.r, trailTint.g, trailTint.b, 0f);
             if (trailMaterial && trailMaterial.HasProperty(EmissionColorId))
                 trailMaterial.SetColor(EmissionColorId, trailTint * .72f);
+            float shake = style == ShotStyle.Smash ? .075f
+                        : style == ShotStyle.Drive ? .043f
+                        : style == ShotStyle.Drop ? .028f : .018f;
+            TriggerCameraShake(shake);
         }
 
         void AwardPlayerPoint(string result)
@@ -646,6 +662,32 @@ namespace FrutigerBadminton
             scorePulseColor = color;
             float rallyBonus = Mathf.Clamp01(rallyHits / 7f);
             AeroHitEffect.Spawn(shuttle.position + Vector3.up * .12f, color, Mathf.Lerp(1.1f, 1.8f, rallyBonus));
+            TriggerCameraShake(.08f + .045f * rallyBonus);
+        }
+
+        void TriggerCameraShake(float strength)
+        {
+            if (!courtCamera) return;
+            cameraShakeStrength = Mathf.Max(cameraShakeStrength, strength);
+            cameraShakeRemaining = CameraShakeDuration;
+        }
+
+        void UpdateCameraFeedback(float deltaTime)
+        {
+            if (!courtCamera) return;
+            if (cameraShakeRemaining <= 0f)
+            {
+                courtCamera.position = cameraRestPosition;
+                cameraShakeStrength = 0f;
+                return;
+            }
+
+            cameraShakeRemaining = Mathf.Max(0f, cameraShakeRemaining - deltaTime);
+            float envelope = cameraShakeStrength * (cameraShakeRemaining / CameraShakeDuration);
+            float phase = Time.unscaledTime * 68f;
+            Vector3 offset = courtCamera.right * Mathf.Sin(phase)
+                           + courtCamera.up * Mathf.Sin(phase * 1.31f);
+            courtCamera.position = cameraRestPosition + offset * envelope;
         }
 
         bool IsSoloRunComplete()
