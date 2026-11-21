@@ -23,6 +23,7 @@
 - The opponent is now a generated doubles pair too. Both opponents reposition toward their shared landing target, and the closer player returns the shuttle.
 - The local match now has a full 3v3 roster: the player and two AI partners against three generated opponents. Each AI side assigns the closest teammate to its predicted return.
 - Opponents keep one assigned receiver for each incoming shot, preventing the chasing role and its marker from oscillating mid-flight. Rival support home positions also match their starting sides; artifact gameplay verification is pending.
+- Friendly coverage uses a margin before handing off between player and partners or between partners, reducing rapid changes in pursuit and receiver markers while still responding to player movement. Gameplay verification is pending.
 - Opponents now return a descending shuttle while it is within reach, using its actual contact position for the return trajectory. Missed shots land as winners instead of teleporting back up to a rival; artifact gameplay verification is pending.
 - A pulsing, team-colored receiver reticle identifies the AI teammate assigned to cover an incoming landing, making the 3v3 coverage decision readable.
 - A shot-colored generated reticle previews the selected clear, drop, drive, or smash target on the opponent's court as the right stick or mouse moves; the HUD now calls out the aim preview and distinguishes it from the incoming landing ring.
