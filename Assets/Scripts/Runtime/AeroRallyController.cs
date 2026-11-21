@@ -25,6 +25,7 @@ namespace FrutigerBadminton
         {
             "Aero Laces", "Extended Sweet Spot", "Partner Drills", "Turbo Dash", "Shuttle Sense", "Prism Strings"
         };
+        static readonly string[] UpgradeShortNames = { "LACES", "REACH", "TEAM", "DASH", "SENSE", "PRISM" };
         static readonly string[] UpgradeDescriptions =
         {
             "Move faster around the court.",
@@ -81,6 +82,7 @@ namespace FrutigerBadminton
         GUIStyle labelStyle;
         GUIStyle upgradeButtonStyle;
         GUIStyle upgradeDescriptionStyle;
+        GUIStyle upgradeChipStyle;
         GUIStyle hintStyle;
         GUIStyle titleStyle;
         GUIStyle titleEyebrowStyle;
@@ -1322,6 +1324,11 @@ namespace FrutigerBadminton
                     alignment = TextAnchor.UpperLeft,
                     wordWrap = true
                 };
+                upgradeChipStyle = new GUIStyle(labelStyle)
+                {
+                    fontSize = 10,
+                    alignment = TextAnchor.MiddleCenter
+                };
                 hintStyle = new GUIStyle(labelStyle) { fontSize = 12, alignment = TextAnchor.MiddleLeft };
                 titleStyle = new GUIStyle(GUI.skin.label)
                 {
@@ -1358,6 +1365,7 @@ namespace FrutigerBadminton
                 upgradeDescriptionStyle.normal.textColor = new Color(.82f, .98f, 1f);
                 hintStyle.normal.textColor = new Color(.68f, .89f, .93f);
                 upgradeButtonStyle.normal.textColor = new Color(.03f, .18f, .2f);
+                upgradeChipStyle.normal.textColor = Color.white;
                 titleStyle.normal.textColor = Color.white;
                 titleEyebrowStyle.normal.textColor = new Color(.47f, 1f, .94f);
                 titleSubtitleStyle.normal.textColor = new Color(.49f, 1f, .94f);
@@ -1376,7 +1384,7 @@ namespace FrutigerBadminton
             }
 
             GUI.color = new Color(.025f, .15f, .2f, .84f);
-            GUI.Box(new Rect(16f, 16f, 320f, 288f), GUIContent.none);
+            GUI.Box(new Rect(16f, 16f, 320f, 344f), GUIContent.none);
             GUI.color = Color.white;
             GUI.Label(new Rect(28f, 22f, 298f, 30f), "FRUTIGER BADMINTON   •   3V3", labelStyle);
             bool controllerConnected = Gamepad.current != null;
@@ -1400,6 +1408,7 @@ namespace FrutigerBadminton
             GUI.DrawTexture(new Rect(28f, 245f, 298f * dashReady, 9f), Texture2D.whiteTexture);
             GUI.color = Color.white;
             GUI.Label(new Rect(28f, 258f, 298f, 20f), controllerConnected ? "Start   Pause / resume" : "Esc   Pause / resume", hintStyle);
+            DrawRunBuild();
 
             float scorePulse = Mathf.Clamp01(1f - (Time.unscaledTime - scorePulseStart) / .72f);
             Color scorePanel = Color.Lerp(new Color(.02f, .23f, .29f, .9f),
@@ -1435,6 +1444,32 @@ namespace FrutigerBadminton
                 GUI.Label(new Rect(Screen.width * .5f - 225f, Screen.height - 72f, 450f, 40f), message, scoreStyle);
             }
             GUI.color = previous;
+        }
+
+        void DrawRunBuild()
+        {
+            GUI.color = new Color(.68f, .91f, .95f);
+            GUI.Label(new Rect(28f, 279f, 298f, 18f), "RUN BUILD", hintStyle);
+
+            const float chipWidth = 94f;
+            const float chipHeight = 22f;
+            const float gapX = 8f;
+            const float gapY = 3f;
+            for (int i = 0; i < upgradeLevels.Length; i++)
+            {
+                int level = upgradeLevels[i];
+                int column = i % 3;
+                int row = i / 3;
+                float x = 28f + column * (chipWidth + gapX);
+                float y = 298f + row * (chipHeight + gapY);
+                Color idle = new Color(.045f, .18f, .22f, .76f);
+                Color active = Color.Lerp(new Color(.1f, .34f, .39f, .93f), new Color(.19f, .62f, .63f, .98f), level / (float)MaxUpgradeLevel);
+                GUI.color = level > 0 ? active : idle;
+                GUI.Box(new Rect(x, y, chipWidth, chipHeight), GUIContent.none);
+                GUI.color = level > 0 ? new Color(.84f, 1f, .96f) : new Color(.52f, .71f, .74f);
+                GUI.Label(new Rect(x + 2f, y, chipWidth - 4f, chipHeight), UpgradeShortNames[i] + "  " + level, upgradeChipStyle);
+            }
+            GUI.color = Color.white;
         }
 
         void DrawTitleScreen(bool controllerConnected)
