@@ -53,5 +53,6 @@ jobs:
         with:
           name: windows-${{ steps.package.outputs.branch }}-${{ github.sha }}
           path: ${{ steps.package.outputs.archive }}
+          compression-level: 0
           if-no-files-found: error
           retention-days: 30
