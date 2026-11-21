@@ -215,7 +215,8 @@ namespace FrutigerBadminton
 
             if ((Input.GetKeyDown(KeyCode.Space) || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame)) && jumpHeight <= .01f)
                 jumpVelocity = 5.1f;
-            if ((Input.GetKeyDown(KeyCode.LeftShift) || (gamepad != null && gamepad.rightShoulder.wasPressedThisFrame)) && dashCooldown <= 0f)
+            bool dashPressed = Input.GetKeyDown(KeyCode.LeftShift) || (gamepad != null && gamepad.rightShoulder.wasPressedThisFrame);
+            if (dashPressed && dashCooldown <= 0f)
             {
                 dashDirection = direction.sqrMagnitude > .01f ? direction.normalized : Vector3.forward;
                 dashTime = .16f;
@@ -228,6 +229,7 @@ namespace FrutigerBadminton
                 }
                 AeroHitEffect.Spawn(player.position + Vector3.up * .82f, new Color(.26f, .96f, 1f), .82f);
             }
+            else if (dashPressed) ShowMessage("Aero dash is recharging.", .55f);
 
             float speed = isDashing ? 12f + upgradeLevels[(int)SoloUpgrade.TurboDash] * .65f : 4.6f;
             speed *= 1f + upgradeLevels[(int)SoloUpgrade.AeroLaces] * .07f;
@@ -1162,7 +1164,7 @@ namespace FrutigerBadminton
 
             Color previous = GUI.color;
             GUI.color = new Color(.025f, .15f, .2f, .84f);
-            GUI.Box(new Rect(16f, 16f, 320f, 226f), GUIContent.none);
+            GUI.Box(new Rect(16f, 16f, 320f, 268f), GUIContent.none);
             GUI.color = Color.white;
             GUI.Label(new Rect(28f, 22f, 298f, 30f), "FRUTIGER BADMINTON   •   3V3", labelStyle);
             bool controllerConnected = Gamepad.current != null;
@@ -1175,6 +1177,16 @@ namespace FrutigerBadminton
                 ? "Aim the glowing ring, then tap a shot to serve"
                 : "Hold shot to preview aim  •  Follow landing ring", labelStyle);
             GUI.Label(new Rect(28f, 194f, 298f, 24f), "First to 7 · win by 2 · upgrades every 3", hintStyle);
+
+            float dashDuration = Mathf.Max(.55f, 1.05f - upgradeLevels[(int)SoloUpgrade.TurboDash] * .1f);
+            float dashReady = 1f - Mathf.Clamp01(dashCooldown / dashDuration);
+            GUI.Label(new Rect(28f, 220f, 160f, 22f), controllerConnected ? "RB AERO DASH" : "SHIFT AERO DASH", labelStyle);
+            GUI.Label(new Rect(190f, 220f, 136f, 22f), dashCooldown <= 0f ? "READY" : "RECHARGING", hintStyle);
+            GUI.color = new Color(.04f, .18f, .23f, .95f);
+            GUI.DrawTexture(new Rect(28f, 245f, 298f, 9f), Texture2D.whiteTexture);
+            GUI.color = Color.Lerp(new Color(1f, .56f, .53f), new Color(.3f, 1f, .82f), dashReady);
+            GUI.DrawTexture(new Rect(28f, 245f, 298f * dashReady, 9f), Texture2D.whiteTexture);
+            GUI.color = Color.white;
 
             float scorePulse = Mathf.Clamp01(1f - (Time.unscaledTime - scorePulseStart) / .72f);
             Color scorePanel = Color.Lerp(new Color(.02f, .23f, .29f, .9f),

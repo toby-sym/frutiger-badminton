@@ -19,6 +19,7 @@
 - Rivals now mix clears, drops, and drives, aiming toward the lane least covered by the near-side team; generated shuttle trails change tint with the shot so trajectory style reads in motion.
 - Point awards now trigger a team-colored procedural impact burst at the shuttle's finish and a brief matching pulse in the score panel; longer rallies get a stronger burst.
 - The fixed full-court camera now gets a brief screen-space shake on shot contact, strongest for smashes and point-ending rallies, then returns to its exact rest position.
+- A controller- or keyboard-labeled aero dash meter fills while dash cooldown recovers and turns aqua when ready; trying to dash early displays a brief recharge cue.
 - Every three player points, the run pauses for a choice among three random upgrades: faster movement, longer racket reach, partner speed and reach, dash power, or earlier landing warnings. Upgrades stack for that run.
 - A solo run ends at 7 points with a two-point lead (hard cap 9), shows a win/loss screen, and lets the player replay with scores and upgrades reset.
 - Controller-first gamepad mappings and keyboard/mouse fallback are built with both input backends enabled from startup in `ProjectSettings/ProjectSettings.asset`. GameCI run `44843252147` passed in 8m39, uploaded a Windows artifact, and saved a compatible 765 MB Unity Library cache. Verify gamepad behavior in the artifact.
