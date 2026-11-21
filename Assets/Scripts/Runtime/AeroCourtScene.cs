@@ -187,8 +187,10 @@ namespace FrutigerBadminton
             CreateCourtSheen(top);
             CreatePlayer("Player", new Vector3(0f, top, -4.6f), new Color(.22f, .98f, .91f));
             CreatePlayer("Partner", new Vector3(-1.65f, top, -4.8f), new Color(.66f, .95f, .55f));
+            CreatePlayer("Partner Two", new Vector3(1.65f, top, -4.2f), new Color(.66f, .75f, 1f));
             CreatePlayer("Rival", new Vector3(0f, top, 4.6f), new Color(1f, .52f, .62f));
             CreatePlayer("Rival Partner", new Vector3(1.65f, top, 4.8f), new Color(1f, .68f, .38f));
+            CreatePlayer("Rival Wing", new Vector3(-1.65f, top, 4.2f), new Color(.89f, .54f, .95f));
         }
 
         void CreateCourtSheen(float courtTop)
@@ -250,7 +252,8 @@ namespace FrutigerBadminton
         Transform CreatePlayer(string name, Vector3 basePosition, Color suit)
         {
             var root = new GameObject(name + " silhouette"); root.transform.position = basePosition;
-            if (name == "Rival" || name == "Rival Partner") root.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+            if (name == "Rival" || name == "Rival Partner" || name == "Rival Wing")
+                root.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
             var pose = new GameObject("Animated pose").transform;
             pose.SetParent(root.transform, false);
 
@@ -261,7 +264,7 @@ namespace FrutigerBadminton
             Transform leftArm = Limb(pose, "Left arm", new Vector3(-.3f, 1.08f, 0f), new Vector3(-.48f, .52f, .05f), .12f, suit);
             Transform rightArm = Limb(pose, "Right arm", new Vector3(.3f, 1.08f, 0f), new Vector3(.52f, 1.38f, 0f), .12f, suit);
             CreatePlayerKit(pose, name, suit);
-            bool rival = name == "Rival" || name == "Rival Partner";
+            bool rival = name == "Rival" || name == "Rival Partner" || name == "Rival Wing";
             Color racketColor = rival ? new Color(1f, .88f, .77f) : new Color(.8f, 1f, .98f);
             Transform racket = CreateRacket(rightArm, pose.TransformPoint(new Vector3(.62f, 1.14f, 0f)), racketColor);
             root.AddComponent<AeroPlayerAnimation>().Initialize(pose, leftArm, rightArm, leftLeg, rightLeg, racket);
@@ -270,7 +273,7 @@ namespace FrutigerBadminton
 
         void CreatePlayerKit(Transform pose, string name, Color suit)
         {
-            bool rival = name == "Rival" || name == "Rival Partner";
+            bool rival = name == "Rival" || name == "Rival Partner" || name == "Rival Wing";
             Color trim = rival ? new Color(1f, .78f, .7f) : new Color(.58f, 1f, .95f);
             Color shorts = rival ? new Color(.71f, .26f, .42f) : new Color(.04f, .37f, .47f);
             Color hair = rival ? new Color(.24f, .1f, .27f) : new Color(.035f, .18f, .27f);
