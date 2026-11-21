@@ -4,7 +4,7 @@ set -euo pipefail
 capture_dir="$PWD/artifacts/visual"
 player="$PWD/build/StandaloneLinux64/FrutigerBadminton.x86_64"
 mkdir -p "$capture_dir"
-chmod +x "$player"
+if [[ ! -x "$player" ]]; then sudo chmod +x "$player"; fi
 
 export capture_dir player
 xvfb-run -a -s '-screen 0 1920x1080x24 +extension GLX' bash -c '
