@@ -1404,14 +1404,14 @@ namespace FrutigerBadminton
 
         void DrawTitleScreen(bool controllerConnected)
         {
-            GUI.color = new Color(.015f, .11f, .17f, .38f);
+            GUI.color = new Color(.015f, .11f, .17f, .2f);
             GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
 
             float panelWidth = Mathf.Min(700f, Screen.width - 32f);
             float panelHeight = Mathf.Min(448f, Screen.height - 32f);
             float left = (Screen.width - panelWidth) * .5f;
             float top = (Screen.height - panelHeight) * .5f;
-            GUI.color = new Color(.018f, .14f, .2f, .9f);
+            GUI.color = new Color(.025f, .17f, .22f, .76f);
             GUI.DrawTexture(new Rect(left, top, panelWidth, panelHeight), Texture2D.whiteTexture);
             GUI.color = new Color(.48f, 1f, .94f, .95f);
             GUI.DrawTexture(new Rect(left + 1f, top + 1f, panelWidth - 2f, 3f), Texture2D.whiteTexture);
