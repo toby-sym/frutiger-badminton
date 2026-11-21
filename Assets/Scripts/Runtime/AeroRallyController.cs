@@ -100,6 +100,8 @@ namespace FrutigerBadminton
         Vector3 dashDirection;
         Vector3 playerVelocity;
         Vector3 cameraRestPosition;
+        Vector3 lastMouseAim;
+        Vector2 lastStickAim;
         float flightDuration;
         float flightElapsed;
         float shuttleSpinDegreesPerSecond;
@@ -134,6 +136,9 @@ namespace FrutigerBadminton
         bool flightWasPlayerShot;
         bool flightActive;
         bool shotInputBuffered;
+        bool controllerAimActive;
+        bool hasStickAim;
+        bool hasMouseAim;
         bool servePending;
         bool isDashing;
         bool isPaused;
@@ -155,6 +160,7 @@ namespace FrutigerBadminton
         void Start()
         {
             Time.timeScale = 1f;
+            controllerAimActive = Gamepad.current != null;
             audioMuted = PlayerPrefs.GetInt("Frutiger.AudioMuted", 0) != 0;
             AudioListener.volume = audioMuted ? 0f : 1f;
             if (PlayerPrefs.HasKey("Frutiger.Fullscreen"))
@@ -237,6 +243,7 @@ namespace FrutigerBadminton
             if (dashCooldown > 0f) dashCooldown -= deltaTime;
 
             MovePlayer(deltaTime);
+            UpdateAimInputSource();
             if (playerServeReady)
             {
                 shuttle.position = PlayerServePosition();
@@ -785,6 +792,28 @@ namespace FrutigerBadminton
             return player.position + Vector3.up * 1.18f + player.right * .18f;
         }
 
+        void UpdateAimInputSource()
+        {
+            Gamepad gamepad = Gamepad.current;
+            if (gamepad != null)
+            {
+                Vector2 stick = gamepad.rightStick.ReadValue();
+                if (stick.sqrMagnitude > .035f)
+                {
+                    lastStickAim = Vector2.ClampMagnitude(stick, 1f);
+                    hasStickAim = true;
+                    controllerAimActive = true;
+                }
+                else if (IsGamepadShotInput()) controllerAimActive = true;
+            }
+            else controllerAimActive = false;
+
+            Mouse mouse = Mouse.current;
+            if (mouse != null && !MouseIsOverHud()
+                && (mouse.delta.ReadValue().sqrMagnitude > .25f || IsMouseShotInput()))
+                controllerAimActive = false;
+        }
+
         Vector3 AimTarget(ShotStyle style)
         {
             float minZ = style == ShotStyle.Drop ? 1.25f : style == ShotStyle.Drive ? 2.2f : 3.6f;
@@ -792,20 +821,27 @@ namespace FrutigerBadminton
             Vector3 target = new Vector3(-player.position.x * .45f, GroundY + .11f, 5.65f);
             Camera camera = Camera.main;
             Gamepad gamepad = Gamepad.current;
-            Vector2 stickAim = gamepad != null ? gamepad.rightStick.ReadValue() : Vector2.zero;
-            if (gamepad != null)
+            if (controllerAimActive && gamepad != null)
             {
-                if (stickAim.sqrMagnitude > .035f)
+                if (hasStickAim)
                 {
-                    target.x = stickAim.x * (CourtHalfWidth - .35f);
-                    target.z = Mathf.Lerp(minZ, maxZ, Mathf.Clamp01((stickAim.y + 1f) * .5f));
+                    target.x = lastStickAim.x * (CourtHalfWidth - .35f);
+                    target.z = Mathf.Lerp(minZ, maxZ, Mathf.Clamp01((lastStickAim.y + 1f) * .5f));
                 }
             }
-            else if (camera && Mouse.current != null && !MouseIsOverHud())
+            else if (camera && Mouse.current != null)
             {
-                Ray ray = camera.ScreenPointToRay(Input.mousePosition);
-                Plane court = new Plane(Vector3.up, new Vector3(0f, GroundY + .11f, 0f));
-                if (court.Raycast(ray, out float distance)) target = ray.GetPoint(distance);
+                if (!MouseIsOverHud())
+                {
+                    Ray ray = camera.ScreenPointToRay(Input.mousePosition);
+                    Plane court = new Plane(Vector3.up, new Vector3(0f, GroundY + .11f, 0f));
+                    if (court.Raycast(ray, out float distance))
+                    {
+                        lastMouseAim = ray.GetPoint(distance);
+                        hasMouseAim = true;
+                    }
+                }
+                if (hasMouseAim) target = lastMouseAim;
             }
             target.x = Mathf.Clamp(target.x, -CourtHalfWidth + .35f, CourtHalfWidth - .35f);
             target.z = Mathf.Clamp(target.z, minZ, maxZ);
