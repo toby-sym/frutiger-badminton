@@ -13,14 +13,21 @@ namespace FrutigerBadminton
         const float CourtHalfLength = 6.7f;
         const float NetHeight = 1.56f;
         const float Gravity = 9.81f;
+        static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        static readonly int ColorId = Shader.PropertyToID("_Color");
+        static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
 
         readonly List<Object> ownedObjects = new List<Object>();
+        readonly MaterialPropertyBlock landingMarkerProperties = new MaterialPropertyBlock();
         Transform player;
         Transform rival;
         Transform shuttle;
+        Transform landingMarker;
         AeroPlayerAnimation playerAnimation;
         AeroPlayerAnimation rivalAnimation;
         TrailRenderer shuttleTrail;
+        Renderer landingMarkerRenderer;
+        Mesh landingMarkerMesh;
         Material shuttleMaterial;
         Material corkMaterial;
         Material bandMaterial;
@@ -69,6 +76,7 @@ namespace FrutigerBadminton
             player.position = new Vector3(0f, GroundY, -4.6f);
             rival.position = new Vector3(0f, GroundY, 4.6f);
             CreateShuttlecock();
+            CreateLandingMarker();
             BeginServe();
         }
 
@@ -86,6 +94,7 @@ namespace FrutigerBadminton
             MovePlayer(deltaTime);
             MoveRival(deltaTime);
             if (flightActive) UpdateShuttlecock(deltaTime);
+            UpdateLandingMarker();
             if (flightActive && playerMustReturn && IsShotInput()
                 && (!IsMouseShotInput() || !MouseIsOverHud())) TryPlayerShot();
         }
@@ -359,14 +368,15 @@ namespace FrutigerBadminton
             var root = new GameObject("Generated shuttlecock");
             ownedObjects.Add(root);
             shuttle = root.transform;
-            ownedObjects.Add(BuildFeathers());
+            Mesh featherMesh = BuildFeathers();
+            ownedObjects.Add(featherMesh);
             shuttleMaterial = CreateMaterial("Universal Render Pipeline/Lit", new Color(.88f, .99f, 1f), .3f, .35f);
             corkMaterial = CreateMaterial("Universal Render Pipeline/Lit", new Color(.96f, .81f, .62f), .25f, .05f);
             bandMaterial = CreateMaterial("Universal Render Pipeline/Lit", new Color(.1f, .79f, .89f), .5f, .75f);
 
             var skirt = new GameObject("Generated feather skirt");
             skirt.transform.SetParent(shuttle, false);
-            skirt.AddComponent<MeshFilter>().sharedMesh = (Mesh)ownedObjects[0];
+            skirt.AddComponent<MeshFilter>().sharedMesh = featherMesh;
             var skirtRenderer = skirt.AddComponent<MeshRenderer>();
             skirtRenderer.sharedMaterial = shuttleMaterial;
             skirtRenderer.shadowCastingMode = ShadowCastingMode.Off;
@@ -397,6 +407,102 @@ namespace FrutigerBadminton
             shuttleTrail.endColor = new Color(.35f, .94f, 1f, 0f);
             shuttleTrail.sharedMaterial = trailMaterial;
             shuttleTrail.shadowCastingMode = ShadowCastingMode.Off;
+        }
+
+        void CreateLandingMarker()
+        {
+            var marker = new GameObject("Predicted shuttle landing marker");
+            ownedObjects.Add(marker);
+            landingMarker = marker.transform;
+            landingMarker.position = new Vector3(0f, GroundY + .12f, 0f);
+
+            landingMarkerMesh = BuildLandingMarkerMesh();
+            ownedObjects.Add(landingMarkerMesh);
+            marker.AddComponent<MeshFilter>().sharedMesh = landingMarkerMesh;
+            landingMarkerRenderer = marker.AddComponent<MeshRenderer>();
+            landingMarkerRenderer.sharedMaterial = CreateMaterial("Universal Render Pipeline/Lit", new Color(.36f, .96f, 1f), .82f, .4f);
+            landingMarkerRenderer.shadowCastingMode = ShadowCastingMode.Off;
+            landingMarkerRenderer.receiveShadows = false;
+            marker.SetActive(false);
+        }
+
+        void UpdateLandingMarker()
+        {
+            bool show = flightActive && playerMustReturn;
+            if (landingMarker.gameObject.activeSelf != show) landingMarker.gameObject.SetActive(show);
+            if (!show) return;
+
+            landingMarker.position = new Vector3(flightTarget.x, GroundY + .12f, flightTarget.z);
+            float timeToLanding = Mathf.Max(0f, flightDuration - flightElapsed);
+            float urgency = Mathf.InverseLerp(1.35f, .2f, timeToLanding);
+            float pulse = Mathf.Sin(Time.time * Mathf.Lerp(1.35f, 3.2f, urgency) * Mathf.PI * 2f) * .5f + .5f;
+            float scale = Mathf.Lerp(.93f, 1.08f, pulse) * Mathf.Lerp(1f, 1.1f, urgency);
+            landingMarker.localScale = Vector3.one * scale;
+
+            Color aqua = new Color(.3f, .98f, 1f);
+            Color coral = new Color(1f, .53f, .43f);
+            Color tint = Color.Lerp(aqua, coral, urgency * .72f);
+            float brightness = Mathf.Lerp(.65f, 1f, urgency) * Mathf.Lerp(.82f, 1.12f, pulse);
+            landingMarkerProperties.Clear();
+            landingMarkerProperties.SetColor(BaseColorId, tint * brightness);
+            landingMarkerProperties.SetColor(ColorId, tint * brightness);
+            landingMarkerProperties.SetColor(EmissionColorId, tint * Mathf.Lerp(.55f, 1.5f, urgency) * pulse);
+            landingMarkerRenderer.SetPropertyBlock(landingMarkerProperties);
+        }
+
+        static Mesh BuildLandingMarkerMesh()
+        {
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>();
+            AddSegmentedRing(vertices, triangles, .82f, .76f, 12, .12f);
+            AddSegmentedRing(vertices, triangles, .46f, .42f, 8, .2f);
+
+            for (int i = 0; i < 4; i++)
+            {
+                float angle = i * Mathf.PI * .5f;
+                AddSegment(vertices, triangles, .98f, .76f, angle - .045f, angle + .045f);
+            }
+
+            int first = vertices.Count;
+            vertices.Add(new Vector3(0f, 0f, .14f));
+            vertices.Add(new Vector3(.11f, 0f, 0f));
+            vertices.Add(new Vector3(0f, 0f, -.14f));
+            vertices.Add(new Vector3(-.11f, 0f, 0f));
+            triangles.Add(first); triangles.Add(first + 1); triangles.Add(first + 2);
+            triangles.Add(first); triangles.Add(first + 2); triangles.Add(first + 3);
+
+            var mesh = new Mesh { name = "Generated shuttle landing reticle" };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            return mesh;
+        }
+
+        static void AddSegmentedRing(List<Vector3> vertices, List<int> triangles, float outerRadius, float innerRadius, int count, float gap)
+        {
+            float segmentAngle = Mathf.PI * 2f / count;
+            for (int i = 0; i < count; i++)
+            {
+                float start = i * segmentAngle + gap * .5f;
+                float end = (i + 1) * segmentAngle - gap * .5f;
+                AddSegment(vertices, triangles, outerRadius, innerRadius, start, end);
+            }
+        }
+
+        static void AddSegment(List<Vector3> vertices, List<int> triangles, float outerRadius, float innerRadius, float start, float end)
+        {
+            int first = vertices.Count;
+            vertices.Add(Polar(outerRadius, start));
+            vertices.Add(Polar(outerRadius, end));
+            vertices.Add(Polar(innerRadius, end));
+            vertices.Add(Polar(innerRadius, start));
+            triangles.Add(first); triangles.Add(first + 2); triangles.Add(first + 1);
+            triangles.Add(first); triangles.Add(first + 3); triangles.Add(first + 2);
+        }
+
+        static Vector3 Polar(float radius, float angle)
+        {
+            return new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
         }
 
         Mesh BuildFeathers()
@@ -475,7 +581,7 @@ namespace FrutigerBadminton
 
             Color previous = GUI.color;
             GUI.color = new Color(.025f, .15f, .2f, .84f);
-            GUI.Box(new Rect(16f, 16f, 320f, 180f), GUIContent.none);
+            GUI.Box(new Rect(16f, 16f, 320f, 204f), GUIContent.none);
             GUI.color = Color.white;
             GUI.Label(new Rect(28f, 22f, 298f, 30f), "FRUTIGER BADMINTON", labelStyle);
             bool controllerConnected = Gamepad.current != null;
@@ -484,6 +590,7 @@ namespace FrutigerBadminton
             GUI.Label(new Rect(28f, 100f, 298f, 24f), controllerConnected ? "A   Jump       RB   Dash" : "Space   Jump       Shift   Dash", labelStyle);
             GUI.Label(new Rect(28f, 124f, 298f, 24f), controllerConnected ? "LB   Clear       X   Drop" : "Click   Clear       Right click   Drop", labelStyle);
             GUI.Label(new Rect(28f, 148f, 298f, 24f), controllerConnected ? "B   Drive       Y   Smash" : "F   Drive       R   Smash (airborne)", labelStyle);
+            GUI.Label(new Rect(28f, 172f, 298f, 24f), "Follow the glowing ring to the landing spot", labelStyle);
 
             GUI.color = new Color(.02f, .23f, .29f, .9f);
             GUI.Box(new Rect(Screen.width * .5f - 118f, 18f, 236f, 48f), GUIContent.none);
