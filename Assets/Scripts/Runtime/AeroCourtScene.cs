@@ -429,7 +429,7 @@ namespace FrutigerBadminton
             Transform rightLeg = Limb(pose, "Right leg", new Vector3(.18f, .58f, 0f), new Vector3(.32f, .07f, 0f), .16f, suit);
             Transform leftArm = Limb(pose, "Left arm", new Vector3(-.3f, 1.08f, 0f), new Vector3(-.48f, .52f, .05f), .12f, suit);
             Transform rightArm = Limb(pose, "Right arm", new Vector3(.3f, 1.08f, 0f), new Vector3(.52f, 1.38f, 0f), .12f, suit);
-            CreatePlayerKit(pose, name, suit);
+            CreatePlayerKit(pose, leftLeg, rightLeg, name, suit);
             bool rival = name == "Rival" || name == "Rival Partner" || name == "Rival Wing";
             Color racketColor = rival ? new Color(1f, .88f, .77f) : new Color(.8f, 1f, .98f);
             Transform racket = CreateRacket(rightArm, pose.TransformPoint(new Vector3(.62f, 1.14f, 0f)), racketColor);
@@ -437,7 +437,7 @@ namespace FrutigerBadminton
             return root.transform;
         }
 
-        void CreatePlayerKit(Transform pose, string name, Color suit)
+        void CreatePlayerKit(Transform pose, Transform leftLeg, Transform rightLeg, string name, Color suit)
         {
             bool rival = name == "Rival" || name == "Rival Partner" || name == "Rival Wing";
             Color trim = rival ? new Color(1f, .78f, .7f) : new Color(.58f, 1f, .95f);
@@ -452,9 +452,10 @@ namespace FrutigerBadminton
             for (int side = -1; side <= 1; side += 2)
             {
                 Vector3 shoe = new Vector3(side * .31f, .16f, .12f);
-                Sphere("Pearl court shoe", pose.TransformPoint(shoe), new Vector3(.31f, .15f, .4f), new Color(.91f, .99f, 1f), .8f, .14f).transform.SetParent(pose, true);
-                Sphere("Aqua traction sole", pose.TransformPoint(shoe + Vector3.down * .075f), new Vector3(.32f, .055f, .41f), trim, .48f, .32f).transform.SetParent(pose, true);
-                Sphere("Shoe side flash", pose.TransformPoint(shoe + new Vector3(side * .115f, .015f, .015f)), new Vector3(.06f, .055f, .2f), suit, .72f, .3f).transform.SetParent(pose, true);
+                Transform leg = side < 0 ? leftLeg : rightLeg;
+                Sphere("Pearl court shoe", pose.TransformPoint(shoe), new Vector3(.31f, .15f, .4f), new Color(.91f, .99f, 1f), .8f, .14f).transform.SetParent(leg, true);
+                Sphere("Aqua traction sole", pose.TransformPoint(shoe + Vector3.down * .075f), new Vector3(.32f, .055f, .41f), trim, .48f, .32f).transform.SetParent(leg, true);
+                Sphere("Shoe side flash", pose.TransformPoint(shoe + new Vector3(side * .115f, .015f, .015f)), new Vector3(.06f, .055f, .2f), suit, .72f, .3f).transform.SetParent(leg, true);
             }
         }
 
@@ -573,8 +574,12 @@ namespace FrutigerBadminton
             joint.SetParent(parent, false);
             joint.localPosition = from;
 
-            var limb = Cylinder("Stylized " + name.ToLowerInvariant(), Vector3.zero, new Vector3(radius, delta.magnitude * .5f, radius), color, .84f, .06f);
+            var limb = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            limb.name = "Rounded " + name.ToLowerInvariant();
+            limb.GetComponent<Collider>().enabled = false;
+            limb.GetComponent<Renderer>().sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", color, .84f, .06f);
             limb.transform.SetParent(joint, false);
+            limb.transform.localScale = new Vector3(radius, delta.magnitude * .5f, radius);
             limb.transform.localPosition = delta * .5f;
             limb.transform.localRotation = Quaternion.FromToRotation(Vector3.up, delta.normalized);
             return joint;
