@@ -349,6 +349,36 @@ namespace FrutigerBadminton
             Cube("Pavilion rear crown", new Vector3(0f, 5.7f, back), new Vector3(14.6f, .18f, .22f), frame, .88f, .04f);
             Cube("Pavilion side crown", new Vector3(left, 5.7f, .05f), new Vector3(.22f, .18f, 18.2f), frame, .88f, .04f);
 
+            // Shallow galleries and light strips add depth without crossing the camera's court view.
+            Color gallery = new Color(.09f, .28f, .42f);
+            Color light = new Color(.73f, .96f, 1f);
+            Cube("Rear gallery ledge", new Vector3(0f, 2.3f, 8.7f), new Vector3(14.35f, .14f, .8f), gallery, .86f, .025f);
+            Cube("Side gallery ledge", new Vector3(-6.85f, 2.3f, .05f), new Vector3(.8f, .14f, 18f), gallery, .86f, .025f);
+            Cube("Rear gallery handrail", new Vector3(0f, 3.05f, 8.3f), new Vector3(14.25f, .055f, .055f), trim, .82f, .08f);
+            Cube("Side gallery handrail", new Vector3(-6.45f, 3.05f, .05f), new Vector3(.055f, .055f, 17.9f), trim, .82f, .08f);
+            for (int i = 0; i <= 8; i++)
+            {
+                float x = Mathf.Lerp(-7.1f, 7.1f, i / 8f);
+                Cube("Rear gallery support", new Vector3(x, 2.69f, 8.3f), new Vector3(.045f, .76f, .045f), trim, .78f, .04f);
+            }
+            for (int i = 0; i <= 6; i++)
+            {
+                float z = Mathf.Lerp(-8.9f, 8.95f, i / 6f);
+                Cube("Side gallery support", new Vector3(-6.45f, 2.69f, z), new Vector3(.045f, .76f, .045f), trim, .78f, .04f);
+            }
+            for (int i = 0; i < 5; i++)
+            {
+                float x = Mathf.Lerp(-5.6f, 5.6f, i / 4f);
+                var strip = Cube("Pavilion overhead light", new Vector3(x, 5.57f, 8.55f), new Vector3(1.12f, .045f, .18f), light, .65f, .55f);
+                strip.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            for (int i = 0; i < 4; i++)
+            {
+                float z = Mathf.Lerp(-7.5f, 6.5f, i / 3f);
+                var strip = Cube("Pavilion side light", new Vector3(-6.7f, 5.57f, z), new Vector3(.18f, .045f, 1.12f), light, .65f, .55f);
+                strip.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+
             Shader glassShader = Resources.Load<Shader>("AeroGlass");
             if (!glassShader) return;
             var glass = new Material(glassShader) { name = "Pavilion pearl glass" };
