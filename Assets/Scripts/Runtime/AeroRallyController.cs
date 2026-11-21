@@ -148,6 +148,7 @@ namespace FrutigerBadminton
         bool runComplete;
         bool runWon;
         bool audioMuted;
+        bool courtLevelView;
         TitleMenuPage titleMenuPage;
         int titleMenuSelection;
         string message = "Move under the return, then time your shot.";
@@ -163,6 +164,7 @@ namespace FrutigerBadminton
             Time.timeScale = 1f;
             controllerAimActive = Gamepad.current != null;
             audioMuted = PlayerPrefs.GetInt("Frutiger.AudioMuted", 0) != 0;
+            courtLevelView = PlayerPrefs.GetInt("Frutiger.CourtLevelView", 1) != 0;
             AudioListener.volume = audioMuted ? 0f : 1f;
             if (PlayerPrefs.HasKey("Frutiger.Fullscreen"))
                 Screen.fullScreen = PlayerPrefs.GetInt("Frutiger.Fullscreen") != 0;
@@ -195,8 +197,7 @@ namespace FrutigerBadminton
             if (mainCamera)
             {
                 courtCamera = mainCamera.transform;
-                cameraRestPosition = courtCamera.position;
-                lastMovementDirection = CameraForwardOnCourt();
+                ApplyCameraView();
             }
             CreateAudioFeedback();
             player.position = new Vector3(0f, GroundY, -4.6f);
@@ -324,10 +325,10 @@ namespace FrutigerBadminton
 
             if (titleMenuPage != TitleMenuPage.Home)
             {
-                int optionCount = titleMenuPage == TitleMenuPage.Settings ? 3 : 1;
+                int optionCount = titleMenuPage == TitleMenuPage.Settings ? 4 : 1;
                 if (up) titleMenuSelection = (titleMenuSelection + optionCount - 1) % optionCount;
                 if (down) titleMenuSelection = (titleMenuSelection + 1) % optionCount;
-                if (titleMenuPage == TitleMenuPage.Settings && titleMenuSelection < 2 && (left || right))
+                if (titleMenuPage == TitleMenuPage.Settings && titleMenuSelection < 3 && (left || right))
                     ToggleSetting(titleMenuSelection);
                 if (back)
                 {
@@ -359,7 +360,7 @@ namespace FrutigerBadminton
                 return;
             }
 
-            if (titleMenuPage == TitleMenuPage.Settings && option < 2)
+            if (titleMenuPage == TitleMenuPage.Settings && option < 3)
             {
                 ToggleSetting(option);
                 return;
@@ -385,11 +386,27 @@ namespace FrutigerBadminton
                 PlayerPrefs.SetInt("Frutiger.Fullscreen", requestedFullscreen ? 1 : 0);
                 PlayerPrefs.Save();
             }
+            else if (option == 2)
+            {
+                courtLevelView = !courtLevelView;
+                ApplyCameraView();
+                PlayerPrefs.SetInt("Frutiger.CourtLevelView", courtLevelView ? 1 : 0);
+                PlayerPrefs.Save();
+            }
             else
             {
                 titleMenuPage = TitleMenuPage.Home;
                 titleMenuSelection = 0;
             }
+        }
+
+        void ApplyCameraView()
+        {
+            if (!courtCamera) return;
+            courtCamera.position = courtLevelView ? new Vector3(0f, 5f, -17f) : new Vector3(12f, 10f, -19f);
+            courtCamera.LookAt(courtLevelView ? new Vector3(0f, .8f, 0f) : new Vector3(0f, .3f, 0f));
+            cameraRestPosition = courtCamera.position;
+            lastMovementDirection = CameraForwardOnCourt();
         }
 
         void CreateAudioFeedback()
@@ -1825,18 +1842,21 @@ namespace FrutigerBadminton
                 GUI.Label(new Rect(mainPanel.x + 36f, top + 238f, mainWidth - 72f, 34f), "PREFERENCES", titleSubtitleStyle);
                 string audio = audioMuted ? "AUDIO     OFF" : "AUDIO     ON";
                 string display = Screen.fullScreen ? "DISPLAY     FULLSCREEN" : "DISPLAY     WINDOWED";
+                string cameraView = courtLevelView ? "CAMERA     COURT LEVEL" : "CAMERA     OVERVIEW";
                 float buttonWidth = mainWidth - 72f;
-                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 292f, buttonWidth, 54f), audio, titleMenuSelection == 0))
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 282f, buttonWidth, 50f), audio, titleMenuSelection == 0))
                     ToggleSetting(0);
-                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 362f, buttonWidth, 54f), display, titleMenuSelection == 1))
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 344f, buttonWidth, 50f), display, titleMenuSelection == 1))
                     ToggleSetting(1);
-                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 432f, buttonWidth, 50f), "BACK TO MENU", titleMenuSelection == 2))
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 406f, buttonWidth, 50f), cameraView, titleMenuSelection == 2))
+                    ToggleSetting(2);
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 468f, buttonWidth, 50f), "BACK TO MENU", titleMenuSelection == 3))
                 {
                     titleMenuPage = TitleMenuPage.Home;
                     titleMenuSelection = 0;
                 }
                 GUI.color = new Color(.66f, .91f, .94f);
-                GUI.Label(new Rect(mainPanel.x + 36f, top + 500f, buttonWidth, 30f), "LEFT / RIGHT TO CHANGE  ·  A TO CONFIRM", hintStyle);
+                GUI.Label(new Rect(mainPanel.x + 36f, top + 532f, buttonWidth, 30f), "LEFT / RIGHT TO CHANGE  ·  A TO CONFIRM", hintStyle);
             }
 
             GUI.color = new Color(.48f, 1f, .94f);
