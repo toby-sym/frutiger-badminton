@@ -11,7 +11,7 @@ namespace FrutigerBadminton
         static readonly int ColorId = Shader.PropertyToID("_Color");
         static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
 
-        readonly MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
+        MaterialPropertyBlock propertyBlock;
         readonly Transform[] shards = new Transform[8];
         readonly Vector3[] shardDirections = new Vector3[8];
         readonly Quaternion[] shardRestRotations = new Quaternion[8];
@@ -28,6 +28,11 @@ namespace FrutigerBadminton
         Color tint;
         float strength;
         float elapsed;
+
+        void Awake()
+        {
+            propertyBlock = new MaterialPropertyBlock();
+        }
 
         public static void Spawn(Vector3 position, Color color, float intensity)
         {
@@ -129,7 +134,7 @@ namespace FrutigerBadminton
 
         static Material CreateGlowMaterial(Color color, float emission)
         {
-            Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            Shader shader = AeroRuntimeShaderLibrary.Resolve("Universal Render Pipeline/Lit");
             var material = new Material(shader) { name = "Procedural impact glow" };
             if (material.HasProperty(BaseColorId)) material.SetColor(BaseColorId, color); else material.color = color;
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", .78f);

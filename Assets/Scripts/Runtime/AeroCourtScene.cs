@@ -500,7 +500,7 @@ namespace FrutigerBadminton
         {
             string key = shaderName + ColorUtility.ToHtmlStringRGBA(color) + smoothness + emission;
             if (materialCache.TryGetValue(key, out var cached)) return cached;
-            Shader shader = explicitShader ? explicitShader : Shader.Find(shaderName) ?? Shader.Find("Standard");
+            Shader shader = explicitShader ? explicitShader : AeroRuntimeShaderLibrary.Resolve(shaderName);
             var material = new Material(shader) { name = "Procedural " + ColorUtility.ToHtmlStringRGBA(color) };
             if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color); else material.color = color;
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", smoothness);

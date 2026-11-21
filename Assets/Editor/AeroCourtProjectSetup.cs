@@ -17,6 +17,7 @@ namespace FrutigerBadminton.Editor
     {
         const string ScenePath = "Assets/Scenes/AeroCourt.unity";
         const string PipelinePath = "Assets/Settings/FrutigerUniversalRenderPipeline.asset";
+        const string ResourcesPath = "Assets/Resources";
 
         static AeroCourtProjectSetup() { EditorApplication.delayCall += EnsureProjectAssets; }
 
@@ -25,6 +26,7 @@ namespace FrutigerBadminton.Editor
             if (EditorApplication.isCompiling || EditorApplication.isUpdating) return;
             EnsureControllerInput();
             EnsurePipeline();
+            EnsureRuntimeShaderTemplates();
             if (File.Exists(ScenePath)) return;
             Directory.CreateDirectory("Assets/Scenes");
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -89,6 +91,43 @@ namespace FrutigerBadminton.Editor
             GraphicsSettings.defaultRenderPipeline = pipeline;
             QualitySettings.renderPipeline = pipeline;
             AssetDatabase.SaveAssets();
+        }
+
+        static void EnsureRuntimeShaderTemplates()
+        {
+            Directory.CreateDirectory(ResourcesPath);
+            EnsureRuntimeShaderTemplate("AeroRuntimeLit", "Universal Render Pipeline/Lit", true);
+            EnsureRuntimeShaderTemplate("AeroRuntimeUnlit", "Universal Render Pipeline/Unlit", false);
+            EnsureRuntimeShaderTemplate("AeroRuntimeParticleUnlit", "Universal Render Pipeline/Particles/Unlit", false);
+            AssetDatabase.SaveAssets();
+        }
+
+        static void EnsureRuntimeShaderTemplate(string templateName, string shaderName, bool includeEmission)
+        {
+            string assetPath = ResourcesPath + "/" + templateName + ".mat";
+            Shader shader = Shader.Find(shaderName);
+            if (!shader)
+                throw new System.InvalidOperationException("Unity could not find the required URP shader '" + shaderName + "'.");
+
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(assetPath);
+            if (material)
+            {
+                if (material.shader != shader)
+                {
+                    material.shader = shader;
+                    EditorUtility.SetDirty(material);
+                }
+                return;
+            }
+
+            material = new Material(shader) { name = templateName };
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", Color.white);
+            if (includeEmission && material.HasProperty("_EmissionColor"))
+            {
+                material.EnableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", Color.white);
+            }
+            AssetDatabase.CreateAsset(material, assetPath);
         }
     }
 
