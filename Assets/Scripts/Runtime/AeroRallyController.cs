@@ -56,6 +56,7 @@ namespace FrutigerBadminton
         Transform shuttle;
         Transform landingMarker;
         Transform aimMarker;
+        Transform playerMarker;
         Transform partnerReceiverMarker;
         Transform partnerTwoReceiverMarker;
         Transform rivalReceiverMarker;
@@ -213,6 +214,7 @@ namespace FrutigerBadminton
             CreateShuttlecock();
             CreateLandingMarker();
             CreateAimMarker();
+            CreatePlayerMarker();
             CreateReceiverMarkers();
             CreateDashTrail();
             shuttle.position = new Vector3(0f, GroundY + 3.5f, 0f);
@@ -266,6 +268,7 @@ namespace FrutigerBadminton
                 UpdateShuttlecock(deltaTime);
                 if (flightActive && playerMustReturn) TryPartnerReturn();
             }
+            UpdatePlayerMarker();
             UpdateAIReceiverMarkers();
             UpdateLandingMarker();
             UpdateAimMarker();
@@ -644,6 +647,37 @@ namespace FrutigerBadminton
                 assignedFriendlyReceiver = null;
             else if (nearestPartner != assignedFriendlyReceiver && nearestDistance + .5f < assignedDistance)
                 assignedFriendlyReceiver = nearestPartner;
+        }
+
+        void CreatePlayerMarker()
+        {
+            var marker = new GameObject("Player court marker");
+            ownedObjects.Add(marker);
+            playerMarker = marker.transform;
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>();
+            AddSegmentedRing(vertices, triangles, .68f, .625f, 48, 0f);
+            AddSegmentedRing(vertices, triangles, .81f, .76f, 4, .38f);
+            var mesh = new Mesh { name = "Generated player court marker" };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            ownedObjects.Add(mesh);
+            marker.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = marker.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = CreateMaterial("Universal Render Pipeline/Lit", new Color(.65f, 1f, .95f), .7f, .7f);
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            marker.SetActive(false);
+        }
+
+        void UpdatePlayerMarker()
+        {
+            if (!playerMarker) return;
+            if (!playerMarker.gameObject.activeSelf) playerMarker.gameObject.SetActive(true);
+            playerMarker.position = new Vector3(player.position.x, GroundY + .14f, player.position.z);
+            float pulse = 1f + Mathf.Sin(Time.time * 2.4f) * .035f;
+            playerMarker.localScale = Vector3.one * pulse;
         }
 
         void CreateReceiverMarkers()
