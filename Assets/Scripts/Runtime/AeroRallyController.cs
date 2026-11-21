@@ -467,7 +467,7 @@ namespace FrutigerBadminton
                            : style == ShotStyle.Drive ? 1.22f
                            : .83f;
             AeroHitEffect.Spawn(shuttle.position, ShotTint(style), style == ShotStyle.Smash ? 1.55f : 1f);
-            Launch(shuttle.position, target, duration, false, true);
+            Launch(shuttle.position, target, duration, false, true, style);
             if (playerAnimation) playerAnimation.Swing(style == ShotStyle.Smash);
             rallyHits++;
             string hit = style == ShotStyle.Clear ? "Aqua clear"
@@ -494,7 +494,7 @@ namespace FrutigerBadminton
                            : style == ShotStyle.Drive ? 1.22f
                            : 1.15f;
             AeroHitEffect.Spawn(start, ShotTint(style), style == ShotStyle.Smash ? 1.55f : 1f);
-            Launch(start, target, duration, false, true);
+            Launch(start, target, duration, false, true, style);
             if (playerAnimation) playerAnimation.Swing(style == ShotStyle.Smash);
             rallyHits++;
             string hit = style == ShotStyle.Clear ? "Aqua clear"
@@ -565,16 +565,38 @@ namespace FrutigerBadminton
 
         void BeginRivalReturn(Transform returner, AeroPlayerAnimation returnerAnimation)
         {
-            float targetZ = Mathf.Clamp(player.position.z + Random.Range(-1.9f, 1.9f), -5.9f, -1.35f);
-            float targetX = Mathf.Clamp(player.position.x + Random.Range(-1.6f, 1.6f), -2.45f, 2.45f);
+            ShotStyle style = ChooseRivalShot();
+            float targetZ = style == ShotStyle.Drop ? Random.Range(-2.35f, -1.5f)
+                         : style == ShotStyle.Drive ? Random.Range(-4.15f, -3.15f)
+                         : Random.Range(-5.8f, -4.9f);
+            float leftCoverage = Mathf.Min(Mathf.Abs(player.position.x + 2.2f), Mathf.Abs(partner.position.x + 2.2f), Mathf.Abs(partnerTwo.position.x + 2.2f));
+            float rightCoverage = Mathf.Min(Mathf.Abs(player.position.x - 2.2f), Mathf.Abs(partner.position.x - 2.2f), Mathf.Abs(partnerTwo.position.x - 2.2f));
+            bool aimLeft = leftCoverage > rightCoverage || (Mathf.Approximately(leftCoverage, rightCoverage) && Random.value < .5f);
+            float targetX = (aimLeft ? -2.25f : 2.25f) + Random.Range(-.45f, .45f);
             Vector3 start = returner.position + Vector3.up * 1.4f;
-            Vector3 target = new Vector3(targetX, GroundY + .11f, targetZ);
-            AeroHitEffect.Spawn(start, new Color(1f, .72f, .63f), .95f);
-            Launch(start, target, Random.Range(1.24f, 1.43f), true, false);
+            Vector3 target = new Vector3(Mathf.Clamp(targetX, -CourtHalfWidth + .35f, CourtHalfWidth - .35f), GroundY + .11f, targetZ);
+            AeroHitEffect.Spawn(start, ShotTint(style), style == ShotStyle.Drive ? 1.08f : .95f);
+            float duration = style == ShotStyle.Drop ? Random.Range(1.62f, 1.74f)
+                           : style == ShotStyle.Drive ? Random.Range(1.27f, 1.36f)
+                           : Random.Range(1.42f, 1.54f);
+            Launch(start, target, duration, true, false, style);
             if (returnerAnimation) returnerAnimation.Swing(false);
+            rallyHits++;
+            string shotName = style == ShotStyle.Drop ? "feather drop"
+                            : style == ShotStyle.Drive ? "glass drive" : "aqua clear";
+            ShowMessage("Rival " + shotName + "  •  Rally " + rallyHits, .9f);
         }
 
-        void Launch(Vector3 start, Vector3 target, float duration, bool receiverIsPlayer, bool playerShot)
+        ShotStyle ChooseRivalShot()
+        {
+            float dropChance = rallyHits >= 3 ? .38f : .2f;
+            float roll = Random.value;
+            if (roll < dropChance) return ShotStyle.Drop;
+            if (roll < dropChance + .32f) return ShotStyle.Drive;
+            return ShotStyle.Clear;
+        }
+
+        void Launch(Vector3 start, Vector3 target, float duration, bool receiverIsPlayer, bool playerShot, ShotStyle style = ShotStyle.Clear)
         {
             playerServeReady = false;
             flightStart = start;
@@ -590,6 +612,11 @@ namespace FrutigerBadminton
             shuttle.position = start;
             shuttle.up = flightVelocity.normalized;
             shuttleTrail.Clear();
+            Color trailTint = ShotTint(style);
+            shuttleTrail.startColor = new Color(trailTint.r, trailTint.g, trailTint.b, .82f);
+            shuttleTrail.endColor = new Color(trailTint.r, trailTint.g, trailTint.b, 0f);
+            if (trailMaterial && trailMaterial.HasProperty(EmissionColorId))
+                trailMaterial.SetColor(EmissionColorId, trailTint * .72f);
         }
 
         void AwardPlayerPoint(string result)
@@ -812,7 +839,7 @@ namespace FrutigerBadminton
             band.transform.localScale = new Vector3(.072f, .025f, .072f);
             band.GetComponent<Renderer>().sharedMaterial = bandMaterial;
 
-            trailMaterial = CreateMaterial("Universal Render Pipeline/Unlit", new Color(.31f, .98f, 1f), 0f, .8f);
+            trailMaterial = CreateMaterial("Universal Render Pipeline/Unlit", Color.white, 0f, .8f);
             shuttleTrail = root.AddComponent<TrailRenderer>();
             shuttleTrail.time = .24f;
             shuttleTrail.minVertexDistance = .09f;
