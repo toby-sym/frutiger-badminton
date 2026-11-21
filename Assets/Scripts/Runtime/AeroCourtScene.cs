@@ -258,10 +258,32 @@ namespace FrutigerBadminton
             Transform rightLeg = Limb(pose, "Right leg", new Vector3(.18f, .58f, 0f), new Vector3(.32f, .07f, 0f), .16f, suit);
             Transform leftArm = Limb(pose, "Left arm", new Vector3(-.3f, 1.08f, 0f), new Vector3(-.48f, .52f, .05f), .12f, suit);
             Transform rightArm = Limb(pose, "Right arm", new Vector3(.3f, 1.08f, 0f), new Vector3(.52f, 1.38f, 0f), .12f, suit);
+            CreatePlayerKit(pose, name, suit);
             Color racketColor = name == "Rival" ? new Color(1f, .88f, .77f) : new Color(.8f, 1f, .98f);
             Transform racket = CreateRacket(rightArm, pose.TransformPoint(new Vector3(.62f, 1.14f, 0f)), racketColor);
             root.AddComponent<AeroPlayerAnimation>().Initialize(pose, leftArm, rightArm, leftLeg, rightLeg, racket);
             return root.transform;
+        }
+
+        void CreatePlayerKit(Transform pose, string name, Color suit)
+        {
+            bool rival = name == "Rival";
+            Color trim = rival ? new Color(1f, .78f, .7f) : new Color(.58f, 1f, .95f);
+            Color shorts = rival ? new Color(.71f, .26f, .42f) : new Color(.04f, .37f, .47f);
+            Color hair = rival ? new Color(.24f, .1f, .27f) : new Color(.035f, .18f, .27f);
+
+            Sphere("Tailored rally shorts", pose.TransformPoint(new Vector3(0f, .53f, 0f)), new Vector3(.55f, .42f, .36f), shorts, .62f, .12f).transform.SetParent(pose, true);
+            Sphere("Sculpted sport hair", pose.TransformPoint(new Vector3(0f, 1.82f, -.015f)), new Vector3(.39f, .2f, .38f), hair, .24f, .05f).transform.SetParent(pose, true);
+            Sphere("Pearl rally headband", pose.TransformPoint(new Vector3(0f, 1.76f, .21f)), new Vector3(.38f, .075f, .2f), trim, .65f, .35f).transform.SetParent(pose, true);
+            Sphere("Swept back hair lock", pose.TransformPoint(new Vector3(0f, 1.62f, -.27f)), new Vector3(.2f, .26f, .22f), hair, .22f, .04f).transform.SetParent(pose, true);
+
+            for (int side = -1; side <= 1; side += 2)
+            {
+                Vector3 shoe = new Vector3(side * .31f, .16f, .12f);
+                Sphere("Pearl court shoe", pose.TransformPoint(shoe), new Vector3(.31f, .15f, .4f), new Color(.91f, .99f, 1f), .8f, .14f).transform.SetParent(pose, true);
+                Sphere("Aqua traction sole", pose.TransformPoint(shoe + Vector3.down * .075f), new Vector3(.32f, .055f, .41f), trim, .48f, .32f).transform.SetParent(pose, true);
+                Sphere("Shoe side flash", pose.TransformPoint(shoe + new Vector3(side * .115f, .015f, .015f)), new Vector3(.06f, .055f, .2f), suit, .72f, .3f).transform.SetParent(pose, true);
+            }
         }
 
         Transform CreateRacket(Transform arm, Vector3 center, Color color)
