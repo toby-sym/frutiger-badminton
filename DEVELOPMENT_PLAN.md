@@ -5,6 +5,6 @@
 3. **In progress — controller-first local rally:** gamepad movement, aiming, jump, dash, and shot mappings are implemented alongside keyboard and mouse fallback. Players now alternate serves, and the player's clear, drop, drive, or smash serve launches toward the generated aim reticle. Incoming shots use a separate animated landing reticle, and dashes leave an aqua trail and burst. Verify serving, the controller path, landing cue, dash feedback, and aim preview in the artifact.
 4. **In progress — solo 3v3 and upgrades:** the player and two AI teammates face three generated opponents, with a team-colored reticle marking the assigned returner. Opponents mix clears, drops, and drives toward less-covered lanes, with shot-color trails. Solo runs are first to 7 by two points (cap 9), draft an upgrade every three player points, and offer replay with progression reset; balance the run.
 5. Add competitive online 3v3 after the local rally is solid.
-6. Continue improving menus, feedback, presentation, and replayability.
+6. Continue improving menus, feedback, presentation, and replayability; point awards now add a team-colored rally burst and score-panel pulse that scales with rally length.
 
 Keep the visual direction procedural: use generated geometry, materials, and shaders without imported 3D models or image textures. Build and inspect each increment before moving on.

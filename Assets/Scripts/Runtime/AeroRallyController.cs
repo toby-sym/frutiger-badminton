@@ -84,6 +84,8 @@ namespace FrutigerBadminton
         float dashCooldown;
         float jumpHeight;
         float jumpVelocity;
+        float scorePulseStart = -10f;
+        Color scorePulseColor = Color.white;
         float serveDelay;
         float messageDelay;
         int playerScore;
@@ -622,6 +624,7 @@ namespace FrutigerBadminton
         void AwardPlayerPoint(string result)
         {
             playerScore++;
+            CelebratePoint(new Color(.36f, 1f, .82f));
             bool finishedRun = IsSoloRunComplete();
             bool reachedUpgradeMilestone = !finishedRun && playerScore >= nextUpgradeScore;
             if (reachedUpgradeMilestone) nextUpgradeScore += UpgradeScoreInterval;
@@ -632,8 +635,17 @@ namespace FrutigerBadminton
         void AwardRivalPoint(string result)
         {
             rivalScore++;
+            CelebratePoint(new Color(1f, .54f, .69f));
             bool finishedRun = IsSoloRunComplete();
             FinishPoint(result + "  " + playerScore + " — " + rivalScore, false, finishedRun, false);
+        }
+
+        void CelebratePoint(Color color)
+        {
+            scorePulseStart = Time.unscaledTime;
+            scorePulseColor = color;
+            float rallyBonus = Mathf.Clamp01(rallyHits / 7f);
+            AeroHitEffect.Spawn(shuttle.position + Vector3.up * .12f, color, Mathf.Lerp(1.1f, 1.8f, rallyBonus));
         }
 
         bool IsSoloRunComplete()
@@ -1122,10 +1134,16 @@ namespace FrutigerBadminton
                 : "Hold shot to preview aim  •  Follow landing ring", labelStyle);
             GUI.Label(new Rect(28f, 194f, 298f, 24f), "First to 7 · win by 2 · upgrades every 3", hintStyle);
 
-            GUI.color = new Color(.02f, .23f, .29f, .9f);
+            float scorePulse = Mathf.Clamp01(1f - (Time.unscaledTime - scorePulseStart) / .72f);
+            Color scorePanel = Color.Lerp(new Color(.02f, .23f, .29f, .9f),
+                new Color(scorePulseColor.r * .34f, scorePulseColor.g * .34f, scorePulseColor.b * .34f, .98f), scorePulse);
+            GUI.color = scorePanel;
             GUI.Box(new Rect(Screen.width * .5f - 118f, 18f, 236f, 48f), GUIContent.none);
-            GUI.color = Color.white;
+            GUI.color = Color.Lerp(Color.white, scorePulseColor, scorePulse * .48f);
+            scoreStyle.fontSize = 22 + Mathf.RoundToInt(5f * scorePulse);
             GUI.Label(new Rect(Screen.width * .5f - 110f, 21f, 220f, 42f), playerScore + "   —   " + rivalScore, scoreStyle);
+            scoreStyle.fontSize = 22;
+            GUI.color = Color.white;
 
             if (runComplete) DrawRunEnd(controllerConnected);
             else if (upgradeDraftActive) DrawUpgradeDraft(controllerConnected);
