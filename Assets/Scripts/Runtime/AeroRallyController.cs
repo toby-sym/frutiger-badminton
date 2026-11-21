@@ -76,6 +76,7 @@ namespace FrutigerBadminton
         Material bandMaterial;
         Material trailMaterial;
         GUIStyle scoreStyle;
+        GUIStyle scoreTeamStyle;
         GUIStyle labelStyle;
         GUIStyle upgradeButtonStyle;
         GUIStyle upgradeDescriptionStyle;
@@ -1289,6 +1290,7 @@ namespace FrutigerBadminton
             if (scoreStyle == null)
             {
                 scoreStyle = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+                scoreTeamStyle = new GUIStyle(GUI.skin.label) { fontSize = 11, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
                 labelStyle = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft };
                 upgradeButtonStyle = new GUIStyle(GUI.skin.button) { fontSize = 14, fontStyle = FontStyle.Bold };
                 upgradeDescriptionStyle = new GUIStyle(labelStyle)
@@ -1380,12 +1382,19 @@ namespace FrutigerBadminton
             float scorePulse = Mathf.Clamp01(1f - (Time.unscaledTime - scorePulseStart) / .72f);
             Color scorePanel = Color.Lerp(new Color(.02f, .23f, .29f, .9f),
                 new Color(scorePulseColor.r * .34f, scorePulseColor.g * .34f, scorePulseColor.b * .34f, .98f), scorePulse);
+            float scoreLeft = Mathf.Max(16f, Screen.width - 388f);
             GUI.color = scorePanel;
-            GUI.Box(new Rect(Screen.width * .5f - 118f, 18f, 236f, 48f), GUIContent.none);
+            GUI.Box(new Rect(scoreLeft, 16f, 372f, 60f), GUIContent.none);
+            GUI.color = new Color(.45f, 1f, .91f);
+            GUI.Label(new Rect(scoreLeft + 18f, 18f, 128f, 20f), "AQUA  ·  YOU", scoreTeamStyle);
             GUI.color = Color.Lerp(Color.white, scorePulseColor, scorePulse * .48f);
             scoreStyle.fontSize = 22 + Mathf.RoundToInt(5f * scorePulse);
-            GUI.Label(new Rect(Screen.width * .5f - 110f, 21f, 220f, 42f), playerScore + "   —   " + rivalScore, scoreStyle);
+            GUI.Label(new Rect(scoreLeft + 21f, 37f, 122f, 34f), playerScore.ToString(), scoreStyle);
+            GUI.Label(new Rect(scoreLeft + 145f, 29f, 82f, 38f), "—", scoreStyle);
+            GUI.Label(new Rect(scoreLeft + 229f, 37f, 122f, 34f), rivalScore.ToString(), scoreStyle);
             scoreStyle.fontSize = 22;
+            GUI.color = new Color(1f, .67f, .74f);
+            GUI.Label(new Rect(scoreLeft + 226f, 18f, 128f, 20f), "CORAL  ·  RIVALS", scoreTeamStyle);
             GUI.color = Color.white;
 
             if (runComplete) DrawRunEnd(controllerConnected);
