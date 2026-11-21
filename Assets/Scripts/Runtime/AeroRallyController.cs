@@ -26,6 +26,7 @@ namespace FrutigerBadminton
         AeroPlayerAnimation playerAnimation;
         AeroPlayerAnimation rivalAnimation;
         TrailRenderer shuttleTrail;
+        TrailRenderer dashTrail;
         Renderer landingMarkerRenderer;
         Mesh landingMarkerMesh;
         Material shuttleMaterial;
@@ -77,6 +78,7 @@ namespace FrutigerBadminton
             rival.position = new Vector3(0f, GroundY, 4.6f);
             CreateShuttlecock();
             CreateLandingMarker();
+            CreateDashTrail();
             BeginServe();
         }
 
@@ -123,6 +125,12 @@ namespace FrutigerBadminton
                 dashTime = .16f;
                 dashCooldown = 1.05f;
                 isDashing = true;
+                if (dashTrail)
+                {
+                    dashTrail.Clear();
+                    dashTrail.emitting = true;
+                }
+                AeroHitEffect.Spawn(player.position + Vector3.up * .82f, new Color(.26f, .96f, 1f), .82f);
             }
 
             float speed = isDashing ? 12f : 4.6f;
@@ -130,6 +138,7 @@ namespace FrutigerBadminton
             {
                 direction = dashDirection;
                 dashTime -= deltaTime;
+                if (dashTime <= 0f && dashTrail) dashTrail.emitting = false;
             }
             else isDashing = false;
 
@@ -424,6 +433,35 @@ namespace FrutigerBadminton
             landingMarkerRenderer.shadowCastingMode = ShadowCastingMode.Off;
             landingMarkerRenderer.receiveShadows = false;
             marker.SetActive(false);
+        }
+
+        void CreateDashTrail()
+        {
+            var anchor = new GameObject("Dash trail anchor").transform;
+            anchor.SetParent(player, false);
+            anchor.localPosition = Vector3.up * .92f;
+
+            var trailMaterial = CreateMaterial("Universal Render Pipeline/Particles/Unlit", new Color(.3f, .95f, 1f), 0f, 1.1f);
+            if (trailMaterial.HasProperty("_Surface")) trailMaterial.SetFloat("_Surface", 1f);
+            if (trailMaterial.HasProperty("_SrcBlend")) trailMaterial.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+            if (trailMaterial.HasProperty("_DstBlend")) trailMaterial.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+            if (trailMaterial.HasProperty("_ZWrite")) trailMaterial.SetFloat("_ZWrite", 0f);
+            trailMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            trailMaterial.renderQueue = (int)RenderQueue.Transparent;
+
+            dashTrail = anchor.gameObject.AddComponent<TrailRenderer>();
+            dashTrail.time = .24f;
+            dashTrail.minVertexDistance = .035f;
+            dashTrail.startWidth = .38f;
+            dashTrail.endWidth = .012f;
+            dashTrail.startColor = new Color(.66f, 1f, 1f, .88f);
+            dashTrail.endColor = new Color(.27f, .88f, 1f, 0f);
+            dashTrail.sharedMaterial = trailMaterial;
+            dashTrail.alignment = LineAlignment.View;
+            dashTrail.textureMode = LineTextureMode.Stretch;
+            dashTrail.shadowCastingMode = ShadowCastingMode.Off;
+            dashTrail.receiveShadows = false;
+            dashTrail.emitting = false;
         }
 
         void UpdateLandingMarker()
