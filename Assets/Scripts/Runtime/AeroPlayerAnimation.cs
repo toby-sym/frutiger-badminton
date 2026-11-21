@@ -30,6 +30,8 @@ namespace FrutigerBadminton
         float swingPower;
         float gaitBlend;
         float gaitBlendVelocity;
+        float airBlend;
+        float airBlendVelocity;
         float landingPulse;
         bool wasAirborne;
 
@@ -69,6 +71,8 @@ namespace FrutigerBadminton
             previousRootPosition = transform.position;
             gaitBlend = 0f;
             gaitBlendVelocity = 0f;
+            airBlend = 0f;
+            airBlendVelocity = 0f;
             landingPulse = 0f;
             swingRemaining = 0f;
             wasAirborne = false;
@@ -97,8 +101,9 @@ namespace FrutigerBadminton
             float stride = Mathf.SmoothDamp(gaitBlend, targetStride, ref gaitBlendVelocity, .075f, Mathf.Infinity, deltaTime);
             gaitBlend = stride;
             gaitPhase += deltaTime * (3.2f + stride * 8.5f);
-            float step = Mathf.Sin(gaitPhase) * stride;
             bool airborne = transform.position.y > groundHeight + .05f;
+            airBlend = Mathf.SmoothDamp(airBlend, airborne ? 1f : 0f, ref airBlendVelocity, .09f, Mathf.Infinity, deltaTime);
+            float step = Mathf.Sin(gaitPhase) * stride * (1f - airBlend);
             bool dashing = speed > 8f;
             if (shadowRenderer)
             {
@@ -114,8 +119,7 @@ namespace FrutigerBadminton
             wasAirborne = airborne;
             landingPulse = Mathf.MoveTowards(landingPulse, 0f, deltaTime * 1.45f);
 
-            float bounce = Mathf.Abs(Mathf.Sin(gaitPhase * 2f)) * .045f * stride;
-            if (airborne) bounce += .035f;
+            float bounce = Mathf.Abs(Mathf.Sin(gaitPhase * 2f)) * .045f * stride * (1f - airBlend) + .035f * airBlend;
             pose.localPosition = poseRestPosition + Vector3.up * bounce;
             float airStretch = airborne ? Mathf.Clamp01((transform.position.y - groundHeight) * .22f) * .07f : 0f;
             float squash = landingPulse;
@@ -124,15 +128,16 @@ namespace FrutigerBadminton
                 poseRestScale.y * (1f - squash * .3f + airStretch),
                 poseRestScale.z * (1f + squash * .2f - airStretch * .25f));
 
-            float pitch = Mathf.Clamp(localMovement.z * 2.3f, -14f, 14f) + (dashing ? 12f : 0f) + (airborne ? -5f : 0f);
+            float pitch = Mathf.Clamp(localMovement.z * 2.3f, -14f, 14f) + (dashing ? 12f : 0f) - 5f * airBlend;
+            float yaw = Mathf.Clamp(localMovement.x * 2.4f, -18f, 18f);
             float roll = Mathf.Clamp(-localMovement.x * 3.4f, -12f, 12f);
-            Quaternion targetRotation = poseRestRotation * Quaternion.Euler(pitch, 0f, roll);
+            Quaternion targetRotation = poseRestRotation * Quaternion.Euler(pitch, yaw, roll);
             pose.localRotation = Quaternion.Slerp(pose.localRotation, targetRotation, 1f - Mathf.Exp(-14f * deltaTime));
 
-            float raisedArms = airborne ? -24f : dashing ? -12f : 0f;
+            float raisedArms = Mathf.Lerp(dashing ? -12f : 0f, -24f, airBlend);
             leftArm.localRotation = leftArmRestRotation * Quaternion.Euler(-step * 18f + raisedArms, 0f, -Mathf.Abs(step) * 5f);
-            leftLeg.localRotation = leftLegRestRotation * Quaternion.Euler(step * 24f, 0f, 0f);
-            rightLeg.localRotation = rightLegRestRotation * Quaternion.Euler(-step * 24f, 0f, 0f);
+            leftLeg.localRotation = leftLegRestRotation * Quaternion.Euler(step * 24f + airBlend * 18f, 0f, airBlend * 8f);
+            rightLeg.localRotation = rightLegRestRotation * Quaternion.Euler(-step * 24f + airBlend * 6f, 0f, -airBlend * 8f);
 
             Quaternion rightArmPose = rightArmRestRotation * Quaternion.Euler(step * 12f + raisedArms * .5f, 0f, step * 6f);
             if (swingRemaining > 0f)

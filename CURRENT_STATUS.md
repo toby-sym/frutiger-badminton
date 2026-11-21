@@ -50,6 +50,7 @@
 - Rally shot presses are buffered briefly while the incoming shuttle approaches reach, preserving the chosen shot type while the player can continue aiming. The buffer clears at the end of the point or run; timing still needs play verification.
 - Mouse and controller aim now hand off on input, the right-stick target stays in place when released, and mouse aim holds its last court position while the pointer is over the control panel. Verify mixed-device aiming in the artifact.
 - Player limbs use rounded generated shapes, and shoes follow the leg pivots. Landing compresses the body, torso lean eases between poses, racket swings settle back to rest, and restarting a run resets motion state; visual verification is pending.
+- Running blends into a tucked airborne pose instead of continuing the full leg cycle in a jump, while the torso turns gently with lateral movement. Motion verification is pending.
 - Player jackets have a generated translucent pearl highlight shell over the team colours for a glossier rim and specular accents; artifact visual verification is pending.
 - Players now have a soft procedural court shadow that spreads and fades with jump height, helping separate airborne motion from the floor; artifact visual verification is pending.
 - The rally control panel now uses short, non-wrapping labels and keeps the serve/return instruction, dash meter, and run-build chips within the panel.
