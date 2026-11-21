@@ -6,6 +6,7 @@ on:
       - '**'
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -18,12 +19,70 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reuse verified feature build for matching main merge
+        id: reuse
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'found=false' >> "$GITHUB_OUTPUT"
+          read -r -a commits <<< "$(git rev-list --parents -n 1 "$GITHUB_SHA")"
+          if [ "${#commits[@]}" -lt 3 ]; then
+            echo 'Main push is not a merge commit; running a fresh build.'
+            exit 0
+          fi
+
+          source_sha="${commits[2]}"
+          merge_tree="$(git rev-parse "${GITHUB_SHA}^{tree}")"
+          if ! source_tree="$(git rev-parse "${source_sha}^{tree}" 2>/dev/null)"; then
+            echo 'The feature commit is unavailable locally; running a fresh build.'
+            exit 0
+          fi
+          if [ "$merge_tree" != "$source_tree" ]; then
+            echo 'Merge tree differs from its feature parent; running a fresh build.'
+            exit 0
+          fi
+
+          if ! run_id="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow windows-development.yml --commit "$source_sha" --json databaseId,status,conclusion --jq '[.[] | select(.status == "completed" and .conclusion == "success")][0].databaseId // empty')"; then
+            echo 'Unable to check the feature build; running a fresh build.'
+            exit 0
+          fi
+          if [ -z "$run_id" ]; then
+            echo 'No successful build exists for the feature commit; running a fresh build.'
+            exit 0
+          fi
+
+          download_dir="$RUNNER_TEMP/verified-feature-artifact"
+          mkdir -p "$download_dir"
+          if ! gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --dir "$download_dir"; then
+            echo 'The verified feature artifact is unavailable; running a fresh build.'
+            exit 0
+          fi
+
+          source_archive="$(find "$download_dir" -type f -name '*.zip' -print -quit)"
+          if [ -z "$source_archive" ]; then
+            echo 'The verified feature run has no packaged player; running a fresh build.'
+            exit 0
+          fi
+
+          mkdir -p artifacts
+          archive="artifacts/windows-main-${GITHUB_SHA}.zip"
+          cp "$source_archive" "$archive"
+          echo 'found=true' >> "$GITHUB_OUTPUT"
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+          echo "Reusing the verified player built from $source_sha."
       - name: Cache Unity Library
+        if: steps.reuse.outputs.found != 'true'
         uses: actions/cache@v4
         with:
           path: Library
           key: UnityLibrary-${{ runner.os }}-StandaloneWindows64-development-${{ hashFiles('Packages/manifest.json', 'Packages/packages-lock.json', 'ProjectSettings/ProjectVersion.txt', 'ProjectSettings/ProjectSettings.asset') }}
       - name: Build Windows x64 player with GameCI
+        if: steps.reuse.outputs.found != 'true'
         uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -39,6 +98,7 @@ jobs:
           allowDirtyBuild: true
       - name: Package portable player
         id: package
+        if: steps.reuse.outputs.found != 'true'
         shell: pwsh
         env:
           BUILD_OUTPUT: build/StandaloneWindows64/FrutigerBadminton
@@ -51,8 +111,8 @@ jobs:
       - name: Upload portable player
         uses: actions/upload-artifact@v4
         with:
-          name: windows-${{ steps.package.outputs.branch }}-${{ github.sha }}
-          path: ${{ steps.package.outputs.archive }}
+          name: windows-${{ github.ref_name == 'main' && 'main' || steps.package.outputs.branch }}-${{ github.sha }}
+          path: ${{ steps.reuse.outputs.archive || steps.package.outputs.archive }}
           compression-level: 0
           if-no-files-found: error
           retention-days: 30
