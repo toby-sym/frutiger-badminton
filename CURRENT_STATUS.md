@@ -42,6 +42,7 @@
 - A lower court-level camera is the default for new players, with the previous elevated overview available in Settings. Camera choice persists; both views and their movement/aim readability need Windows artifact verification.
 - Fullscreen preferences now save the requested state rather than reading back a potentially deferred display change; verify changing and restarting the Windows player.
 - The title layout scales to fit smaller windows, including the controls and settings pages; verify readability and mouse selection at smaller resolutions in the artifact.
+- Title panels use generated glass gradients, fine borders and a soft offset shadow rather than the default box skin; visual verification is pending.
 - Title navigation accepts the left stick, D-pad, WASD and arrow keys, with left/right movement between the side-by-side options. Settings only toggle when an actual setting is selected; controller verification is pending.
 - Rally movement eases into and out of direction changes, with generated character squash on landing, stretch in the air, and a quicker racket strike with follow-through.
 - Movement now follows the camera's screen directions, and a dash with no input uses the last movement direction. Verify keyboard and controller movement in the Windows artifact.

@@ -1792,13 +1792,8 @@ namespace FrutigerBadminton
             Rect mainPanel = new Rect(left, top, mainWidth, panelHeight);
             Rect sidePanel = new Rect(left + mainWidth + 20f, top, sideWidth, panelHeight);
 
-            GUI.color = new Color(.018f, .105f, .17f, .91f);
-            GUI.Box(mainPanel, GUIContent.none);
-            GUI.color = new Color(.035f, .2f, .27f, .84f);
-            GUI.Box(sidePanel, GUIContent.none);
-            GUI.color = new Color(.39f, .98f, .94f, .94f);
-            GUI.DrawTexture(new Rect(mainPanel.x + 1f, mainPanel.y + 1f, mainPanel.width - 2f, 3f), Texture2D.whiteTexture);
-            GUI.DrawTexture(new Rect(sidePanel.x + 1f, sidePanel.y + 1f, sidePanel.width - 2f, 2f), Texture2D.whiteTexture);
+            DrawTitleGlassPanel(mainPanel, new Color(.045f, .25f, .32f, .94f), new Color(.012f, .075f, .14f, .95f));
+            DrawTitleGlassPanel(sidePanel, new Color(.08f, .33f, .39f, .90f), new Color(.02f, .12f, .19f, .92f));
 
             GUI.color = new Color(.48f, 1f, .94f);
             GUI.Label(new Rect(mainPanel.x + 36f, top + 28f, mainWidth - 72f, 22f),
@@ -1920,6 +1915,30 @@ namespace FrutigerBadminton
             GUI.Label(new Rect(left, top - 28f, panelWidth, 22f), "FRUTIGER BADMINTON   /   ABOVE THE CLOUDS", hintStyle);
             GUI.color = previous;
             GUI.matrix = previousMatrix;
+        }
+
+        void DrawTitleGlassPanel(Rect rect, Color top, Color bottom)
+        {
+            if (Event.current.type != EventType.Repaint) return;
+            Color previous = GUI.color;
+            GUI.color = new Color(.005f, .025f, .045f, .28f);
+            GUI.DrawTexture(new Rect(rect.x + 5f, rect.y + 7f, rect.width, rect.height), Texture2D.whiteTexture);
+
+            const int bands = 20;
+            float bandHeight = rect.height / bands;
+            for (int i = 0; i < bands; i++)
+            {
+                float inset = i == 0 || i == bands - 1 ? 4f : i == 1 || i == bands - 2 ? 2f : 0f;
+                GUI.color = Color.Lerp(top, bottom, i / (float)(bands - 1));
+                GUI.DrawTexture(new Rect(rect.x + inset, rect.y + i * bandHeight, rect.width - inset * 2f, bandHeight), Texture2D.whiteTexture);
+            }
+            GUI.color = new Color(.56f, 1f, .98f, .82f);
+            GUI.DrawTexture(new Rect(rect.x + 5f, rect.y + 1f, rect.width - 10f, 2f), Texture2D.whiteTexture);
+            GUI.color = new Color(.5f, .9f, .96f, .3f);
+            GUI.DrawTexture(new Rect(rect.x, rect.y + 5f, 1f, rect.height - 10f), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(rect.xMax - 1f, rect.y + 5f, 1f, rect.height - 10f), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(rect.x + 5f, rect.yMax - 1f, rect.width - 10f, 1f), Texture2D.whiteTexture);
+            GUI.color = previous;
         }
 
         bool DrawTitleButton(Rect rect, string label, bool selected)
