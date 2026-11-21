@@ -2,6 +2,7 @@
 
 - Project version is Unity 6000.0.64f1 with URP 17.0.4.
 - The editor bootstrap generates the Aero Court scene and URP assets from C# using procedural meshes, primitives, and materials.
+- Cloud banks drift with gentle parallax while floating glass lanterns bob, twinkle, and orbit around the court; all motion is generated at runtime.
 - The local practice loop is implemented with WASD movement, jump, dash, aimed clear, drop, drive, smash, scoring, and a returning rival.
 - GitHub Actions uses GameCI to build and package a portable Windows x64 Development player on every branch push. Unity's `Library` folder is cached in development and release workflows, and superseded builds on the same branch are canceled.
 - The impact feedback Windows build passed in run `44836155335` (10m) and uploaded its artifact. The direct merge to `main` passed in run `44837552946` (10m20s) and saved a 746 MB `Library` cache for the default branch.

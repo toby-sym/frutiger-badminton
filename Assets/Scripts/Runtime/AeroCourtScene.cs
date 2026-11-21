@@ -11,11 +11,71 @@ namespace FrutigerBadminton
         const float CourtLength = 13.4f;
         readonly List<Material> ownedMaterials = new List<Material>();
         readonly List<Mesh> ownedMeshes = new List<Mesh>();
+        readonly List<CloudDrift> cloudDrifts = new List<CloudDrift>();
+        readonly List<LanternOrbit> lanternOrbits = new List<LanternOrbit>();
         readonly Dictionary<string, Material> materialCache = new Dictionary<string, Material>();
+
+        struct CloudDrift
+        {
+            public Transform root;
+            public Vector3 origin;
+            public float phase;
+            public float speed;
+
+            public CloudDrift(Transform root, Vector3 origin, float phase, float speed)
+            {
+                this.root = root;
+                this.origin = origin;
+                this.phase = phase;
+                this.speed = speed;
+            }
+        }
+
+        struct LanternOrbit
+        {
+            public Transform lantern;
+            public float radius;
+            public float baseHeight;
+            public float angle;
+            public float phase;
+            public float speed;
+
+            public LanternOrbit(Transform lantern, float radius, float baseHeight, float angle, float phase, float speed)
+            {
+                this.lantern = lantern;
+                this.radius = radius;
+                this.baseHeight = baseHeight;
+                this.angle = angle;
+                this.phase = phase;
+                this.speed = speed;
+            }
+        }
 
         void Awake()
         {
             BuildWorld();
+        }
+
+        void Update()
+        {
+            float time = Time.time;
+            for (int i = 0; i < cloudDrifts.Count; i++)
+            {
+                CloudDrift drift = cloudDrifts[i];
+                float wave = time * drift.speed + drift.phase;
+                drift.root.position = drift.origin + new Vector3(Mathf.Sin(wave) * .38f, Mathf.Sin(wave * .72f) * .11f, Mathf.Cos(wave * .63f) * .2f);
+                drift.root.rotation = Quaternion.Euler(0f, Mathf.Sin(wave * .48f) * 2.2f, 0f);
+            }
+
+            for (int i = 0; i < lanternOrbits.Count; i++)
+            {
+                LanternOrbit orbit = lanternOrbits[i];
+                float angle = orbit.angle + time * orbit.speed;
+                float bob = (Mathf.Sin(time * 1.35f + orbit.phase) - Mathf.Sin(orbit.phase)) * .13f;
+                float twinkle = (Mathf.Sin(time * 2.1f + orbit.phase) - Mathf.Sin(orbit.phase)) * .035f;
+                orbit.lantern.position = new Vector3(Mathf.Cos(angle) * orbit.radius, orbit.baseHeight + bob, Mathf.Sin(angle) * orbit.radius);
+                orbit.lantern.localScale = Vector3.one * (.22f * (1f + twinkle));
+            }
         }
 
         void OnDestroy()
@@ -199,12 +259,18 @@ namespace FrutigerBadminton
                 {
                     float z = -13f + row * 8.4f;
                     float x = side * (9.7f + (row % 2) * 1.3f);
+                    Vector3 origin = new Vector3(x, -1.8f, z);
+                    var bank = new GameObject("Drifting cloud bank").transform;
+                    bank.position = origin;
+                    float phase = (side + 1) * .8f + row * 1.47f;
+                    cloudDrifts.Add(new CloudDrift(bank, origin, phase, .075f + row * .009f));
                     Color cloud = Color.Lerp(new Color(.92f, .99f, 1f), new Color(.45f, .83f, .98f), row * .07f);
                     for (int lobe = 0; lobe < 5; lobe++)
                     {
                         float dx = (lobe - 2) * .85f;
                         float lift = (lobe == 1 || lobe == 3) ? .5f : 0f;
-                        Sphere("Procedural cloud lobe", new Vector3(x + dx, -1.8f + lift, z + Mathf.Sin(lobe * 1.7f) * .5f), new Vector3(1.4f - Mathf.Abs(lobe - 2) * .18f, .75f + lift * .3f, 1.15f), cloud, .08f, .1f);
+                        var lobeObject = Sphere("Procedural cloud lobe", origin + new Vector3(dx, lift, Mathf.Sin(lobe * 1.7f) * .5f), new Vector3(1.4f - Mathf.Abs(lobe - 2) * .18f, .75f + lift * .3f, 1.15f), cloud, .08f, .1f);
+                        lobeObject.transform.SetParent(bank, true);
                     }
                 }
             }
@@ -215,8 +281,10 @@ namespace FrutigerBadminton
             for (int i = 0; i < 12; i++)
             {
                 float angle = i / 12f * Mathf.PI * 2f;
-                var orb = Sphere("Floating glass lantern", new Vector3(Mathf.Cos(angle) * 10.3f, 1.4f + (i % 3) * .55f, Mathf.Sin(angle) * 10.3f), Vector3.one * .22f, Color.Lerp(new Color(.2f, .94f, 1f), new Color(.9f, .68f, 1f), i / 12f), .8f, 1.8f);
+                float height = 1.4f + (i % 3) * .55f;
+                var orb = Sphere("Floating glass lantern", new Vector3(Mathf.Cos(angle) * 10.3f, height, Mathf.Sin(angle) * 10.3f), Vector3.one * .22f, Color.Lerp(new Color(.2f, .94f, 1f), new Color(.9f, .68f, 1f), i / 12f), .8f, 1.8f);
                 orb.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                lanternOrbits.Add(new LanternOrbit(orb.transform, 10.3f, height, angle, angle, .014f + (i % 3) * .002f));
             }
         }
 
