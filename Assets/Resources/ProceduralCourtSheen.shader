@@ -65,22 +65,27 @@ Shader "Frutiger/Procedural Court Sheen"
 
             half4 Frag(Varyings input) : SV_Target
             {
+                // Layer broad, stable reflections over a very fine moving lacquer grain.
+                // Everything is analytic: there are no sampled image textures.
                 float time = _Time.y * _FlowSpeed;
-                float waveA = sin((input.uv.x * 1.15 + input.uv.y * .55) * _WaveScale - time
-                    + sin(input.uv.y * 6.4 + time * .4) * .48);
-                float waveB = sin((input.uv.x * .48 - input.uv.y * 1.2) * (_WaveScale * .68) + time * .72
-                    + cos(input.uv.x * 4.6) * .32);
-                float field = saturate(.5 + .25 * (waveA + waveB));
-                float glint = smoothstep(.68, .94, field);
-                float scintillation = .5 + .5 * sin(input.uv.x * 37 + input.uv.y * 23 + time * 1.6)
-                    * sin(input.uv.y * 31 - input.uv.x * 18 - time * 1.1);
-                glint *= lerp(.7, 1, scintillation);
-
+                float2 p = input.positionWS.xz;
+                float field = .5 + .25 * sin(p.x * 1.35 + p.y * .38 + sin(p.y * .7) * .5)
+                    + .25 * sin(p.y * .93 - p.x * .43);
+                float grain = sin(p.x * _WaveScale * 2.1 + sin(p.y * 1.4) * .4)
+                    * sin(p.y * _WaveScale * 1.45 + time * .35);
+                float panelX = abs(frac((p.x + p.y * .21) * .34) - .5);
+                float panelZ = abs(frac((p.y - p.x * .08) * .25) - .5);
+                float frameReflection = max(smoothstep(.45, .495, panelX), smoothstep(.46, .495, panelZ));
+                float2 glowPosition = float2((p.x + 1.1 + p.y * .20) * .24, (p.y - 1.7) * .085);
+                float windowGlow = exp(-dot(glowPosition, glowPosition) * 1.7);
+                float glint = saturate(windowGlow * (.48 + field * .52) + max(0, grain) * .035);
                 float3 normalWS = normalize(input.normalWS);
                 float3 viewDirectionWS = normalize(GetWorldSpaceViewDir(input.positionWS));
                 float fresnel = pow(saturate(1 - saturate(dot(normalWS, viewDirectionWS))), 3);
-                float alpha = saturate(_Opacity * (.05 + glint * .4 + field * .2 + fresnel * _FresnelStrength));
-                float3 color = lerp(_BaseColor.rgb, _GlintColor.rgb, saturate(glint * .9 + fresnel * .2));
+                float alpha = saturate(_Opacity * (.70 + glint * .25 + fresnel * _FresnelStrength));
+                float3 color = lerp(_BaseColor.rgb * (.74 + .38 * field), _GlintColor.rgb,
+                    saturate(glint * .68 + fresnel * .18));
+                color *= 1 - frameReflection * .20;
                 return half4(color * alpha, alpha);
             }
             ENDHLSL
