@@ -27,6 +27,7 @@
 - Teammates use a wider home formation and a centre-line margin before changing sides, reducing crowding and rapid formation swaps. Gameplay verification is pending.
 - Opponents now return a descending shuttle while it is within reach, using its actual contact position for the return trajectory. Missed shots land as winners instead of teleporting back up to a rival; artifact gameplay verification is pending.
 - A pulsing, team-colored receiver reticle identifies the AI teammate assigned to cover an incoming landing, making the 3v3 coverage decision readable.
+- A small generated aqua-and-pearl court marker follows the controlled player and remains on the floor when jumping; verify legibility against other reticles in the artifact.
 - A shot-colored generated reticle previews the selected clear, drop, drive, or smash target on the opponent's court as the right stick or mouse moves; the HUD now calls out the aim preview and distinguishes it from the incoming landing ring.
 - Player and rival teams alternate service. On player serve turns, the shuttle waits at the racket and the player chooses a shot and aims it with the same reticle before serving; the input HUD blocks mouse clicks over its actual panel bounds.
 - The control panel's drawn rectangle and mouse exclusion share the same bounds, including the dash and run-build area; verify mouse aiming and shots around the panel in the artifact.
