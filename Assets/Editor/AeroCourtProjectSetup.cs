@@ -80,17 +80,54 @@ namespace FrutigerBadminton.Editor
 
         static void EnsurePipeline()
         {
-            if (GraphicsSettings.defaultRenderPipeline != null) return;
+            if (GraphicsSettings.defaultRenderPipeline != null)
+            {
+                var existing = GraphicsSettings.defaultRenderPipeline as UniversalRenderPipelineAsset;
+                if (existing && AssetDatabase.GetAssetPath(existing) == PipelinePath)
+                    ConfigureCourtPipeline(existing);
+                return;
+            }
             Directory.CreateDirectory("Assets/Settings");
             var renderer = ScriptableObject.CreateInstance<UniversalRendererData>();
             renderer.name = "Frutiger Universal Renderer";
             var pipeline = UniversalRenderPipelineAsset.Create(renderer);
             pipeline.name = "Frutiger Universal Render Pipeline";
+            ConfigureCourtPipeline(pipeline);
             AssetDatabase.CreateAsset(renderer, "Assets/Settings/FrutigerUniversalRenderer.asset");
             AssetDatabase.CreateAsset(pipeline, PipelinePath);
             GraphicsSettings.defaultRenderPipeline = pipeline;
             QualitySettings.renderPipeline = pipeline;
             AssetDatabase.SaveAssets();
+        }
+
+        static void ConfigureCourtPipeline(UniversalRenderPipelineAsset pipeline)
+        {
+            bool changed = false;
+            if (pipeline.msaaSampleCount != 4)
+            {
+                pipeline.msaaSampleCount = 4;
+                changed = true;
+            }
+            if (!pipeline.supportsHDR)
+            {
+                pipeline.supportsHDR = true;
+                changed = true;
+            }
+
+            // URP 17 exposes the soft-shadow flag in its serialized asset but its setter is internal.
+            var settings = new SerializedObject(pipeline);
+            var softShadows = settings.FindProperty("m_SoftShadowsSupported");
+            if (softShadows != null && !softShadows.boolValue)
+            {
+                softShadows.boolValue = true;
+                settings.ApplyModifiedPropertiesWithoutUndo();
+                changed = true;
+            }
+            if (changed)
+            {
+                EditorUtility.SetDirty(pipeline);
+                if (AssetDatabase.Contains(pipeline)) AssetDatabase.SaveAssets();
+            }
         }
 
         static void EnsureRuntimeShaderTemplates()
