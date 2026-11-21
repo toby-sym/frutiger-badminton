@@ -188,7 +188,7 @@ namespace FrutigerBadminton
             {
                 UpdateTitleScreen();
                 bool startPressed = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)
-                    || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame);
+                    || (gamepad != null && (gamepad.buttonSouth.wasPressedThisFrame || gamepad.startButton.wasPressedThisFrame));
                 if (startPressed) StartRally();
                 return;
             }
@@ -1441,7 +1441,7 @@ namespace FrutigerBadminton
             if (GUI.Button(startButton, "START RALLY", titleButtonStyle)) StartRally();
             GUI.color = new Color(.68f, .91f, .95f);
             GUI.Label(new Rect(left + 24f, top + panelHeight - 62f, panelWidth - 48f, 24f),
-                controllerConnected ? "Press A to begin  ·  Start opens pause" : "Press Enter or click to begin  ·  Esc opens pause",
+                controllerConnected ? "Press A or Start to begin" : "Press Enter or click to begin",
                 titleBodyStyle);
             GUI.color = Color.white;
         }
