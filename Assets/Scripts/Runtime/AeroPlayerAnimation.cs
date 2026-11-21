@@ -11,6 +11,8 @@ namespace FrutigerBadminton
         Transform leftLeg;
         Transform rightLeg;
         Transform racket;
+        Renderer shadowRenderer;
+        MaterialPropertyBlock shadowProperties;
 
         Vector3 poseRestPosition;
         Vector3 poseRestScale;
@@ -32,7 +34,7 @@ namespace FrutigerBadminton
         bool wasAirborne;
 
         public void Initialize(Transform bodyPose, Transform leftArmJoint, Transform rightArmJoint,
-            Transform leftLegJoint, Transform rightLegJoint, Transform racketAssembly)
+            Transform leftLegJoint, Transform rightLegJoint, Transform racketAssembly, Renderer contactShadow)
         {
             pose = bodyPose;
             leftArm = leftArmJoint;
@@ -40,6 +42,8 @@ namespace FrutigerBadminton
             leftLeg = leftLegJoint;
             rightLeg = rightLegJoint;
             racket = racketAssembly;
+            shadowRenderer = contactShadow;
+            if (shadowRenderer) shadowProperties = new MaterialPropertyBlock();
 
             poseRestPosition = pose.localPosition;
             poseRestScale = pose.localScale;
@@ -96,6 +100,16 @@ namespace FrutigerBadminton
             float step = Mathf.Sin(gaitPhase) * stride;
             bool airborne = transform.position.y > groundHeight + .05f;
             bool dashing = speed > 8f;
+            if (shadowRenderer)
+            {
+                float height = Mathf.Max(0f, transform.position.y - groundHeight);
+                Transform shadow = shadowRenderer.transform;
+                shadow.localPosition = Vector3.up * (.091f - height);
+                float spread = 1f + Mathf.Min(height, 2f) * .35f;
+                shadow.localScale = new Vector3(.92f * spread, .58f * spread, 1f);
+                shadowProperties.SetFloat("_Opacity", .28f / (1f + height * 1.1f));
+                shadowRenderer.SetPropertyBlock(shadowProperties);
+            }
             if (wasAirborne && !airborne) landingPulse = .24f;
             wasAirborne = airborne;
             landingPulse = Mathf.MoveTowards(landingPulse, 0f, deltaTime * 1.45f);

@@ -15,6 +15,7 @@ namespace FrutigerBadminton
         readonly List<LanternOrbit> lanternOrbits = new List<LanternOrbit>();
         readonly List<CloudDrift> bubbleDrifts = new List<CloudDrift>();
         readonly Dictionary<string, Material> materialCache = new Dictionary<string, Material>();
+        Material playerShadowMaterial;
 
         struct CloudDrift
         {
@@ -433,8 +434,33 @@ namespace FrutigerBadminton
             bool rival = name == "Rival" || name == "Rival Partner" || name == "Rival Wing";
             Color racketColor = rival ? new Color(1f, .88f, .77f) : new Color(.8f, 1f, .98f);
             Transform racket = CreateRacket(rightArm, pose.TransformPoint(new Vector3(.62f, 1.14f, 0f)), racketColor);
-            root.AddComponent<AeroPlayerAnimation>().Initialize(pose, leftArm, rightArm, leftLeg, rightLeg, racket);
+            Renderer shadow = CreatePlayerShadow(root.transform);
+            root.AddComponent<AeroPlayerAnimation>().Initialize(pose, leftArm, rightArm, leftLeg, rightLeg, racket, shadow);
             return root.transform;
+        }
+
+        Renderer CreatePlayerShadow(Transform playerRoot)
+        {
+            if (!playerShadowMaterial)
+            {
+                Shader shader = Resources.Load<Shader>("PlayerContactShadow");
+                if (!shader) return null;
+                playerShadowMaterial = new Material(shader) { name = "Procedural player contact shadow" };
+                ownedMaterials.Add(playerShadowMaterial);
+            }
+
+            var shadow = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            shadow.name = "Soft court contact shadow";
+            shadow.GetComponent<Collider>().enabled = false;
+            shadow.transform.SetParent(playerRoot, false);
+            shadow.transform.localPosition = Vector3.up * .091f;
+            shadow.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            shadow.transform.localScale = new Vector3(.92f, .58f, 1f);
+            var renderer = shadow.GetComponent<Renderer>();
+            renderer.sharedMaterial = playerShadowMaterial;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            return renderer;
         }
 
         void CreatePlayerKit(Transform pose, Transform leftLeg, Transform rightLeg, string name, Color suit)

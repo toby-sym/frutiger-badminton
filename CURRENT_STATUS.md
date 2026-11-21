@@ -36,6 +36,7 @@
 - Title navigation accepts the left stick, D-pad, WASD and arrow keys, with left/right movement between the side-by-side options. Settings only toggle when an actual setting is selected; controller verification is pending.
 - Rally movement eases into and out of direction changes, with generated character squash on landing, stretch in the air, and a quicker racket strike with follow-through.
 - Player limbs use rounded generated shapes, and shoes follow the leg pivots. Landing compresses the body, torso lean eases between poses, racket swings settle back to rest, and restarting a run resets motion state; visual verification is pending.
+- Players now have a soft procedural court shadow that spreads and fades with jump height, helping separate airborne motion from the floor; artifact visual verification is pending.
 - The rally control panel now uses short, non-wrapping labels and keeps the serve/return instruction, dash meter, and run-build chips within the panel.
 - All shot types, dash, and both teams' point awards now play short C# synthesized audio clips through a generated audio source and runtime audio listener; no audio files are imported.
 - Every three player points, the run pauses for a choice among three random upgrades: faster movement, longer racket reach, partner speed and reach, dash power, or earlier landing warnings. Upgrades stack for that run.
