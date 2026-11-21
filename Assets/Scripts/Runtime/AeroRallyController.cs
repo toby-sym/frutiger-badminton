@@ -1383,10 +1383,13 @@ namespace FrutigerBadminton
             Color scorePanel = Color.Lerp(new Color(.02f, .23f, .29f, .9f),
                 new Color(scorePulseColor.r * .34f, scorePulseColor.g * .34f, scorePulseColor.b * .34f, .98f), scorePulse);
             float scoreLeft = Mathf.Max(16f, Screen.width - 388f);
+            bool serveLabelVisible = servePending || upgradeDraftActive || playerServeReady || flightActive;
+            bool playerServing = servePending || upgradeDraftActive ? playerServesNext : !playerServesNext;
             GUI.color = scorePanel;
             GUI.Box(new Rect(scoreLeft, 16f, 372f, 60f), GUIContent.none);
             GUI.color = new Color(.45f, 1f, .91f);
-            GUI.Label(new Rect(scoreLeft + 18f, 18f, 128f, 20f), "AQUA  ·  YOU", scoreTeamStyle);
+            GUI.Label(new Rect(scoreLeft + 18f, 18f, 128f, 20f),
+                serveLabelVisible && playerServing ? "AQUA  ·  SERVING" : "AQUA  ·  YOU", scoreTeamStyle);
             GUI.color = Color.Lerp(Color.white, scorePulseColor, scorePulse * .48f);
             scoreStyle.fontSize = 22 + Mathf.RoundToInt(5f * scorePulse);
             GUI.Label(new Rect(scoreLeft + 21f, 37f, 122f, 34f), playerScore.ToString(), scoreStyle);
@@ -1394,7 +1397,8 @@ namespace FrutigerBadminton
             GUI.Label(new Rect(scoreLeft + 229f, 37f, 122f, 34f), rivalScore.ToString(), scoreStyle);
             scoreStyle.fontSize = 22;
             GUI.color = new Color(1f, .67f, .74f);
-            GUI.Label(new Rect(scoreLeft + 226f, 18f, 128f, 20f), "CORAL  ·  RIVALS", scoreTeamStyle);
+            GUI.Label(new Rect(scoreLeft + 226f, 18f, 128f, 20f),
+                serveLabelVisible && !playerServing ? "CORAL  ·  SERVING" : "CORAL  ·  RIVALS", scoreTeamStyle);
             GUI.color = Color.white;
 
             if (runComplete) DrawRunEnd(controllerConnected);

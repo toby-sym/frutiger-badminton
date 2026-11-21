@@ -19,7 +19,7 @@
 - Player and rival teams alternate service. On player serve turns, the shuttle waits at the racket and the player chooses a shot and aims it with the same reticle before serving; the input HUD blocks mouse clicks over its actual panel bounds.
 - Rivals now mix clears, drops, and drives, aiming toward the lane least covered by the near-side team; generated shuttle trails change tint with the shot so trajectory style reads in motion.
 - Point awards now trigger a team-colored procedural impact burst at the shuttle's finish and a brief matching pulse in the score panel; longer rallies get a stronger burst.
-- The in-match score panel now labels Aqua (you) and Coral (rivals) in their team colors and sits opposite the controls HUD.
+- The in-match score panel labels Aqua (you) and Coral (rivals) in their team colors, sits opposite the controls HUD, and marks the active or next serving side.
 - The fixed full-court camera now gets a brief screen-space shake on shot contact, strongest for smashes and point-ending rallies, then returns to its exact rest position.
 - A controller- or keyboard-labeled aero dash meter fills while dash cooldown recovers and turns aqua when ready; trying to dash early displays a brief recharge cue.
 - Escape or controller Start now pauses the rally; the pause overlay resumes or restarts while preserving the current run and upgrades when resumed.
