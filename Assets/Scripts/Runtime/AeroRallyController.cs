@@ -95,6 +95,7 @@ namespace FrutigerBadminton
         Vector3 flightVelocity;
         Vector3 previousShuttlePosition;
         Vector3 dashDirection;
+        Vector3 playerVelocity;
         Vector3 cameraRestPosition;
         float flightDuration;
         float flightElapsed;
@@ -134,6 +135,9 @@ namespace FrutigerBadminton
         bool upgradeDraftActive;
         bool runComplete;
         bool runWon;
+        bool audioMuted;
+        TitleMenuPage titleMenuPage;
+        int titleMenuSelection;
         string message = "Move under the return, then time your shot.";
 
         void Awake()
@@ -145,6 +149,10 @@ namespace FrutigerBadminton
         void Start()
         {
             Time.timeScale = 1f;
+            audioMuted = PlayerPrefs.GetInt("Frutiger.AudioMuted", 0) != 0;
+            AudioListener.volume = audioMuted ? 0f : 1f;
+            if (PlayerPrefs.HasKey("Frutiger.Fullscreen"))
+                Screen.fullScreen = PlayerPrefs.GetInt("Frutiger.Fullscreen") != 0;
             var playerObject = GameObject.Find("Player silhouette");
             var partnerObject = GameObject.Find("Partner silhouette");
             var partnerTwoObject = GameObject.Find("Partner Two silhouette");
@@ -204,9 +212,7 @@ namespace FrutigerBadminton
             if (titleScreenActive)
             {
                 UpdateTitleScreen();
-                bool startPressed = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)
-                    || (gamepad != null && (gamepad.buttonSouth.wasPressedThisFrame || gamepad.startButton.wasPressedThisFrame));
-                if (startPressed) StartRally();
+                HandleTitleMenuInput();
                 return;
             }
             if (isPaused)
@@ -261,6 +267,88 @@ namespace FrutigerBadminton
             if (!titleScreenActive) return;
             titleScreenActive = false;
             BeginServe();
+        }
+
+        void HandleTitleMenuInput()
+        {
+            Gamepad gamepad = Gamepad.current;
+            bool up = Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W)
+                || (gamepad != null && gamepad.dpad.up.wasPressedThisFrame);
+            bool down = Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)
+                || (gamepad != null && gamepad.dpad.down.wasPressedThisFrame);
+            bool confirm = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)
+                || (gamepad != null && (gamepad.buttonSouth.wasPressedThisFrame || gamepad.startButton.wasPressedThisFrame));
+            bool back = Input.GetKeyDown(KeyCode.Escape)
+                || (gamepad != null && gamepad.buttonEast.wasPressedThisFrame);
+
+            if (titleMenuPage != TitleMenuPage.Home)
+            {
+                int optionCount = titleMenuPage == TitleMenuPage.Settings ? 3 : 1;
+                if (up) titleMenuSelection = (titleMenuSelection + optionCount - 1) % optionCount;
+                if (down) titleMenuSelection = (titleMenuSelection + 1) % optionCount;
+                if (titleMenuPage == TitleMenuPage.Settings
+                    && (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.RightArrow)
+                        || (gamepad != null && (gamepad.dpad.left.wasPressedThisFrame || gamepad.dpad.right.wasPressedThisFrame))))
+                    ToggleSetting(titleMenuSelection);
+                if (back)
+                {
+                    titleMenuPage = TitleMenuPage.Home;
+                    titleMenuSelection = 0;
+                }
+                else if (confirm) ActivateTitleMenuOption(titleMenuSelection);
+                return;
+            }
+
+            const int homeOptionCount = 4;
+            if (up) titleMenuSelection = (titleMenuSelection + homeOptionCount - 1) % homeOptionCount;
+            if (down) titleMenuSelection = (titleMenuSelection + 1) % homeOptionCount;
+            if (confirm) ActivateTitleMenuOption(titleMenuSelection);
+        }
+
+        void ActivateTitleMenuOption(int option)
+        {
+            if (titleMenuPage == TitleMenuPage.Home)
+            {
+                switch (option)
+                {
+                    case 0: StartRally(); break;
+                    case 1: titleMenuPage = TitleMenuPage.Controls; titleMenuSelection = 0; break;
+                    case 2: titleMenuPage = TitleMenuPage.Settings; titleMenuSelection = 0; break;
+                    default: Application.Quit(); break;
+                }
+                return;
+            }
+
+            if (titleMenuPage == TitleMenuPage.Settings && option < 2)
+            {
+                ToggleSetting(option);
+                return;
+            }
+
+            titleMenuPage = TitleMenuPage.Home;
+            titleMenuSelection = 0;
+        }
+
+        void ToggleSetting(int option)
+        {
+            if (option == 0)
+            {
+                audioMuted = !audioMuted;
+                AudioListener.volume = audioMuted ? 0f : 1f;
+                PlayerPrefs.SetInt("Frutiger.AudioMuted", audioMuted ? 1 : 0);
+                PlayerPrefs.Save();
+            }
+            else if (option == 1)
+            {
+                Screen.fullScreen = !Screen.fullScreen;
+                PlayerPrefs.SetInt("Frutiger.Fullscreen", Screen.fullScreen ? 1 : 0);
+                PlayerPrefs.Save();
+            }
+            else
+            {
+                titleMenuPage = TitleMenuPage.Home;
+                titleMenuSelection = 0;
+            }
         }
 
         void CreateAudioFeedback()
@@ -354,17 +442,25 @@ namespace FrutigerBadminton
             }
             else if (dashPressed) ShowMessage("Aero dash is recharging.", .55f);
 
-            float speed = isDashing ? 12f + upgradeLevels[(int)SoloUpgrade.TurboDash] * .65f : 4.6f;
+            bool dashActive = dashTime > 0f;
+            float speed = dashActive ? 12f + upgradeLevels[(int)SoloUpgrade.TurboDash] * .65f : 4.6f;
             speed *= 1f + upgradeLevels[(int)SoloUpgrade.AeroLaces] * .07f;
-            if (dashTime > 0f)
+            if (dashActive)
             {
                 direction = dashDirection;
                 dashTime -= deltaTime;
                 if (dashTime <= 0f && dashTrail) dashTrail.emitting = false;
+                playerVelocity = direction * speed;
             }
-            else isDashing = false;
+            else
+            {
+                isDashing = false;
+                Vector3 desiredVelocity = direction * speed;
+                float acceleration = direction.sqrMagnitude > .001f ? 24f : 31f;
+                playerVelocity = Vector3.MoveTowards(playerVelocity, desiredVelocity, acceleration * deltaTime);
+            }
 
-            Vector3 next = player.position + direction * speed * deltaTime;
+            Vector3 next = player.position + playerVelocity * deltaTime;
             jumpHeight += jumpVelocity * deltaTime;
             jumpVelocity -= 13.5f * deltaTime;
             if (jumpHeight <= 0f)
@@ -373,8 +469,12 @@ namespace FrutigerBadminton
                 jumpVelocity = 0f;
             }
 
-            next.x = Mathf.Clamp(next.x, -CourtHalfWidth + .35f, CourtHalfWidth - .35f);
-            next.z = Mathf.Clamp(next.z, -CourtHalfLength + .45f, -.42f);
+            float clampedX = Mathf.Clamp(next.x, -CourtHalfWidth + .35f, CourtHalfWidth - .35f);
+            float clampedZ = Mathf.Clamp(next.z, -CourtHalfLength + .45f, -.42f);
+            if (!Mathf.Approximately(next.x, clampedX)) playerVelocity.x = 0f;
+            if (!Mathf.Approximately(next.z, clampedZ)) playerVelocity.z = 0f;
+            next.x = clampedX;
+            next.z = clampedZ;
             next.y = GroundY + jumpHeight;
             player.position = next;
         }
@@ -892,6 +992,7 @@ namespace FrutigerBadminton
             isDashing = false;
             dashTime = 0f;
             dashCooldown = 0f;
+            playerVelocity = Vector3.zero;
             jumpHeight = 0f;
             jumpVelocity = 0f;
             messageDelay = 0f;
@@ -1369,7 +1470,7 @@ namespace FrutigerBadminton
                 hintStyle = new GUIStyle(labelStyle) { fontSize = 12, alignment = TextAnchor.MiddleLeft };
                 titleStyle = new GUIStyle(GUI.skin.label)
                 {
-                    fontSize = 48,
+                    fontSize = 56,
                     fontStyle = FontStyle.Bold,
                     alignment = TextAnchor.MiddleCenter
                 };
@@ -1380,12 +1481,12 @@ namespace FrutigerBadminton
                 };
                 titleSubtitleStyle = new GUIStyle(labelStyle)
                 {
-                    fontSize = 22,
+                    fontSize = 24,
                     alignment = TextAnchor.MiddleCenter
                 };
                 titleBodyStyle = new GUIStyle(labelStyle)
                 {
-                    fontSize = 14,
+                    fontSize = 15,
                     alignment = TextAnchor.MiddleCenter
                 };
                 titleButtonStyle = new GUIStyle(GUI.skin.button)
@@ -1420,31 +1521,40 @@ namespace FrutigerBadminton
                 return;
             }
 
-            GUI.color = new Color(.025f, .15f, .2f, .84f);
-            GUI.Box(new Rect(16f, 16f, 320f, 344f), GUIContent.none);
-            GUI.color = Color.white;
-            GUI.Label(new Rect(28f, 22f, 298f, 30f), "FRUTIGER BADMINTON   •   3V3", labelStyle);
+            GUI.color = new Color(.02f, .105f, .16f, .91f);
+            GUI.Box(new Rect(16f, 16f, 320f, 360f), GUIContent.none);
+            GUI.color = new Color(.38f, .94f, .91f, .9f);
+            GUI.DrawTexture(new Rect(17f, 17f, 318f, 2f), Texture2D.whiteTexture);
+            GUI.color = new Color(.49f, 1f, .94f);
+            GUI.Label(new Rect(28f, 22f, 298f, 24f), "FRUTIGER BADMINTON", labelStyle);
+            GUI.color = new Color(.67f, .86f, .9f);
+            GUI.Label(new Rect(28f, 46f, 298f, 20f), "SOLO CIRCUIT   /   3V3", hintStyle);
             bool controllerConnected = Gamepad.current != null;
-            GUI.Label(new Rect(28f, 52f, 298f, 24f), controllerConnected ? "Left stick / D-pad   Move" : "WASD / arrows   Move", labelStyle);
-            GUI.Label(new Rect(28f, 76f, 298f, 24f), controllerConnected ? "Right stick   Aim at glowing target" : "Mouse   Aim at glowing target", labelStyle);
-            GUI.Label(new Rect(28f, 100f, 298f, 24f), controllerConnected ? "A   Jump       RB   Dash" : "Space   Jump       Shift   Dash", labelStyle);
-            GUI.Label(new Rect(28f, 124f, 298f, 24f), controllerConnected ? "LB   Clear       X   Drop" : "Click   Clear       Right click   Drop", labelStyle);
-            GUI.Label(new Rect(28f, 148f, 298f, 24f), controllerConnected ? "B   Drive       Y   Smash" : "F   Drive       R   Smash (airborne)", labelStyle);
-            GUI.Label(new Rect(28f, 172f, 298f, 24f), playerServeReady
-                ? "Aim the glowing ring, then tap a shot to serve"
-                : "Hold shot to preview aim  •  Follow landing ring", labelStyle);
-            GUI.Label(new Rect(28f, 194f, 298f, 24f), "First to 7 · win by 2 · upgrades every 3", hintStyle);
+            GUI.Label(new Rect(28f, 72f, 66f, 22f), "MOVE", hintStyle);
+            GUI.Label(new Rect(104f, 72f, 220f, 22f), controllerConnected ? "Left stick / D-pad" : "WASD / arrows", labelStyle);
+            GUI.Label(new Rect(28f, 94f, 66f, 22f), "AIM", hintStyle);
+            GUI.Label(new Rect(104f, 94f, 220f, 22f), controllerConnected ? "Right stick" : "Mouse", labelStyle);
+            GUI.Label(new Rect(28f, 116f, 66f, 22f), "MOVE+", hintStyle);
+            GUI.Label(new Rect(104f, 116f, 220f, 22f), controllerConnected ? "A jump   ·   RB dash" : "Space jump   ·   Shift dash", hintStyle);
+            GUI.Label(new Rect(28f, 138f, 66f, 22f), "SHOTS", hintStyle);
+            GUI.Label(new Rect(104f, 138f, 220f, 22f), controllerConnected ? "LB clear  X drop  B drive  Y smash" : "LMB clear  RMB drop  F drive  R smash", hintStyle);
+            GUI.color = new Color(.78f, .95f, .97f);
+            GUI.Label(new Rect(28f, 168f, 298f, 22f), playerServeReady
+                ? "SERVE  ·  Aim, then tap a shot"
+                : "RETURN  ·  Hold shot to preview aim", labelStyle);
+            GUI.color = new Color(.64f, .84f, .88f);
+            GUI.Label(new Rect(28f, 192f, 298f, 20f), "First to 7  ·  Win by 2  ·  Draft every 3", hintStyle);
 
             float dashDuration = Mathf.Max(.55f, 1.05f - upgradeLevels[(int)SoloUpgrade.TurboDash] * .1f);
             float dashReady = 1f - Mathf.Clamp01(dashCooldown / dashDuration);
-            GUI.Label(new Rect(28f, 220f, 160f, 22f), controllerConnected ? "RB AERO DASH" : "SHIFT AERO DASH", labelStyle);
+            GUI.Label(new Rect(28f, 220f, 160f, 22f), controllerConnected ? "RB  AERO DASH" : "SHIFT  AERO DASH", labelStyle);
             GUI.Label(new Rect(190f, 220f, 136f, 22f), dashCooldown <= 0f ? "READY" : "RECHARGING", hintStyle);
             GUI.color = new Color(.04f, .18f, .23f, .95f);
-            GUI.DrawTexture(new Rect(28f, 245f, 298f, 9f), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(28f, 245f, 298f, 8f), Texture2D.whiteTexture);
             GUI.color = Color.Lerp(new Color(1f, .56f, .53f), new Color(.3f, 1f, .82f), dashReady);
-            GUI.DrawTexture(new Rect(28f, 245f, 298f * dashReady, 9f), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(28f, 245f, 298f * dashReady, 8f), Texture2D.whiteTexture);
             GUI.color = Color.white;
-            GUI.Label(new Rect(28f, 258f, 298f, 20f), controllerConnected ? "Start   Pause / resume" : "Esc   Pause / resume", hintStyle);
+            GUI.Label(new Rect(28f, 260f, 298f, 20f), controllerConnected ? "START  PAUSE   /   A SELECT" : "ESC  PAUSE   /   ENTER SELECT", hintStyle);
             DrawRunBuild();
 
             float scorePulse = Mathf.Clamp01(1f - (Time.unscaledTime - scorePulseStart) / .72f);
@@ -1476,9 +1586,10 @@ namespace FrutigerBadminton
             if (!runComplete && !upgradeDraftActive && !isPaused && messageDelay > 0f)
             {
                 GUI.color = new Color(.02f, .16f, .22f, .82f);
-                GUI.Box(new Rect(Screen.width * .5f - 235f, Screen.height - 76f, 470f, 48f), GUIContent.none);
+                float messageTop = Mathf.Max(16f, Screen.height - 64f);
+                GUI.Box(new Rect(Screen.width * .5f - 235f, messageTop, 470f, 48f), GUIContent.none);
                 GUI.color = Color.white;
-                GUI.Label(new Rect(Screen.width * .5f - 225f, Screen.height - 72f, 450f, 40f), message, scoreStyle);
+                GUI.Label(new Rect(Screen.width * .5f - 225f, messageTop + 4f, 450f, 40f), message, scoreStyle);
             }
             GUI.color = previous;
         }
@@ -1486,7 +1597,7 @@ namespace FrutigerBadminton
         void DrawRunBuild()
         {
             GUI.color = new Color(.68f, .91f, .95f);
-            GUI.Label(new Rect(28f, 279f, 298f, 18f), "RUN BUILD", hintStyle);
+            GUI.Label(new Rect(28f, 284f, 298f, 18f), "RUN BUILD", hintStyle);
 
             const float chipWidth = 94f;
             const float chipHeight = 22f;
@@ -1498,7 +1609,7 @@ namespace FrutigerBadminton
                 int column = i % 3;
                 int row = i / 3;
                 float x = 28f + column * (chipWidth + gapX);
-                float y = 298f + row * (chipHeight + gapY);
+                float y = 303f + row * (chipHeight + gapY);
                 Color idle = new Color(.045f, .18f, .22f, .76f);
                 Color active = Color.Lerp(new Color(.1f, .34f, .39f, .93f), new Color(.19f, .62f, .63f, .98f), level / (float)MaxUpgradeLevel);
                 GUI.color = level > 0 ? active : idle;
@@ -1511,46 +1622,161 @@ namespace FrutigerBadminton
 
         void DrawTitleScreen(bool controllerConnected)
         {
-            GUI.color = new Color(.015f, .11f, .17f, .2f);
+            Color previous = GUI.color;
+            GUI.color = new Color(.015f, .075f, .16f, .2f);
             GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
 
-            float panelWidth = Mathf.Min(700f, Screen.width - 32f);
-            float panelHeight = Mathf.Min(448f, Screen.height - 32f);
+            float panelWidth = Mathf.Min(1080f, Screen.width - 48f);
+            float panelHeight = Mathf.Min(620f, Screen.height - 48f);
             float left = (Screen.width - panelWidth) * .5f;
             float top = (Screen.height - panelHeight) * .5f;
-            GUI.color = new Color(.025f, .17f, .22f, .76f);
-            GUI.DrawTexture(new Rect(left, top, panelWidth, panelHeight), Texture2D.whiteTexture);
-            GUI.color = new Color(.48f, 1f, .94f, .95f);
-            GUI.DrawTexture(new Rect(left + 1f, top + 1f, panelWidth - 2f, 3f), Texture2D.whiteTexture);
+            float mainWidth = (panelWidth - 20f) * .58f;
+            float sideWidth = panelWidth - mainWidth - 20f;
+            titleStyle.fontSize = Mathf.Clamp(Mathf.RoundToInt(mainWidth * .09f), 36, 56);
+            Rect mainPanel = new Rect(left, top, mainWidth, panelHeight);
+            Rect sidePanel = new Rect(left + mainWidth + 20f, top, sideWidth, panelHeight);
 
-            GUI.color = Color.white;
-            GUI.Label(new Rect(left + 24f, top + 25f, panelWidth - 48f, 20f),
-                "ABOVE THE CLOUDS  •  SOLO 3V3", titleEyebrowStyle);
-            GUI.Label(new Rect(left + 24f, top + 54f, panelWidth - 48f, 62f), "FRUTIGER", titleStyle);
-            GUI.Label(new Rect(left + 24f, top + 112f, panelWidth - 48f, 36f), "BADMINTON", titleSubtitleStyle);
-            GUI.color = Color.white;
-            GUI.Label(new Rect(left + 24f, top + 151f, panelWidth - 48f, 26f),
-                "Fast arcade rallies  ·  A new run every match", titleBodyStyle);
+            GUI.color = new Color(.018f, .105f, .17f, .91f);
+            GUI.Box(mainPanel, GUIContent.none);
+            GUI.color = new Color(.035f, .2f, .27f, .84f);
+            GUI.Box(sidePanel, GUIContent.none);
+            GUI.color = new Color(.39f, .98f, .94f, .94f);
+            GUI.DrawTexture(new Rect(mainPanel.x + 1f, mainPanel.y + 1f, mainPanel.width - 2f, 3f), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(sidePanel.x + 1f, sidePanel.y + 1f, sidePanel.width - 2f, 2f), Texture2D.whiteTexture);
 
-            GUI.color = new Color(.29f, .78f, .83f, .65f);
-            GUI.DrawTexture(new Rect(left + 72f, top + 188f, panelWidth - 144f, 1f), Texture2D.whiteTexture);
+            GUI.color = new Color(.48f, 1f, .94f);
+            GUI.Label(new Rect(mainPanel.x + 36f, top + 28f, mainWidth - 72f, 22f),
+                "ABOVE THE CLOUDLINE  /  ARCADE BADMINTON", titleEyebrowStyle);
             GUI.color = Color.white;
-            GUI.Label(new Rect(left + 28f, top + 198f, panelWidth - 56f, 22f),
-                "First to 7  ·  Win by 2  ·  Choose a run upgrade every 3 points", titleBodyStyle);
+            GUI.Label(new Rect(mainPanel.x + 30f, top + 62f, mainWidth - 60f, 64f), "FRUTIGER", titleStyle);
+            GUI.color = new Color(.49f, 1f, .94f);
+            GUI.Label(new Rect(mainPanel.x + 36f, top + 122f, mainWidth - 72f, 36f), "BADMINTON", titleSubtitleStyle);
+            GUI.color = new Color(.82f, .96f, .99f);
+            GUI.Label(new Rect(mainPanel.x + 36f, top + 170f, mainWidth - 72f, 26f),
+                "Own the flight. Build the rally.", titleBodyStyle);
+            GUI.color = new Color(.27f, .7f, .78f, .72f);
+            GUI.DrawTexture(new Rect(mainPanel.x + 36f, top + 215f, mainWidth - 72f, 1f), Texture2D.whiteTexture);
 
-            string controls = controllerConnected
-                ? "Left stick move  ·  Right stick aim  ·  A jump  ·  RB dash\nLB clear  ·  X drop  ·  B drive  ·  Y airborne smash"
-                : "WASD move  ·  Mouse aim  ·  Space jump  ·  Shift dash\nClick clear  ·  Right click drop  ·  F drive  ·  R airborne smash";
-            GUI.Label(new Rect(left + 30f, top + 230f, panelWidth - 60f, 48f), controls, titleBodyStyle);
+            if (titleMenuPage == TitleMenuPage.Home)
+            {
+                GUI.color = new Color(.58f, .86f, .91f);
+                GUI.Label(new Rect(mainPanel.x + 36f, top + 232f, mainWidth - 72f, 24f), "SELECT YOUR CIRCUIT", hintStyle);
+                float buttonWidth = mainWidth - 72f;
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 266f, buttonWidth, 60f), "START SOLO CIRCUIT", titleMenuSelection == 0))
+                    StartRally();
 
-            Rect startButton = new Rect((Screen.width - 260f) * .5f, top + panelHeight - 125f, 260f, 54f);
-            GUI.color = new Color(.42f, 1f, .92f, .98f);
-            if (GUI.Button(startButton, "START RALLY", titleButtonStyle)) StartRally();
-            GUI.color = new Color(.68f, .91f, .95f);
-            GUI.Label(new Rect(left + 24f, top + panelHeight - 62f, panelWidth - 48f, 24f),
-                controllerConnected ? "Press A or Start to begin" : "Press Enter or click to begin",
-                titleBodyStyle);
+                float smallWidth = (buttonWidth - 12f) * .5f;
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 340f, smallWidth, 52f), "HOW TO PLAY", titleMenuSelection == 1))
+                {
+                    titleMenuPage = TitleMenuPage.Controls;
+                    titleMenuSelection = 0;
+                }
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f + smallWidth + 12f, top + 340f, smallWidth, 52f), "SETTINGS", titleMenuSelection == 2))
+                {
+                    titleMenuPage = TitleMenuPage.Settings;
+                    titleMenuSelection = 0;
+                }
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 408f, buttonWidth, 44f), "EXIT GAME", titleMenuSelection == 3))
+                    Application.Quit();
+
+                GUI.color = new Color(.64f, .86f, .9f);
+                GUI.Label(new Rect(mainPanel.x + 36f, top + panelHeight - 52f, buttonWidth, 24f),
+                    controllerConnected ? "D-PAD NAVIGATE     A SELECT     B BACK" : "ARROWS NAVIGATE     ENTER SELECT",
+                    hintStyle);
+            }
+            else if (titleMenuPage == TitleMenuPage.Controls)
+            {
+                GUI.color = Color.white;
+                GUI.Label(new Rect(mainPanel.x + 36f, top + 238f, mainWidth - 72f, 34f), "RALLY CONTROLS", titleSubtitleStyle);
+                string move = controllerConnected ? "LEFT STICK / D-PAD     MOVE" : "WASD / ARROWS     MOVE";
+                string aim = controllerConnected ? "RIGHT STICK     AIM" : "MOUSE     AIM";
+                string jump = controllerConnected ? "A     JUMP" : "SPACE     JUMP";
+                string dash = controllerConnected ? "RB     AERO DASH" : "SHIFT     AERO DASH";
+                string clear = controllerConnected ? "LB     CLEAR" : "LEFT CLICK     CLEAR";
+                string drop = controllerConnected ? "X     DROP" : "RIGHT CLICK     DROP";
+                string drive = controllerConnected ? "B     DRIVE" : "F     DRIVE";
+                string smash = controllerConnected ? "Y     AIR SMASH" : "R     AIR SMASH";
+                string[] controls = { move, aim, jump + "      " + dash, clear + "      " + drop, drive + "      " + smash };
+                for (int i = 0; i < controls.Length; i++)
+                {
+                    GUI.color = new Color(.66f, .91f, .94f);
+                    GUI.Label(new Rect(mainPanel.x + 40f, top + 284f + i * 38f, mainWidth - 80f, 30f), controls[i], labelStyle);
+                }
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 490f, mainWidth - 72f, 50f), "BACK TO MENU", true))
+                {
+                    titleMenuPage = TitleMenuPage.Home;
+                    titleMenuSelection = 0;
+                }
+            }
+            else
+            {
+                GUI.color = Color.white;
+                GUI.Label(new Rect(mainPanel.x + 36f, top + 238f, mainWidth - 72f, 34f), "PREFERENCES", titleSubtitleStyle);
+                string audio = audioMuted ? "AUDIO     OFF" : "AUDIO     ON";
+                string display = Screen.fullScreen ? "DISPLAY     FULLSCREEN" : "DISPLAY     WINDOWED";
+                float buttonWidth = mainWidth - 72f;
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 292f, buttonWidth, 54f), audio, titleMenuSelection == 0))
+                    ToggleSetting(0);
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 362f, buttonWidth, 54f), display, titleMenuSelection == 1))
+                    ToggleSetting(1);
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 432f, buttonWidth, 50f), "BACK TO MENU", titleMenuSelection == 2))
+                {
+                    titleMenuPage = TitleMenuPage.Home;
+                    titleMenuSelection = 0;
+                }
+                GUI.color = new Color(.66f, .91f, .94f);
+                GUI.Label(new Rect(mainPanel.x + 36f, top + 500f, buttonWidth, 30f), "LEFT / RIGHT TO CHANGE  ·  A TO CONFIRM", hintStyle);
+            }
+
+            GUI.color = new Color(.48f, 1f, .94f);
+            GUI.Label(new Rect(sidePanel.x + 28f, top + 32f, sideWidth - 56f, 22f), "THE AERO COURT", titleEyebrowStyle);
             GUI.color = Color.white;
+            GUI.Label(new Rect(sidePanel.x + 24f, top + 76f, sideWidth - 48f, 66f), "3  ×  3", titleStyle);
+            GUI.color = new Color(.82f, .96f, .99f);
+            GUI.Label(new Rect(sidePanel.x + 30f, top + 142f, sideWidth - 60f, 30f), "SOLO CIRCUIT", titleSubtitleStyle);
+            GUI.color = new Color(.27f, .7f, .78f, .72f);
+            GUI.DrawTexture(new Rect(sidePanel.x + 30f, top + 192f, sideWidth - 60f, 1f), Texture2D.whiteTexture);
+
+            string[] features =
+            {
+                "YOU + TWO AI TEAMMATES",
+                "AIM CLEARS, DROPS & SMASHES",
+                "DRAFT RUN UPGRADES",
+                "FIRST TO 7  ·  WIN BY 2"
+            };
+            for (int i = 0; i < features.Length; i++)
+            {
+                GUI.color = new Color(.64f, .9f, .94f);
+                GUI.Label(new Rect(sidePanel.x + 32f, top + 220f + i * 45f, sideWidth - 64f, 30f), features[i], labelStyle);
+            }
+
+            GUI.color = new Color(.11f, .41f, .5f, .88f);
+            GUI.Box(new Rect(sidePanel.x + 28f, top + panelHeight - 116f, sideWidth - 56f, 72f), GUIContent.none);
+            GUI.color = new Color(.49f, 1f, .94f);
+            GUI.Label(new Rect(sidePanel.x + 38f, top + panelHeight - 103f, sideWidth - 76f, 24f), "A NEW RUN EVERY MATCH", titleEyebrowStyle);
+            GUI.color = new Color(.8f, .93f, .96f);
+            GUI.Label(new Rect(sidePanel.x + 38f, top + panelHeight - 77f, sideWidth - 76f, 24f), "Build your style one rally at a time.", titleBodyStyle);
+
+            GUI.color = new Color(.61f, .82f, .87f);
+            GUI.Label(new Rect(left, top - 28f, panelWidth, 22f), "FRUTIGER BADMINTON   /   ABOVE THE CLOUDS", hintStyle);
+            GUI.color = previous;
+        }
+
+        bool DrawTitleButton(Rect rect, string label, bool selected)
+        {
+            GUI.color = selected ? new Color(.43f, .98f, .91f, .98f) : new Color(.055f, .25f, .33f, .96f);
+            GUI.DrawTexture(rect, Texture2D.whiteTexture);
+            GUI.color = Color.white;
+            titleButtonStyle.normal.background = null;
+            titleButtonStyle.hover.background = null;
+            titleButtonStyle.active.background = null;
+            Color textColor = selected ? new Color(.015f, .13f, .18f) : new Color(.82f, .97f, .99f);
+            titleButtonStyle.normal.textColor = textColor;
+            titleButtonStyle.hover.textColor = textColor;
+            titleButtonStyle.active.textColor = textColor;
+            bool clicked = GUI.Button(rect, label, titleButtonStyle);
+            GUI.color = Color.white;
+            return clicked;
         }
 
         void DrawPauseMenu(bool controllerConnected)
@@ -1702,6 +1928,7 @@ namespace FrutigerBadminton
             return Mathf.Sqrt(dx * dx + dz * dz);
         }
 
+        enum TitleMenuPage { Home, Controls, Settings }
         enum SoloUpgrade { AeroLaces, ExtendedSweetSpot, PartnerDrills, TurboDash, ShuttleSense, PrismStrings }
         enum ShotStyle { Clear, Drop, Drive, Smash }
     }
