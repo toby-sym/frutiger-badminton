@@ -184,8 +184,53 @@ namespace FrutigerBadminton
             Line("Center line far", new Vector3(0f, lineY, 3.7f), new Vector3(.075f, .015f, 3.45f), Color.white);
             Line("Long service line near", new Vector3(0f, lineY, -5.95f), new Vector3(CourtWidth, .015f, .075f), new Color(.74f, 1f, 1f));
             Line("Long service line far", new Vector3(0f, lineY, 5.95f), new Vector3(CourtWidth, .015f, .075f), new Color(.74f, 1f, 1f));
+            CreateCourtSheen(top);
             CreatePlayer("Player", new Vector3(0f, top, -4.6f), new Color(.22f, .98f, .91f));
             CreatePlayer("Rival", new Vector3(0f, top, 4.6f), new Color(1f, .52f, .62f));
+        }
+
+        void CreateCourtSheen(float courtTop)
+        {
+            Shader shader = Resources.Load<Shader>("ProceduralCourtSheen");
+            if (!shader)
+            {
+                Debug.LogWarning("The procedural court sheen shader is missing; using the base court material.");
+                return;
+            }
+
+            var overlay = new GameObject("Procedural moving court sheen");
+            var mesh = BuildCourtSheenMesh(CourtWidth - .08f, CourtLength - .08f, courtTop + .085f);
+            ownedMeshes.Add(mesh);
+            overlay.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var material = new Material(shader) { name = "Procedural aqua court glaze" };
+            material.SetColor("_BaseColor", new Color(.18f, .58f, .68f, 1f));
+            material.SetColor("_GlintColor", new Color(.76f, 1f, 1f, 1f));
+            material.SetFloat("_Opacity", .42f);
+            material.SetFloat("_WaveScale", 11f);
+            material.SetFloat("_FlowSpeed", .22f);
+            material.SetFloat("_FresnelStrength", .38f);
+            ownedMaterials.Add(material);
+
+            var renderer = overlay.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+        }
+
+        static Mesh BuildCourtSheenMesh(float width, float length, float height)
+        {
+            var mesh = new Mesh { name = "Generated court sheen plane" };
+            mesh.vertices = new[]
+            {
+                new Vector3(-width * .5f, height, -length * .5f),
+                new Vector3(width * .5f, height, -length * .5f),
+                new Vector3(width * .5f, height, length * .5f),
+                new Vector3(-width * .5f, height, length * .5f)
+            };
+            mesh.uv = new[] { new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(0f, 1f) };
+            mesh.triangles = new[] { 0, 2, 1, 0, 3, 2 };
+            mesh.RecalculateNormals();
+            return mesh;
         }
 
         void CreateNet()
