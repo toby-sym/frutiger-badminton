@@ -107,6 +107,7 @@ namespace FrutigerBadminton
         bool flightActive;
         bool servePending;
         bool isDashing;
+        bool isPaused;
         bool upgradeDraftActive;
         bool runComplete;
         bool runWon;
@@ -114,6 +115,7 @@ namespace FrutigerBadminton
 
         void Start()
         {
+            Time.timeScale = 1f;
             var playerObject = GameObject.Find("Player silhouette");
             var partnerObject = GameObject.Find("Partner silhouette");
             var partnerTwoObject = GameObject.Find("Partner Two silhouette");
@@ -161,8 +163,18 @@ namespace FrutigerBadminton
 
         void Update()
         {
+            Gamepad gamepad = Gamepad.current;
+            bool pausePressed = Input.GetKeyDown(KeyCode.Escape)
+                || (gamepad != null && gamepad.startButton.wasPressedThisFrame);
+            if (pausePressed && !upgradeDraftActive && !runComplete) SetPaused(!isPaused);
+
             float deltaTime = Mathf.Min(Time.deltaTime, .05f);
-            UpdateCameraFeedback(deltaTime);
+            UpdateCameraFeedback(isPaused ? Mathf.Min(Time.unscaledDeltaTime, .05f) : deltaTime);
+            if (isPaused)
+            {
+                HandlePauseMenuInput();
+                return;
+            }
             if (upgradeDraftActive || runComplete) return;
 
             if (servePending)
@@ -719,6 +731,8 @@ namespace FrutigerBadminton
 
         void StartNewRun()
         {
+            isPaused = false;
+            Time.timeScale = 1f;
             playerScore = 0;
             rivalScore = 0;
             rallyHits = 0;
@@ -728,6 +742,9 @@ namespace FrutigerBadminton
             runWon = false;
             playerServesNext = true;
             playerServeReady = false;
+            cameraShakeRemaining = 0f;
+            cameraShakeStrength = 0f;
+            if (courtCamera) courtCamera.position = cameraRestPosition;
             upgradeDraftActive = false;
             servePending = false;
             flightActive = false;
@@ -750,6 +767,27 @@ namespace FrutigerBadminton
                 dashTrail.emitting = false;
             }
             BeginServe();
+        }
+
+        void SetPaused(bool paused)
+        {
+            isPaused = paused;
+            Time.timeScale = paused ? 0f : 1f;
+        }
+
+        void HandlePauseMenuInput()
+        {
+            Gamepad gamepad = Gamepad.current;
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)
+                || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame))
+            {
+                SetPaused(false);
+            }
+            else if (Input.GetKeyDown(KeyCode.R)
+                || (gamepad != null && gamepad.buttonWest.wasPressedThisFrame))
+            {
+                StartNewRun();
+            }
         }
 
         void BeginUpgradeDraft()
@@ -1164,7 +1202,7 @@ namespace FrutigerBadminton
 
             Color previous = GUI.color;
             GUI.color = new Color(.025f, .15f, .2f, .84f);
-            GUI.Box(new Rect(16f, 16f, 320f, 268f), GUIContent.none);
+            GUI.Box(new Rect(16f, 16f, 320f, 288f), GUIContent.none);
             GUI.color = Color.white;
             GUI.Label(new Rect(28f, 22f, 298f, 30f), "FRUTIGER BADMINTON   •   3V3", labelStyle);
             bool controllerConnected = Gamepad.current != null;
@@ -1187,6 +1225,7 @@ namespace FrutigerBadminton
             GUI.color = Color.Lerp(new Color(1f, .56f, .53f), new Color(.3f, 1f, .82f), dashReady);
             GUI.DrawTexture(new Rect(28f, 245f, 298f * dashReady, 9f), Texture2D.whiteTexture);
             GUI.color = Color.white;
+            GUI.Label(new Rect(28f, 258f, 298f, 20f), controllerConnected ? "Start   Pause / resume" : "Esc   Pause / resume", hintStyle);
 
             float scorePulse = Mathf.Clamp01(1f - (Time.unscaledTime - scorePulseStart) / .72f);
             Color scorePanel = Color.Lerp(new Color(.02f, .23f, .29f, .9f),
@@ -1201,8 +1240,9 @@ namespace FrutigerBadminton
 
             if (runComplete) DrawRunEnd(controllerConnected);
             else if (upgradeDraftActive) DrawUpgradeDraft(controllerConnected);
+            else if (isPaused) DrawPauseMenu(controllerConnected);
 
-            if (!runComplete && !upgradeDraftActive && messageDelay > 0f)
+            if (!runComplete && !upgradeDraftActive && !isPaused && messageDelay > 0f)
             {
                 GUI.color = new Color(.02f, .16f, .22f, .82f);
                 GUI.Box(new Rect(Screen.width * .5f - 235f, Screen.height - 76f, 470f, 48f), GUIContent.none);
@@ -1210,6 +1250,29 @@ namespace FrutigerBadminton
                 GUI.Label(new Rect(Screen.width * .5f - 225f, Screen.height - 72f, 450f, 40f), message, scoreStyle);
             }
             GUI.color = previous;
+        }
+
+        void DrawPauseMenu(bool controllerConnected)
+        {
+            float panelWidth = Mathf.Min(480f, Screen.width - 32f);
+            float panelHeight = 292f;
+            float left = (Screen.width - panelWidth) * .5f;
+            float top = (Screen.height - panelHeight) * .5f;
+            GUI.color = new Color(.02f, .13f, .19f, .97f);
+            GUI.Box(new Rect(left, top, panelWidth, panelHeight), GUIContent.none);
+            GUI.color = new Color(.55f, 1f, .92f);
+            GUI.Label(new Rect(left + 24f, top + 24f, panelWidth - 48f, 46f), "RALLY PAUSED", scoreStyle);
+            GUI.color = Color.white;
+            GUI.Label(new Rect(left + 24f, top + 78f, panelWidth - 48f, 28f),
+                "Take a breather. Your current run and upgrades are still here.", hintStyle);
+            if (GUI.Button(new Rect(left + 95f, top + 125f, panelWidth - 190f, 42f), "RESUME RALLY", upgradeButtonStyle))
+                SetPaused(false);
+            if (GUI.Button(new Rect(left + 95f, top + 180f, panelWidth - 190f, 42f), "RESTART RUN", upgradeButtonStyle))
+                StartNewRun();
+            string inputHint = controllerConnected
+                ? "Start / Esc resume  •  A to resume  •  X restart"
+                : "Esc / Enter resume  •  R restart";
+            GUI.Label(new Rect(left + 24f, top + 246f, panelWidth - 48f, 24f), inputHint, hintStyle);
         }
 
         void DrawRunEnd(bool controllerConnected)
@@ -1281,6 +1344,7 @@ namespace FrutigerBadminton
 
         void OnDestroy()
         {
+            Time.timeScale = 1f;
             foreach (Object owned in ownedObjects)
                 if (owned) Destroy(owned);
         }
