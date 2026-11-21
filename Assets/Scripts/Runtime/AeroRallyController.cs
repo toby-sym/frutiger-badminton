@@ -380,8 +380,9 @@ namespace FrutigerBadminton
             }
             else if (option == 1)
             {
-                Screen.fullScreen = !Screen.fullScreen;
-                PlayerPrefs.SetInt("Frutiger.Fullscreen", Screen.fullScreen ? 1 : 0);
+                bool requestedFullscreen = !Screen.fullScreen;
+                Screen.fullScreen = requestedFullscreen;
+                PlayerPrefs.SetInt("Frutiger.Fullscreen", requestedFullscreen ? 1 : 0);
                 PlayerPrefs.Save();
             }
             else
