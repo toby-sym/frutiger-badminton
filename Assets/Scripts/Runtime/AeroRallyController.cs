@@ -13,11 +13,27 @@ namespace FrutigerBadminton
         const float CourtHalfLength = 6.7f;
         const float NetHeight = 1.56f;
         const float Gravity = 9.81f;
+        const int UpgradeScoreInterval = 3;
+        const int MaxUpgradeLevel = 5;
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         static readonly int ColorId = Shader.PropertyToID("_Color");
         static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+        static readonly string[] UpgradeNames =
+        {
+            "Aero Laces", "Extended Sweet Spot", "Partner Drills", "Turbo Dash", "Shuttle Sense"
+        };
+        static readonly string[] UpgradeDescriptions =
+        {
+            "Move faster around the court.",
+            "Return shots from farther away.",
+            "Your partner runs and reaches farther.",
+            "Dash faster and recover sooner.",
+            "See the landing reticle turn urgent earlier."
+        };
 
         readonly List<Object> ownedObjects = new List<Object>();
+        readonly int[] upgradeLevels = new int[5];
+        readonly SoloUpgrade[] upgradeOffers = new SoloUpgrade[3];
         readonly MaterialPropertyBlock landingMarkerProperties = new MaterialPropertyBlock();
         Transform player;
         Transform partner;
@@ -37,6 +53,8 @@ namespace FrutigerBadminton
         Material trailMaterial;
         GUIStyle scoreStyle;
         GUIStyle labelStyle;
+        GUIStyle upgradeButtonStyle;
+        GUIStyle upgradeDescriptionStyle;
 
         Vector3 flightStart;
         Vector3 flightTarget;
@@ -54,11 +72,16 @@ namespace FrutigerBadminton
         int playerScore;
         int rivalScore;
         int rallyHits;
+        int nextUpgradeScore = UpgradeScoreInterval;
+        int upgradeOfferCount;
+        int selectedUpgrade;
+        int upgradeInputFrame = -1;
         bool playerMustReturn;
         bool flightWasPlayerShot;
         bool flightActive;
         bool servePending;
         bool isDashing;
+        bool upgradeDraftActive;
         string message = "Move under the return, then time your shot.";
 
         void Start()
@@ -90,6 +113,8 @@ namespace FrutigerBadminton
 
         void Update()
         {
+            if (upgradeDraftActive) return;
+
             float deltaTime = Mathf.Min(Time.deltaTime, .05f);
             if (servePending)
             {
@@ -134,7 +159,7 @@ namespace FrutigerBadminton
             {
                 dashDirection = direction.sqrMagnitude > .01f ? direction.normalized : Vector3.forward;
                 dashTime = .16f;
-                dashCooldown = 1.05f;
+                dashCooldown = Mathf.Max(.55f, 1.05f - upgradeLevels[(int)SoloUpgrade.TurboDash] * .1f);
                 isDashing = true;
                 if (dashTrail)
                 {
@@ -144,7 +169,8 @@ namespace FrutigerBadminton
                 AeroHitEffect.Spawn(player.position + Vector3.up * .82f, new Color(.26f, .96f, 1f), .82f);
             }
 
-            float speed = isDashing ? 12f : 4.6f;
+            float speed = isDashing ? 12f + upgradeLevels[(int)SoloUpgrade.TurboDash] * .65f : 4.6f;
+            speed *= 1f + upgradeLevels[(int)SoloUpgrade.AeroLaces] * .07f;
             if (dashTime > 0f)
             {
                 direction = dashDirection;
@@ -187,7 +213,7 @@ namespace FrutigerBadminton
                 float timeToLanding = Mathf.Max(0f, flightDuration - flightElapsed);
                 float playerDistance = HorizontalDistance(player.position, flightTarget);
                 float partnerDistance = HorizontalDistance(partner.position, flightTarget);
-                float playerReach = 1.7f + jumpHeight * .5f;
+                float playerReach = 1.7f + upgradeLevels[(int)SoloUpgrade.ExtendedSweetSpot] * .16f + jumpHeight * .5f;
                 bool playerCannotReach = playerDistance - playerReach > timeToLanding * 4.6f;
                 bool partnerHasCoverageAdvantage = partnerDistance + .85f < playerDistance;
                 if (playerCannotReach || partnerHasCoverageAdvantage)
@@ -197,17 +223,20 @@ namespace FrutigerBadminton
                 }
             }
 
-            partner.position = Vector3.MoveTowards(partner.position, destination, 5.2f * deltaTime);
+            float partnerSpeed = 5.2f + upgradeLevels[(int)SoloUpgrade.PartnerDrills] * .48f;
+            partner.position = Vector3.MoveTowards(partner.position, destination, partnerSpeed * deltaTime);
         }
 
         bool TryPartnerReturn()
         {
             if (!partner || !flightActive || !playerMustReturn || shuttle.position.z >= -.15f) return false;
 
-            bool playerCanReturn = HorizontalDistance(player.position, shuttle.position) <= 1.7f + jumpHeight * .5f
+            float partnerReach = 1.5f + upgradeLevels[(int)SoloUpgrade.PartnerDrills] * .1f;
+            bool playerCanReturn = HorizontalDistance(player.position, shuttle.position)
+                <= 1.7f + upgradeLevels[(int)SoloUpgrade.ExtendedSweetSpot] * .16f + jumpHeight * .5f
                 && shuttle.position.y <= GroundY + 2.9f + jumpHeight;
             if (playerCanReturn || shuttle.position.y > GroundY + 2.85f
-                || HorizontalDistance(partner.position, shuttle.position) > 1.5f) return false;
+                || HorizontalDistance(partner.position, shuttle.position) > partnerReach) return false;
 
             Vector3 target = new Vector3(
                 Mathf.Clamp(-rival.position.x * .55f + Random.Range(-.85f, .85f), -CourtHalfWidth + .35f, CourtHalfWidth - .35f),
@@ -259,7 +288,7 @@ namespace FrutigerBadminton
         void TryPlayerShot()
         {
             if (shuttle.position.z >= -.15f) return;
-            float reach = 1.7f + jumpHeight * .5f;
+            float reach = 1.7f + upgradeLevels[(int)SoloUpgrade.ExtendedSweetSpot] * .16f + jumpHeight * .5f;
             if (HorizontalDistance(player.position, shuttle.position) > reach || shuttle.position.y > GroundY + 2.9f + jumpHeight)
             {
                 ShowMessage("Move closer to the shuttle.", .8f);
@@ -359,7 +388,9 @@ namespace FrutigerBadminton
         void AwardPlayerPoint(string result)
         {
             playerScore++;
-            FinishPoint("Point  " + playerScore + " — " + rivalScore + "  " + result);
+            bool reachedUpgradeMilestone = playerScore >= nextUpgradeScore;
+            if (reachedUpgradeMilestone) nextUpgradeScore += UpgradeScoreInterval;
+            FinishPoint("Point  " + playerScore + " — " + rivalScore + "  " + result, reachedUpgradeMilestone);
         }
 
         void AwardRivalPoint(string result)
@@ -368,7 +399,7 @@ namespace FrutigerBadminton
             FinishPoint(result + "  " + playerScore + " — " + rivalScore);
         }
 
-        void FinishPoint(string result)
+        void FinishPoint(string result, bool offerUpgrade = false)
         {
             flightActive = false;
             playerMustReturn = false;
@@ -377,6 +408,66 @@ namespace FrutigerBadminton
             servePending = true;
             serveDelay = 1.45f;
             ShowMessage(result, 1.45f);
+            if (offerUpgrade) BeginUpgradeDraft();
+        }
+
+        void BeginUpgradeDraft()
+        {
+            var candidates = new List<SoloUpgrade>(upgradeLevels.Length);
+            for (int i = 0; i < upgradeLevels.Length; i++)
+                if (upgradeLevels[i] < MaxUpgradeLevel) candidates.Add((SoloUpgrade)i);
+
+            upgradeOfferCount = Mathf.Min(upgradeOffers.Length, candidates.Count);
+            if (upgradeOfferCount == 0) return;
+
+            for (int i = 0; i < upgradeOfferCount; i++)
+            {
+                int choice = Random.Range(0, candidates.Count);
+                upgradeOffers[i] = candidates[choice];
+                candidates.RemoveAt(choice);
+            }
+
+            selectedUpgrade = 0;
+            upgradeInputFrame = -1;
+            upgradeDraftActive = true;
+            servePending = false;
+        }
+
+        void HandleUpgradeInput()
+        {
+            if (upgradeInputFrame == Time.frameCount) return;
+            upgradeInputFrame = Time.frameCount;
+
+            int keyboardChoice = Input.GetKeyDown(KeyCode.Alpha1) ? 0
+                : Input.GetKeyDown(KeyCode.Alpha2) ? 1
+                : Input.GetKeyDown(KeyCode.Alpha3) ? 2 : -1;
+            if (keyboardChoice >= 0 && keyboardChoice < upgradeOfferCount)
+            {
+                ChooseUpgrade(keyboardChoice);
+                return;
+            }
+
+            Gamepad gamepad = Gamepad.current;
+            if (gamepad != null)
+            {
+                if (gamepad.dpad.left.wasPressedThisFrame)
+                    selectedUpgrade = (selectedUpgrade + upgradeOfferCount - 1) % upgradeOfferCount;
+                else if (gamepad.dpad.right.wasPressedThisFrame)
+                    selectedUpgrade = (selectedUpgrade + 1) % upgradeOfferCount;
+                else if (gamepad.buttonSouth.wasPressedThisFrame)
+                    ChooseUpgrade(selectedUpgrade);
+            }
+        }
+
+        void ChooseUpgrade(int offerIndex)
+        {
+            if (!upgradeDraftActive || offerIndex < 0 || offerIndex >= upgradeOfferCount) return;
+            SoloUpgrade upgrade = upgradeOffers[offerIndex];
+            upgradeLevels[(int)upgrade]++;
+            upgradeDraftActive = false;
+            servePending = true;
+            serveDelay = .65f;
+            ShowMessage(UpgradeNames[(int)upgrade] + " upgraded  •  Level " + upgradeLevels[(int)upgrade], 1.2f);
         }
 
         void ShowMessage(string text, float duration)
@@ -528,7 +619,8 @@ namespace FrutigerBadminton
 
             landingMarker.position = new Vector3(flightTarget.x, GroundY + .12f, flightTarget.z);
             float timeToLanding = Mathf.Max(0f, flightDuration - flightElapsed);
-            float urgency = Mathf.InverseLerp(1.35f, .2f, timeToLanding);
+            float warningLead = 1.35f + upgradeLevels[(int)SoloUpgrade.ShuttleSense] * .16f;
+            float urgency = Mathf.InverseLerp(warningLead, .2f, timeToLanding);
             float pulse = Mathf.Sin(Time.time * Mathf.Lerp(1.35f, 3.2f, urgency) * Mathf.PI * 2f) * .5f + .5f;
             float scale = Mathf.Lerp(.93f, 1.08f, pulse) * Mathf.Lerp(1f, 1.1f, urgency);
             landingMarker.localScale = Vector3.one * scale;
@@ -669,8 +761,18 @@ namespace FrutigerBadminton
             {
                 scoreStyle = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
                 labelStyle = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft };
+                upgradeButtonStyle = new GUIStyle(GUI.skin.button) { fontSize = 14, fontStyle = FontStyle.Bold };
+                upgradeDescriptionStyle = new GUIStyle(labelStyle)
+                {
+                    fontSize = 13,
+                    fontStyle = FontStyle.Normal,
+                    alignment = TextAnchor.UpperLeft,
+                    wordWrap = true
+                };
                 scoreStyle.normal.textColor = Color.white;
                 labelStyle.normal.textColor = new Color(.82f, .98f, 1f);
+                upgradeDescriptionStyle.normal.textColor = new Color(.82f, .98f, 1f);
+                upgradeButtonStyle.normal.textColor = new Color(.03f, .18f, .2f);
             }
 
             Color previous = GUI.color;
@@ -685,13 +787,16 @@ namespace FrutigerBadminton
             GUI.Label(new Rect(28f, 124f, 298f, 24f), controllerConnected ? "LB   Clear       X   Drop" : "Click   Clear       Right click   Drop", labelStyle);
             GUI.Label(new Rect(28f, 148f, 298f, 24f), controllerConnected ? "B   Drive       Y   Smash" : "F   Drive       R   Smash (airborne)", labelStyle);
             GUI.Label(new Rect(28f, 172f, 298f, 24f), "Follow the glowing ring to the landing spot", labelStyle);
+            GUI.Label(new Rect(28f, 194f, 298f, 24f), "Choose a run upgrade every 3 points", labelStyle);
 
             GUI.color = new Color(.02f, .23f, .29f, .9f);
             GUI.Box(new Rect(Screen.width * .5f - 118f, 18f, 236f, 48f), GUIContent.none);
             GUI.color = Color.white;
             GUI.Label(new Rect(Screen.width * .5f - 110f, 21f, 220f, 42f), playerScore + "   —   " + rivalScore, scoreStyle);
 
-            if (messageDelay > 0f)
+            if (upgradeDraftActive) DrawUpgradeDraft(controllerConnected);
+
+            if (!upgradeDraftActive && messageDelay > 0f)
             {
                 GUI.color = new Color(.02f, .16f, .22f, .82f);
                 GUI.Box(new Rect(Screen.width * .5f - 235f, Screen.height - 76f, 470f, 48f), GUIContent.none);
@@ -699,6 +804,45 @@ namespace FrutigerBadminton
                 GUI.Label(new Rect(Screen.width * .5f - 225f, Screen.height - 72f, 450f, 40f), message, scoreStyle);
             }
             GUI.color = previous;
+        }
+
+        void DrawUpgradeDraft(bool controllerConnected)
+        {
+            HandleUpgradeInput();
+            if (!upgradeDraftActive) return;
+
+            float panelWidth = Mathf.Min(900f, Screen.width - 32f);
+            float panelHeight = 310f;
+            float left = (Screen.width - panelWidth) * .5f;
+            float top = (Screen.height - panelHeight) * .5f;
+            GUI.color = new Color(.02f, .13f, .19f, .96f);
+            GUI.Box(new Rect(left, top, panelWidth, panelHeight), GUIContent.none);
+            GUI.color = Color.white;
+            GUI.Label(new Rect(left + 20f, top + 16f, panelWidth - 40f, 36f), "RALLY BREAKTHROUGH", scoreStyle);
+            GUI.Label(new Rect(left + 20f, top + 54f, panelWidth - 40f, 28f), "Choose one upgrade for this run", labelStyle);
+
+            float gap = 12f;
+            float cardWidth = (panelWidth - 40f - gap * (upgradeOfferCount - 1)) / upgradeOfferCount;
+            float cardTop = top + 92f;
+            float cardHeight = 168f;
+            for (int i = 0; i < upgradeOfferCount; i++)
+            {
+                SoloUpgrade upgrade = upgradeOffers[i];
+                int level = upgradeLevels[(int)upgrade];
+                float x = left + 20f + i * (cardWidth + gap);
+                GUI.color = i == selectedUpgrade ? new Color(.14f, .53f, .58f, .96f) : new Color(.08f, .28f, .34f, .94f);
+                GUI.Box(new Rect(x, cardTop, cardWidth, cardHeight), GUIContent.none);
+                GUI.color = Color.white;
+                GUI.Label(new Rect(x + 10f, cardTop + 12f, cardWidth - 20f, 28f), (i + 1) + ". " + UpgradeNames[(int)upgrade], labelStyle);
+                GUI.Label(new Rect(x + 10f, cardTop + 48f, cardWidth - 20f, 58f), UpgradeDescriptions[(int)upgrade], upgradeDescriptionStyle);
+                GUI.Label(new Rect(x + 10f, cardTop + 108f, cardWidth - 20f, 24f), "Level " + (level + 1) + " / " + MaxUpgradeLevel, labelStyle);
+                if (GUI.Button(new Rect(x + 12f, cardTop + 132f, cardWidth - 24f, 28f), "SELECT", upgradeButtonStyle))
+                    ChooseUpgrade(i);
+            }
+
+            GUI.color = Color.white;
+            string inputHint = controllerConnected ? "D-pad to choose  •  A to confirm" : "Press 1, 2, or 3 to choose";
+            GUI.Label(new Rect(left + 20f, top + 270f, panelWidth - 40f, 24f), inputHint, labelStyle);
         }
 
         void OnDestroy()
@@ -723,6 +867,7 @@ namespace FrutigerBadminton
             return Mathf.Sqrt(dx * dx + dz * dz);
         }
 
+        enum SoloUpgrade { AeroLaces, ExtendedSweetSpot, PartnerDrills, TurboDash, ShuttleSense }
         enum ShotStyle { Clear, Drop, Drive, Smash }
     }
 }
