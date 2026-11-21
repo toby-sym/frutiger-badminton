@@ -9,6 +9,10 @@ An original arcade badminton project with a bright, glossy world above the cloud
 3. Wait for package resolution and script compilation. The editor bootstrap creates `Assets/Scenes/AeroCourt.unity` and the URP assets the first time the project opens.
 4. Open the generated Aero Court scene and press **Play**.
 
+## Controls
+
+With a controller connected, use the **left stick or D-pad** to move and the **right stick** to aim. **A** jumps, **RB** dashes, **LB** clears, **X** drops, **B** drives, and **Y** smashes while airborne. Keyboard and mouse remain available: **WASD/arrows** move, **mouse** aims, **Space** jumps, **Shift** dashes, **left/right click** clear/drop, and **F/R** drive/smash.
+
 ## Windows development build
 
 The batch build requires Unity `6000.0.64f1` with **Windows Build Support** installed. Set `UNITY_EDITOR_PATH` to the full path of `Unity.exe`, then run from the project root in PowerShell:

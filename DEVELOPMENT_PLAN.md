@@ -1,8 +1,8 @@
 # Development plan
 
 1. **In progress — cloud court presentation:** the procedural island, sky, clouds, badminton court, lighting, and net are in place. Finish and visually inspect the first polished court through the artifact smoke test.
-2. **In progress — character and shuttle presentation:** the generated shuttlecock, trail, and responsive character/racket animation build successfully. Add crisp procedural contact feedback, then improve hit response.
-3. **Implemented — local rally:** movement, jumping, dashes, aimed clears, drops, drives, smashes, scoring, and a returning rival form a playable practice loop.
+2. **Implemented — character and shuttle presentation:** the generated shuttlecock, trail, responsive character/racket animation, and procedural contact rings and sparks build successfully. Visual inspection remains pending.
+3. **In progress — controller-first local rally:** gamepad movement, aiming, jump, dash, and shot mappings are implemented alongside keyboard and mouse fallback. The Windows build now includes both input backends; verify the controller path and aim response in the artifact.
 4. Add AI teammates and run-based solo upgrades.
 5. Add competitive online 3v3 after the local rally is solid.
 6. Continue improving menus, feedback, presentation, and replayability.

@@ -30,9 +30,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: Library
-          key: UnityLibrary-${{ runner.os }}-${{ hashFiles('Packages/manifest.json', 'Packages/packages-lock.json', 'ProjectSettings/ProjectVersion.txt') }}
-          restore-keys: |
-            UnityLibrary-${{ runner.os }}-
+          key: UnityLibrary-${{ runner.os }}-StandaloneWindows64-release-${{ hashFiles('Packages/manifest.json', 'Packages/packages-lock.json', 'ProjectSettings/ProjectVersion.txt', 'ProjectSettings/ProjectSettings.asset') }}
       - name: Prepare release branch and version
         id: release-version
         shell: pwsh
