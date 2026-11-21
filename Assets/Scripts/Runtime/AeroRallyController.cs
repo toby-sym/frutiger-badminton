@@ -23,7 +23,7 @@ namespace FrutigerBadminton
         static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
         static readonly string[] UpgradeNames =
         {
-            "Aero Laces", "Extended Sweet Spot", "Partner Drills", "Turbo Dash", "Shuttle Sense"
+            "Aero Laces", "Extended Sweet Spot", "Partner Drills", "Turbo Dash", "Shuttle Sense", "Prism Strings"
         };
         static readonly string[] UpgradeDescriptions =
         {
@@ -31,12 +31,13 @@ namespace FrutigerBadminton
             "Return shots from farther away.",
             "Your partner runs and reaches farther.",
             "Dash faster and recover sooner.",
-            "See the landing reticle turn urgent earlier."
+            "See the landing reticle turn urgent earlier.",
+            "Player shots fly faster with shifting pearl trails."
         };
 
         readonly List<Object> ownedObjects = new List<Object>();
         readonly List<AudioClip> ownedAudioClips = new List<AudioClip>();
-        readonly int[] upgradeLevels = new int[5];
+        readonly int[] upgradeLevels = new int[6];
         readonly SoloUpgrade[] upgradeOffers = new SoloUpgrade[3];
         readonly AudioClip[] shotAudioClips = new AudioClip[4];
         readonly MaterialPropertyBlock landingMarkerProperties = new MaterialPropertyBlock();
@@ -112,6 +113,7 @@ namespace FrutigerBadminton
         int upgradeOfferCount;
         int selectedUpgrade;
         int upgradeInputFrame = -1;
+        ShotStyle flightShotStyle;
         bool playerMustReturn;
         bool playerServeReady;
         bool playerServesNext = true;
@@ -522,7 +524,7 @@ namespace FrutigerBadminton
                 Mathf.Clamp(-rival.position.x * .55f + Random.Range(-.85f, .85f), -CourtHalfWidth + .35f, CourtHalfWidth - .35f),
                 GroundY + .11f,
                 Random.Range(4.25f, 5.85f));
-            AeroHitEffect.Spawn(shuttle.position, new Color(.73f, 1f, .48f), .98f);
+            AeroHitEffect.Spawn(shuttle.position, PlayerShotTint(ShotStyle.Clear), .98f);
             PlayShotAudio(ShotStyle.Clear);
             Launch(shuttle.position, target, Random.Range(1.16f, 1.36f), false, true);
             AeroPlayerAnimation returnerAnimation = returner == partner ? partnerAnimation : partnerTwoAnimation;
@@ -539,6 +541,8 @@ namespace FrutigerBadminton
             float time = Mathf.Min(flightElapsed, flightDuration);
             Vector3 current = flightStart + flightVelocity * time + Vector3.down * (.5f * Gravity * time * time);
             shuttle.position = current;
+            if (flightWasPlayerShot && upgradeLevels[(int)SoloUpgrade.PrismStrings] > 0)
+                SetShuttleTrailTint(PlayerShotTint(flightShotStyle));
             Vector3 velocity = flightVelocity + Vector3.down * (Gravity * time);
             if (velocity.sqrMagnitude > .01f) shuttle.up = velocity.normalized;
 
@@ -589,7 +593,7 @@ namespace FrutigerBadminton
                            : style == ShotStyle.Drop ? 1.27f
                            : style == ShotStyle.Drive ? 1.22f
                            : .83f;
-            AeroHitEffect.Spawn(shuttle.position, ShotTint(style), style == ShotStyle.Smash ? 1.55f : 1f);
+            AeroHitEffect.Spawn(shuttle.position, PlayerShotTint(style), style == ShotStyle.Smash ? 1.55f : 1f);
             PlayShotAudio(style);
             Launch(shuttle.position, target, duration, false, true, style);
             if (playerAnimation) playerAnimation.Swing(style == ShotStyle.Smash);
@@ -617,7 +621,7 @@ namespace FrutigerBadminton
                            : style == ShotStyle.Drop ? 1.27f
                            : style == ShotStyle.Drive ? 1.22f
                            : 1.15f;
-            AeroHitEffect.Spawn(start, ShotTint(style), style == ShotStyle.Smash ? 1.55f : 1f);
+            AeroHitEffect.Spawn(start, PlayerShotTint(style), style == ShotStyle.Smash ? 1.55f : 1f);
             PlayShotAudio(style);
             Launch(start, target, duration, false, true, style);
             if (playerAnimation) playerAnimation.Swing(style == ShotStyle.Smash);
@@ -728,10 +732,13 @@ namespace FrutigerBadminton
             playerServeReady = false;
             flightStart = start;
             flightTarget = target;
+            if (playerShot)
+                duration *= Mathf.Lerp(1f, .875f, upgradeLevels[(int)SoloUpgrade.PrismStrings] / (float)MaxUpgradeLevel);
             flightDuration = duration;
             flightElapsed = 0f;
             playerMustReturn = receiverIsPlayer;
             flightWasPlayerShot = playerShot;
+            flightShotStyle = style;
             flightActive = true;
             float verticalSpeed = (target.y - start.y + .5f * Gravity * duration * duration) / duration;
             flightVelocity = new Vector3((target.x - start.x) / duration, verticalSpeed, (target.z - start.z) / duration);
@@ -739,11 +746,7 @@ namespace FrutigerBadminton
             shuttle.position = start;
             shuttle.up = flightVelocity.normalized;
             shuttleTrail.Clear();
-            Color trailTint = ShotTint(style);
-            shuttleTrail.startColor = new Color(trailTint.r, trailTint.g, trailTint.b, .82f);
-            shuttleTrail.endColor = new Color(trailTint.r, trailTint.g, trailTint.b, 0f);
-            if (trailMaterial && trailMaterial.HasProperty(EmissionColorId))
-                trailMaterial.SetColor(EmissionColorId, trailTint * .72f);
+            SetShuttleTrailTint(playerShot ? PlayerShotTint(style) : ShotTint(style));
             float shake = style == ShotStyle.Smash ? .075f
                         : style == ShotStyle.Drive ? .043f
                         : style == ShotStyle.Drop ? .028f : .018f;
@@ -1004,6 +1007,25 @@ namespace FrutigerBadminton
             if (style == ShotStyle.Drive) return new Color(1f, .52f, .72f);
             if (style == ShotStyle.Smash) return new Color(1f, .84f, .48f);
             return new Color(.34f, .97f, 1f);
+        }
+
+        Color PlayerShotTint(ShotStyle style)
+        {
+            int level = upgradeLevels[(int)SoloUpgrade.PrismStrings];
+            Color shotColor = ShotTint(style);
+            if (level <= 0) return shotColor;
+
+            float hue = Mathf.Repeat(Time.time * .22f + (int)style * .21f, 1f);
+            Color pearlColor = Color.HSVToRGB(hue, .42f, 1f);
+            return Color.Lerp(shotColor, pearlColor, level / (float)MaxUpgradeLevel * .72f);
+        }
+
+        void SetShuttleTrailTint(Color tint)
+        {
+            shuttleTrail.startColor = new Color(tint.r, tint.g, tint.b, .82f);
+            shuttleTrail.endColor = new Color(tint.r, tint.g, tint.b, 0f);
+            if (trailMaterial && trailMaterial.HasProperty(EmissionColorId))
+                trailMaterial.SetColor(EmissionColorId, tint * .72f);
         }
 
         void CreateShuttlecock()
@@ -1574,7 +1596,7 @@ namespace FrutigerBadminton
             return Mathf.Sqrt(dx * dx + dz * dz);
         }
 
-        enum SoloUpgrade { AeroLaces, ExtendedSweetSpot, PartnerDrills, TurboDash, ShuttleSense }
+        enum SoloUpgrade { AeroLaces, ExtendedSweetSpot, PartnerDrills, TurboDash, ShuttleSense, PrismStrings }
         enum ShotStyle { Clear, Drop, Drive, Smash }
     }
 }
