@@ -35,8 +35,10 @@ namespace FrutigerBadminton
         };
 
         readonly List<Object> ownedObjects = new List<Object>();
+        readonly List<AudioClip> ownedAudioClips = new List<AudioClip>();
         readonly int[] upgradeLevels = new int[5];
         readonly SoloUpgrade[] upgradeOffers = new SoloUpgrade[3];
+        readonly AudioClip[] shotAudioClips = new AudioClip[4];
         readonly MaterialPropertyBlock landingMarkerProperties = new MaterialPropertyBlock();
         readonly MaterialPropertyBlock aimMarkerProperties = new MaterialPropertyBlock();
         Transform player;
@@ -61,6 +63,10 @@ namespace FrutigerBadminton
         AeroPlayerAnimation rivalWingAnimation;
         TrailRenderer shuttleTrail;
         TrailRenderer dashTrail;
+        AudioSource rallyAudio;
+        AudioClip dashAudioClip;
+        AudioClip playerPointAudioClip;
+        AudioClip rivalPointAudioClip;
         Transform courtCamera;
         Renderer landingMarkerRenderer;
         Renderer aimMarkerRenderer;
@@ -147,6 +153,7 @@ namespace FrutigerBadminton
                 courtCamera = mainCamera.transform;
                 cameraRestPosition = courtCamera.position;
             }
+            CreateAudioFeedback();
             player.position = new Vector3(0f, GroundY, -4.6f);
             partner.position = new Vector3(-1.65f, GroundY, -4.8f);
             partnerTwo.position = new Vector3(1.65f, GroundY, -4.2f);
@@ -209,6 +216,61 @@ namespace FrutigerBadminton
                 && (!IsMouseShotInput() || !MouseIsOverHud())) TryPlayerShot();
         }
 
+        void CreateAudioFeedback()
+        {
+            Camera mainCamera = Camera.main;
+            if (mainCamera && !mainCamera.GetComponent<AudioListener>())
+                mainCamera.gameObject.AddComponent<AudioListener>();
+
+            rallyAudio = gameObject.AddComponent<AudioSource>();
+            rallyAudio.playOnAwake = false;
+            rallyAudio.spatialBlend = 0f;
+            rallyAudio.volume = .48f;
+            rallyAudio.dopplerLevel = 0f;
+
+            shotAudioClips[(int)ShotStyle.Clear] = CreateTone("Aero clear chime", 720f, 510f, .22f, .16f);
+            shotAudioClips[(int)ShotStyle.Drop] = CreateTone("Feather drop ping", 920f, 660f, .18f, .14f);
+            shotAudioClips[(int)ShotStyle.Drive] = CreateTone("Glass drive snap", 460f, 190f, .14f, .2f);
+            shotAudioClips[(int)ShotStyle.Smash] = CreateTone("Sky smash thump", 250f, 78f, .3f, .24f);
+            dashAudioClip = CreateTone("Aero dash sweep", 180f, 680f, .19f, .18f);
+            playerPointAudioClip = CreateTone("Aqua point arpeggio", 520f, 920f, .42f, .2f);
+            rivalPointAudioClip = CreateTone("Coral point fall", 660f, 250f, .38f, .17f);
+        }
+
+        AudioClip CreateTone(string clipName, float startFrequency, float endFrequency, float duration, float volume)
+        {
+            const int sampleRate = 22050;
+            int sampleCount = Mathf.CeilToInt(sampleRate * duration);
+            var samples = new float[sampleCount];
+            float phase = 0f;
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float normalized = i / (float)(sampleCount - 1);
+                float time = i / (float)sampleRate;
+                float frequency = Mathf.Lerp(startFrequency, endFrequency, normalized);
+                phase += Mathf.PI * 2f * frequency / sampleRate;
+                float attack = Mathf.Clamp01(time / .008f);
+                float release = Mathf.Pow(1f - normalized, 2.2f);
+                float tone = Mathf.Sin(phase) + .2f * Mathf.Sin(phase * 2f);
+                samples[i] = tone * attack * release * volume;
+            }
+
+            AudioClip clip = AudioClip.Create(clipName, sampleCount, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            ownedAudioClips.Add(clip);
+            return clip;
+        }
+
+        void PlayShotAudio(ShotStyle style)
+        {
+            PlayAudioClip(shotAudioClips[(int)style]);
+        }
+
+        void PlayAudioClip(AudioClip clip, float volume = 1f)
+        {
+            if (rallyAudio && clip) rallyAudio.PlayOneShot(clip, volume);
+        }
+
         void MovePlayer(float deltaTime)
         {
             Gamepad gamepad = Gamepad.current;
@@ -240,6 +302,7 @@ namespace FrutigerBadminton
                     dashTrail.emitting = true;
                 }
                 AeroHitEffect.Spawn(player.position + Vector3.up * .82f, new Color(.26f, .96f, 1f), .82f);
+                PlayAudioClip(dashAudioClip, .75f);
             }
             else if (dashPressed) ShowMessage("Aero dash is recharging.", .55f);
 
@@ -429,6 +492,7 @@ namespace FrutigerBadminton
                 GroundY + .11f,
                 Random.Range(4.25f, 5.85f));
             AeroHitEffect.Spawn(shuttle.position, new Color(.73f, 1f, .48f), .98f);
+            PlayShotAudio(ShotStyle.Clear);
             Launch(shuttle.position, target, Random.Range(1.16f, 1.36f), false, true);
             AeroPlayerAnimation returnerAnimation = returner == partner ? partnerAnimation : partnerTwoAnimation;
             if (returnerAnimation) returnerAnimation.Swing(false);
@@ -495,6 +559,7 @@ namespace FrutigerBadminton
                            : style == ShotStyle.Drive ? 1.22f
                            : .83f;
             AeroHitEffect.Spawn(shuttle.position, ShotTint(style), style == ShotStyle.Smash ? 1.55f : 1f);
+            PlayShotAudio(style);
             Launch(shuttle.position, target, duration, false, true, style);
             if (playerAnimation) playerAnimation.Swing(style == ShotStyle.Smash);
             rallyHits++;
@@ -522,6 +587,7 @@ namespace FrutigerBadminton
                            : style == ShotStyle.Drive ? 1.22f
                            : 1.15f;
             AeroHitEffect.Spawn(start, ShotTint(style), style == ShotStyle.Smash ? 1.55f : 1f);
+            PlayShotAudio(style);
             Launch(start, target, duration, false, true, style);
             if (playerAnimation) playerAnimation.Swing(style == ShotStyle.Smash);
             rallyHits++;
@@ -586,6 +652,7 @@ namespace FrutigerBadminton
             Vector3 start = rival.position + Vector3.up * 1.45f;
             Vector3 target = new Vector3(Mathf.Clamp(player.position.x + Random.Range(-1.1f, 1.1f), -2.2f, 2.2f), GroundY + .11f, Random.Range(-5.7f, -2.1f));
             AeroHitEffect.Spawn(start, new Color(.42f, .96f, 1f), .9f);
+            PlayShotAudio(ShotStyle.Clear);
             Launch(start, target, 1.42f, true, false);
             if (rivalAnimation) rivalAnimation.Swing(false);
             ShowMessage("Return the serve.", 1.1f);
@@ -604,6 +671,7 @@ namespace FrutigerBadminton
             Vector3 start = returner.position + Vector3.up * 1.4f;
             Vector3 target = new Vector3(Mathf.Clamp(targetX, -CourtHalfWidth + .35f, CourtHalfWidth - .35f), GroundY + .11f, targetZ);
             AeroHitEffect.Spawn(start, ShotTint(style), style == ShotStyle.Drive ? 1.08f : .95f);
+            PlayShotAudio(style);
             float duration = style == ShotStyle.Drop ? Random.Range(1.62f, 1.74f)
                            : style == ShotStyle.Drive ? Random.Range(1.27f, 1.36f)
                            : Random.Range(1.42f, 1.54f);
@@ -654,6 +722,7 @@ namespace FrutigerBadminton
         void AwardPlayerPoint(string result)
         {
             playerScore++;
+            PlayAudioClip(playerPointAudioClip);
             CelebratePoint(new Color(.36f, 1f, .82f));
             bool finishedRun = IsSoloRunComplete();
             bool reachedUpgradeMilestone = !finishedRun && playerScore >= nextUpgradeScore;
@@ -665,6 +734,7 @@ namespace FrutigerBadminton
         void AwardRivalPoint(string result)
         {
             rivalScore++;
+            PlayAudioClip(rivalPointAudioClip);
             CelebratePoint(new Color(1f, .54f, .69f));
             bool finishedRun = IsSoloRunComplete();
             FinishPoint(result + "  " + playerScore + " — " + rivalScore, false, finishedRun, false);
@@ -733,6 +803,7 @@ namespace FrutigerBadminton
         {
             isPaused = false;
             Time.timeScale = 1f;
+            if (rallyAudio) rallyAudio.Stop();
             playerScore = 0;
             rivalScore = 0;
             rallyHits = 0;
@@ -773,6 +844,11 @@ namespace FrutigerBadminton
         {
             isPaused = paused;
             Time.timeScale = paused ? 0f : 1f;
+            if (rallyAudio)
+            {
+                if (paused) rallyAudio.Pause();
+                else rallyAudio.UnPause();
+            }
         }
 
         void HandlePauseMenuInput()
@@ -1347,6 +1423,8 @@ namespace FrutigerBadminton
             Time.timeScale = 1f;
             foreach (Object owned in ownedObjects)
                 if (owned) Destroy(owned);
+            foreach (AudioClip clip in ownedAudioClips)
+                if (clip) Destroy(clip);
         }
 
         static bool CrossedNet(Vector3 from, Vector3 to, out float crossingHeight)
