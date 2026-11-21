@@ -16,6 +16,7 @@
 - The impact feedback Windows build passed in run `44836155335` (10m) and uploaded its artifact. The direct merge to `main` passed in run `44837552946` (10m20s) and saved a 746 MB `Library` cache for the default branch.
 - Procedural body pivots, responsive run/jump/dash/racket-swing animation, and generated shock rings and sparks at racket contact are implemented.
 - Impact ring retraction and the central flash now use the intended time intervals and settle before the effect is removed; visual verification is pending.
+- Completed impact effects are retained in a small pool and reset for reuse, avoiding repeated mesh, material and primitive creation during consecutive rallies. Visual behaviour and performance need player verification.
 - Racket hoops now render double-sided and use generated crossed string-bed meshes; the artifact visual check is pending.
 - Player silhouettes now have generated shorts, headbands, hair locks, pearl court shoes, bright traction soles, and team-colored side flashes; visual check is pending.
 - A generated green-kit doubles partner covers the near court when positioned closer to an incoming landing; the player keeps priority when in racket range, and the partner returns automatically when the player cannot reach.
