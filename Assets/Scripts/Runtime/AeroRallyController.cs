@@ -1127,6 +1127,12 @@ namespace FrutigerBadminton
 
         void StartNewRun()
         {
+            ResetRunState();
+            BeginServe();
+        }
+
+        void ResetRunState()
+        {
             isPaused = false;
             Time.timeScale = 1f;
             if (rallyAudio) rallyAudio.Stop();
@@ -1179,7 +1185,24 @@ namespace FrutigerBadminton
                 dashTrail.Clear();
                 dashTrail.emitting = false;
             }
-            BeginServe();
+            if (shuttleTrail)
+            {
+                shuttleTrail.emitting = false;
+                shuttleTrail.Clear();
+            }
+            if (landingMarker) landingMarker.gameObject.SetActive(false);
+            if (aimMarker) aimMarker.gameObject.SetActive(false);
+            if (playerMarker) playerMarker.gameObject.SetActive(false);
+            UpdateAIReceiverMarkers();
+        }
+
+        void ReturnToTitle()
+        {
+            ResetRunState();
+            titleScreenActive = true;
+            titleMenuPage = TitleMenuPage.Home;
+            titleMenuSelection = 0;
+            UpdateTitleScreen();
         }
 
         void SetPaused(bool paused)
@@ -1205,6 +1228,11 @@ namespace FrutigerBadminton
                 || (gamepad != null && gamepad.buttonWest.wasPressedThisFrame))
             {
                 StartNewRun();
+            }
+            else if (Input.GetKeyDown(KeyCode.M)
+                || (gamepad != null && gamepad.buttonEast.wasPressedThisFrame))
+            {
+                ReturnToTitle();
             }
         }
 
@@ -1995,7 +2023,7 @@ namespace FrutigerBadminton
         void DrawPauseMenu(bool controllerConnected)
         {
             float panelWidth = Mathf.Min(480f, Screen.width - 32f);
-            float panelHeight = 292f;
+            float panelHeight = 350f;
             float left = (Screen.width - panelWidth) * .5f;
             float top = (Screen.height - panelHeight) * .5f;
             GUI.color = new Color(.02f, .13f, .19f, .97f);
@@ -2009,10 +2037,12 @@ namespace FrutigerBadminton
                 SetPaused(false);
             if (GUI.Button(new Rect(left + 95f, top + 180f, panelWidth - 190f, 42f), "RESTART RUN", upgradeButtonStyle))
                 StartNewRun();
+            if (GUI.Button(new Rect(left + 95f, top + 235f, panelWidth - 190f, 42f), "TITLE MENU", upgradeButtonStyle))
+                ReturnToTitle();
             string inputHint = controllerConnected
-                ? "Start / Esc resume  •  A to resume  •  X restart"
-                : "Esc / Enter resume  •  R restart";
-            GUI.Label(new Rect(left + 24f, top + 246f, panelWidth - 48f, 24f), inputHint, hintStyle);
+                ? "START / A resume  ·  X restart  ·  B menu"
+                : "ESC / ENTER resume  ·  R restart  ·  M menu";
+            GUI.Label(new Rect(left + 24f, top + 302f, panelWidth - 48f, 24f), inputHint, hintStyle);
         }
 
         void DrawRunEnd(bool controllerConnected)
@@ -2022,6 +2052,12 @@ namespace FrutigerBadminton
                 || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame)))
             {
                 StartNewRun();
+                return;
+            }
+            if (Time.frameCount > runEndOpenedFrame && (Input.GetKeyDown(KeyCode.M)
+                || (gamepad != null && gamepad.buttonEast.wasPressedThisFrame)))
+            {
+                ReturnToTitle();
                 return;
             }
 
@@ -2063,11 +2099,14 @@ namespace FrutigerBadminton
             GUI.Label(new Rect(left + 24f, top + 315f, panelWidth - 48f, 22f), "Upgrades reset when you start a new run.", hintStyle);
             bool wasEnabled = GUI.enabled;
             GUI.enabled = wasEnabled && Time.frameCount > runEndOpenedFrame;
-            if (GUI.Button(new Rect(left + 115f, top + 348f, panelWidth - 230f, 42f), "START A NEW RUN", upgradeButtonStyle))
+            float buttonWidth = (panelWidth - 60f) * .5f;
+            if (GUI.Button(new Rect(left + 24f, top + 348f, buttonWidth, 42f), "NEW RUN", upgradeButtonStyle))
                 StartNewRun();
+            if (GUI.Button(new Rect(left + 36f + buttonWidth, top + 348f, buttonWidth, 42f), "TITLE MENU", upgradeButtonStyle))
+                ReturnToTitle();
             GUI.enabled = wasEnabled;
             GUI.Label(new Rect(left + 24f, top + 394f, panelWidth - 48f, 22f),
-                controllerConnected ? "Press A to play again" : "Press Enter to play again", hintStyle);
+                controllerConnected ? "A new run  ·  B title menu" : "Enter new run  ·  M title menu", hintStyle);
         }
 
         string RunUpgradeSummary()
