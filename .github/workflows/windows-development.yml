@@ -22,7 +22,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: Library
-          key: UnityLibrary-${{ runner.os }}-${{ hashFiles('Packages/manifest.json', 'Packages/packages-lock.json', 'ProjectSettings/ProjectVersion.txt') }}
+          key: UnityLibrary-${{ runner.os }}-${{ hashFiles('Packages/manifest.json', 'Packages/packages-lock.json', 'ProjectSettings/ProjectVersion.txt', 'ProjectSettings/ProjectSettings.asset') }}
           restore-keys: |
             UnityLibrary-${{ runner.os }}-
       - name: Wait for Docker

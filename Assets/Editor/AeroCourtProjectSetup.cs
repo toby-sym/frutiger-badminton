@@ -72,11 +72,7 @@ namespace FrutigerBadminton.Editor
                 throw new System.InvalidOperationException("Unity PlayerSettings are missing activeInputHandler.");
 
             if (activeInputHandler.intValue != BothInputBackends)
-            {
-                activeInputHandler.intValue = BothInputBackends;
-                serializedSettings.ApplyModifiedProperties();
-                Debug.Log("Enabled both the Input System and legacy input backends for controller-first controls.");
-            }
+                throw new System.InvalidOperationException("Both input backends must be enabled in ProjectSettings before Unity starts; changing them after startup can make Editor and player assemblies incompatible.");
         }
 
         static void EnsurePipeline()
