@@ -45,6 +45,11 @@ namespace FrutigerBadminton
         Transform rivalWing;
         Transform shuttle;
         Transform landingMarker;
+        Transform partnerReceiverMarker;
+        Transform partnerTwoReceiverMarker;
+        Transform rivalReceiverMarker;
+        Transform rivalPartnerReceiverMarker;
+        Transform rivalWingReceiverMarker;
         AeroPlayerAnimation playerAnimation;
         AeroPlayerAnimation partnerAnimation;
         AeroPlayerAnimation partnerTwoAnimation;
@@ -130,6 +135,7 @@ namespace FrutigerBadminton
             rivalWing.position = new Vector3(-1.65f, GroundY, 4.2f);
             CreateShuttlecock();
             CreateLandingMarker();
+            CreateReceiverMarkers();
             CreateDashTrail();
             BeginServe();
         }
@@ -157,6 +163,7 @@ namespace FrutigerBadminton
                 UpdateShuttlecock(deltaTime);
                 if (flightActive && playerMustReturn) TryPartnerReturn();
             }
+            UpdateAIReceiverMarkers();
             UpdateLandingMarker();
             if (flightActive && playerMustReturn && IsShotInput()
                 && (!IsMouseShotInput() || !MouseIsOverHud())) TryPlayerShot();
@@ -252,38 +259,109 @@ namespace FrutigerBadminton
 
         bool IsClosestOpponent(Transform member)
         {
-            float distance = HorizontalDistance(member.position, flightTarget);
-            return distance <= HorizontalDistance(rival.position, flightTarget) + .05f
-                && distance <= HorizontalDistance(rivalPartner.position, flightTarget) + .05f
-                && distance <= HorizontalDistance(rivalWing.position, flightTarget) + .05f;
+            return GetClosestOpponent() == member;
+        }
+
+        Transform GetClosestOpponent()
+        {
+            Transform closest = rival;
+            float closestDistance = HorizontalDistance(rival.position, flightTarget);
+            float partnerDistance = HorizontalDistance(rivalPartner.position, flightTarget);
+            if (partnerDistance < closestDistance)
+            {
+                closest = rivalPartner;
+                closestDistance = partnerDistance;
+            }
+
+            if (HorizontalDistance(rivalWing.position, flightTarget) < closestDistance)
+                closest = rivalWing;
+            return closest;
+        }
+
+        AeroPlayerAnimation GetOpponentAnimation(Transform opponent)
+        {
+            if (opponent == rivalPartner) return rivalPartnerAnimation;
+            if (opponent == rivalWing) return rivalWingAnimation;
+            return rivalAnimation;
         }
 
         void MovePartner(float deltaTime)
         {
             float side = player.position.x >= 0f ? -1f : 1f;
-            MoveFriendlySupport(partner, partnerTwo, side * 1.65f, -4.8f, deltaTime);
-            MoveFriendlySupport(partnerTwo, partner, side * .85f, -2.9f, deltaTime);
+            Transform assignedReceiver = GetAssignedFriendlyReceiver();
+            MoveFriendlySupport(partner, assignedReceiver, side * 1.65f, -4.8f, deltaTime);
+            MoveFriendlySupport(partnerTwo, assignedReceiver, side * .85f, -2.9f, deltaTime);
         }
 
-        void MoveFriendlySupport(Transform member, Transform teammate, float homeX, float homeZ, float deltaTime)
+        Transform GetAssignedFriendlyReceiver()
+        {
+            if (!flightActive || !playerMustReturn) return null;
+
+            float timeToLanding = Mathf.Max(0f, flightDuration - flightElapsed);
+            float playerDistance = HorizontalDistance(player.position, flightTarget);
+            float firstPartnerDistance = HorizontalDistance(partner.position, flightTarget);
+            float secondPartnerDistance = HorizontalDistance(partnerTwo.position, flightTarget);
+            float playerReach = 1.7f + upgradeLevels[(int)SoloUpgrade.ExtendedSweetSpot] * .16f + jumpHeight * .5f;
+            bool playerCannotReach = playerDistance - playerReach > timeToLanding * 4.6f;
+            Transform nearestPartner = firstPartnerDistance <= secondPartnerDistance ? partner : partnerTwo;
+            float nearestDistance = Mathf.Min(firstPartnerDistance, secondPartnerDistance);
+            return playerCannotReach || nearestDistance + .85f < playerDistance ? nearestPartner : null;
+        }
+
+        void CreateReceiverMarkers()
+        {
+            Material friendlyMaterial = CreateMaterial("Universal Render Pipeline/Lit", new Color(.62f, 1f, .48f), .72f, 1.2f);
+            Material opponentMaterial = CreateMaterial("Universal Render Pipeline/Lit", new Color(1f, .64f, .76f), .72f, 1.1f);
+            partnerReceiverMarker = CreateReceiverMarker("Partner coverage reticle", friendlyMaterial);
+            partnerTwoReceiverMarker = CreateReceiverMarker("Partner two coverage reticle", friendlyMaterial);
+            rivalReceiverMarker = CreateReceiverMarker("Rival coverage reticle", opponentMaterial);
+            rivalPartnerReceiverMarker = CreateReceiverMarker("Rival partner coverage reticle", opponentMaterial);
+            rivalWingReceiverMarker = CreateReceiverMarker("Rival wing coverage reticle", opponentMaterial);
+        }
+
+        Transform CreateReceiverMarker(string objectName, Material material)
+        {
+            var marker = new GameObject(objectName);
+            marker.transform.SetParent(transform, false);
+            marker.AddComponent<MeshFilter>().sharedMesh = landingMarkerMesh;
+            var renderer = marker.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            marker.SetActive(false);
+            return marker.transform;
+        }
+
+        void UpdateAIReceiverMarkers()
+        {
+            Transform friendlyReceiver = GetAssignedFriendlyReceiver();
+            Transform opponentReceiver = flightActive && !playerMustReturn ? GetClosestOpponent() : null;
+            UpdateReceiverMarker(partnerReceiverMarker, partner, friendlyReceiver);
+            UpdateReceiverMarker(partnerTwoReceiverMarker, partnerTwo, friendlyReceiver);
+            UpdateReceiverMarker(rivalReceiverMarker, rival, opponentReceiver);
+            UpdateReceiverMarker(rivalPartnerReceiverMarker, rivalPartner, opponentReceiver);
+            UpdateReceiverMarker(rivalWingReceiverMarker, rivalWing, opponentReceiver);
+        }
+
+        void UpdateReceiverMarker(Transform marker, Transform target, Transform selected)
+        {
+            bool show = marker && target == selected;
+            if (marker && marker.gameObject.activeSelf != show) marker.gameObject.SetActive(show);
+            if (!show) return;
+
+            marker.position = new Vector3(target.position.x, GroundY + .13f, target.position.z);
+            float pulse = .82f + Mathf.Sin(Time.time * 6f) * .07f;
+            marker.localScale = Vector3.one * pulse;
+        }
+
+        void MoveFriendlySupport(Transform member, Transform assignedReceiver, float homeX, float homeZ, float deltaTime)
         {
             if (!member) return;
             Vector3 destination = new Vector3(homeX, GroundY, homeZ);
-            if (flightActive && playerMustReturn)
+            if (flightActive && playerMustReturn && member == assignedReceiver)
             {
-                float timeToLanding = Mathf.Max(0f, flightDuration - flightElapsed);
-                float playerDistance = HorizontalDistance(player.position, flightTarget);
-                float memberDistance = HorizontalDistance(member.position, flightTarget);
-                float teammateDistance = HorizontalDistance(teammate.position, flightTarget);
-                float playerReach = 1.7f + upgradeLevels[(int)SoloUpgrade.ExtendedSweetSpot] * .16f + jumpHeight * .5f;
-                bool playerCannotReach = playerDistance - playerReach > timeToLanding * 4.6f;
-                bool memberAssigned = memberDistance <= teammateDistance
-                    && (playerCannotReach || memberDistance + .85f < playerDistance);
-                if (memberAssigned)
-                {
-                    destination.x = Mathf.Clamp(flightTarget.x, -CourtHalfWidth + .45f, CourtHalfWidth - .45f);
-                    destination.z = Mathf.Clamp(flightTarget.z, -CourtHalfLength + .45f, -.42f);
-                }
+                destination.x = Mathf.Clamp(flightTarget.x, -CourtHalfWidth + .45f, CourtHalfWidth - .45f);
+                destination.z = Mathf.Clamp(flightTarget.z, -CourtHalfLength + .45f, -.42f);
             }
 
             float partnerSpeed = 5.2f + upgradeLevels[(int)SoloUpgrade.PartnerDrills] * .48f;
@@ -343,22 +421,13 @@ namespace FrutigerBadminton
                 return;
             }
 
-            float rivalDistance = HorizontalDistance(rival.position, flightTarget);
-            float rivalPartnerDistance = HorizontalDistance(rivalPartner.position, flightTarget);
-            float rivalWingDistance = HorizontalDistance(rivalWing.position, flightTarget);
-            Transform returner = rivalDistance <= rivalPartnerDistance ? rival : rivalPartner;
-            AeroPlayerAnimation returnerAnimation = returner == rival ? rivalAnimation : rivalPartnerAnimation;
-            if (rivalWingDistance < Mathf.Min(rivalDistance, rivalPartnerDistance))
-            {
-                returner = rivalWing;
-                returnerAnimation = rivalWingAnimation;
-            }
-            if (Mathf.Min(rivalDistance, rivalPartnerDistance, rivalWingDistance) > 1.05f)
+            Transform returner = GetClosestOpponent();
+            if (HorizontalDistance(returner.position, flightTarget) > 1.05f)
             {
                 AwardPlayerPoint("Clean winner.");
                 return;
             }
-            BeginRivalReturn(returner, returnerAnimation);
+            BeginRivalReturn(returner, GetOpponentAnimation(returner));
         }
 
         void TryPlayerShot()
