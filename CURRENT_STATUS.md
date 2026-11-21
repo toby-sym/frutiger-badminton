@@ -14,6 +14,7 @@
 - The pavilion has shallow upper galleries, handrails, and luminous fixtures generated around the rear and side edges of the court; composition and brightness need an artifact check.
 - The local practice loop is implemented with WASD movement, jump, dash, aimed clear, drop, drive, smash, scoring, and a returning rival.
 - GitHub Actions uses GameCI to build and package a portable Windows x64 Development player on every branch push. Unity's `Library` folder is cached in development and release workflows, and superseded builds on the same branch are canceled.
+- An optional visual-capture workflow builds a Linux player and records title/court views using a virtual display. Its first run is pending; it does not run on ordinary main pushes.
 - Development uploads skip redundant compression of the already packaged ZIP. After a direct merge to `main`, GameCI reuses the successful feature-branch artifact only when the merge tree is identical, and falls back to a fresh build for other main pushes.
 - The impact feedback Windows build passed in run `44836155335` (10m) and uploaded its artifact. The direct merge to `main` passed in run `44837552946` (10m20s) and saved a 746 MB `Library` cache for the default branch.
 - Procedural body pivots, responsive run/jump/dash/racket-swing animation, and generated shock rings and sparks at racket contact are implemented.

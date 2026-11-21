@@ -1,0 +1,54 @@
+name: Visual capture
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - capability/automated-visual-capture
+
+permissions:
+  contents: read
+
+concurrency:
+  group: visual-capture-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    name: Capture Linux player views
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Linux Unity Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: UnityLibrary-${{ runner.os }}-StandaloneLinux64-capture-${{ hashFiles('Packages/manifest.json', 'Packages/packages-lock.json', 'ProjectSettings/ProjectVersion.txt', 'ProjectSettings/ProjectSettings.asset') }}
+      - name: Build Linux capture player
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: .
+          unityVersion: 6000.0.64f1
+          targetPlatform: StandaloneLinux64
+          buildsPath: build
+          buildName: FrutigerBadminton
+          buildMethod: FrutigerBadminton.Editor.VisualCaptureBuild.BuildLinux
+          allowDirtyBuild: true
+      - name: Install virtual display tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb xauth xdotool imagemagick libgl1-mesa-dri libglx-mesa0
+      - name: Capture title and court
+        run: bash scripts/capture-linux.sh
+      - name: Upload views and player log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-capture-${{ github.sha }}
+          path: artifacts/visual/
+          if-no-files-found: warn
+          retention-days: 14
