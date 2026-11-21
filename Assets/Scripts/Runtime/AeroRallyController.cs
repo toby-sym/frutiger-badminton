@@ -98,6 +98,8 @@ namespace FrutigerBadminton
         Vector3 cameraRestPosition;
         float flightDuration;
         float flightElapsed;
+        float shuttleSpinDegreesPerSecond;
+        float shuttleSpinAngle;
         float dashTime;
         float dashCooldown;
         float jumpHeight;
@@ -552,7 +554,13 @@ namespace FrutigerBadminton
             if (flightWasPlayerShot && upgradeLevels[(int)SoloUpgrade.PrismStrings] > 0)
                 SetShuttleTrailTint(PlayerShotTint(flightShotStyle));
             Vector3 velocity = flightVelocity + Vector3.down * (Gravity * time);
-            if (velocity.sqrMagnitude > .01f) shuttle.up = velocity.normalized;
+            if (velocity.sqrMagnitude > .01f)
+            {
+                Vector3 direction = velocity.normalized;
+                shuttleSpinAngle = Mathf.Repeat(shuttleSpinAngle + shuttleSpinDegreesPerSecond * deltaTime, 360f);
+                shuttle.rotation = Quaternion.AngleAxis(shuttleSpinAngle, direction)
+                    * Quaternion.FromToRotation(Vector3.up, direction);
+            }
 
             if (CrossedNet(previousShuttlePosition, current, out float netCrossingHeight) && netCrossingHeight < GroundY + NetHeight)
             {
@@ -749,6 +757,10 @@ namespace FrutigerBadminton
             playerMustReturn = receiverIsPlayer;
             flightWasPlayerShot = playerShot;
             flightShotStyle = style;
+            shuttleSpinDegreesPerSecond = style == ShotStyle.Smash ? 1440f
+                : style == ShotStyle.Drive ? 960f
+                : style == ShotStyle.Drop ? 300f : 540f;
+            shuttleSpinAngle = 0f;
             flightActive = true;
             float verticalSpeed = (target.y - start.y + .5f * Gravity * duration * duration) / duration;
             flightVelocity = new Vector3((target.x - start.x) / duration, verticalSpeed, (target.z - start.z) / duration);
@@ -832,6 +844,8 @@ namespace FrutigerBadminton
             playerMustReturn = false;
             shuttleTrail.Clear();
             shuttle.position = new Vector3(0f, GroundY + .25f, 0f);
+            shuttle.rotation = Quaternion.identity;
+            shuttleSpinAngle = 0f;
             servePending = !endRun;
             serveDelay = endRun ? 0f : 1.45f;
             ShowMessage(result, 1.45f);
@@ -1050,7 +1064,8 @@ namespace FrutigerBadminton
             shuttle = root.transform;
             Mesh featherMesh = BuildFeathers();
             ownedObjects.Add(featherMesh);
-            shuttleMaterial = CreateMaterial("Universal Render Pipeline/Lit", new Color(.88f, .99f, 1f), .3f, .35f);
+            Shader featherShader = Resources.Load<Shader>("ShuttleFeather");
+            shuttleMaterial = CreateMaterial("Frutiger/Shuttle Feather", new Color(.88f, .99f, 1f), .3f, .35f, featherShader);
             corkMaterial = CreateMaterial("Universal Render Pipeline/Lit", new Color(.96f, .81f, .62f), .25f, .05f);
             bandMaterial = CreateMaterial("Universal Render Pipeline/Lit", new Color(.1f, .79f, .89f), .5f, .75f);
 
@@ -1263,6 +1278,7 @@ namespace FrutigerBadminton
             const int featherCount = 8;
             var vertices = new List<Vector3>(featherCount * 6);
             var colors = new List<Color>(featherCount * 6);
+            var normals = new List<Vector3>(featherCount * 6);
             var triangles = new List<int>(featherCount * 24);
             float[] heights = { -.12f, -.34f, -.62f };
             float[] radii = { .055f, .17f, .325f };
@@ -1275,6 +1291,7 @@ namespace FrutigerBadminton
                 float angle = feather * Mathf.PI * 2f / featherCount;
                 Vector3 radial = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
                 Vector3 tangent = new Vector3(-Mathf.Sin(angle), 0f, Mathf.Cos(angle));
+                Vector3 faceNormal = tangent;
                 int first = vertices.Count;
                 for (int row = 0; row < 3; row++)
                 {
@@ -1283,6 +1300,7 @@ namespace FrutigerBadminton
                     vertices.Add(new Vector3(center.x + tangent.x * widths[row], heights[row], center.z + tangent.z * widths[row]));
                     Color color = Color.Lerp(baseColor, tipColor, row * .5f);
                     colors.Add(color); colors.Add(color);
+                    normals.Add(faceNormal); normals.Add(faceNormal);
                 }
                 for (int row = 0; row < 2; row++)
                 {
@@ -1294,8 +1312,8 @@ namespace FrutigerBadminton
             var mesh = new Mesh { name = "Generated badminton shuttle feathers" };
             mesh.SetVertices(vertices);
             mesh.SetColors(colors);
+            mesh.SetNormals(normals);
             mesh.SetTriangles(triangles, 0);
-            mesh.RecalculateNormals();
             return mesh;
         }
 
@@ -1307,9 +1325,9 @@ namespace FrutigerBadminton
             triangles.Add(d); triangles.Add(c); triangles.Add(a);
         }
 
-        Material CreateMaterial(string shaderName, Color color, float smoothness, float emission)
+        Material CreateMaterial(string shaderName, Color color, float smoothness, float emission, Shader explicitShader = null)
         {
-            Shader shader = Shader.Find(shaderName) ?? Shader.Find("Standard");
+            Shader shader = explicitShader ? explicitShader : Shader.Find(shaderName) ?? Shader.Find("Standard");
             var material = new Material(shader) { name = "Rally " + ColorUtility.ToHtmlStringRGBA(color) };
             if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color); else material.color = color;
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", smoothness);
