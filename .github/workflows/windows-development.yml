@@ -38,13 +38,19 @@ jobs:
 
           source_sha="${commits[2]}"
           merge_tree="$(git rev-parse "${GITHUB_SHA}^{tree}")"
-          source_tree="$(git rev-parse "${source_sha}^{tree}")"
+          if ! source_tree="$(git rev-parse "${source_sha}^{tree}" 2>/dev/null)"; then
+            echo 'The feature commit is unavailable locally; running a fresh build.'
+            exit 0
+          fi
           if [ "$merge_tree" != "$source_tree" ]; then
             echo 'Merge tree differs from its feature parent; running a fresh build.'
             exit 0
           fi
 
-          run_id="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow windows-development.yml --commit "$source_sha" --json databaseId,status,conclusion --jq '[.[] | select(.status == "completed" and .conclusion == "success")][0].databaseId // empty')"
+          if ! run_id="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow windows-development.yml --commit "$source_sha" --json databaseId,status,conclusion --jq '[.[] | select(.status == "completed" and .conclusion == "success")][0].databaseId // empty')"; then
+            echo 'Unable to check the feature build; running a fresh build.'
+            exit 0
+          fi
           if [ -z "$run_id" ]; then
             echo 'No successful build exists for the feature commit; running a fresh build.'
             exit 0
