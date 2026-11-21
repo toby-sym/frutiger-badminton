@@ -233,7 +233,7 @@ namespace FrutigerBadminton
             MovePlayer(deltaTime);
             if (playerServeReady)
             {
-                shuttle.position = player.position + Vector3.up * (1.18f + jumpHeight) + player.right * .18f;
+                shuttle.position = PlayerServePosition();
                 shuttle.up = Vector3.up;
             }
             MovePartner(deltaTime);
@@ -738,7 +738,7 @@ namespace FrutigerBadminton
                 return;
             }
 
-            Vector3 start = player.position + Vector3.up * (1.18f + jumpHeight) + player.right * .18f;
+            Vector3 start = PlayerServePosition();
             Vector3 target = ServeAimTarget(style);
             float duration = style == ShotStyle.Clear ? 1.48f
                            : style == ShotStyle.Drop ? 1.27f
@@ -754,6 +754,12 @@ namespace FrutigerBadminton
                        : style == ShotStyle.Drop ? "Feather drop"
                        : style == ShotStyle.Drive ? "Glass drive" : "Sky smash";
             ShowMessage(hit + " serve  •  Rally " + rallyHits, .95f);
+        }
+
+        Vector3 PlayerServePosition()
+        {
+            // The player's world position already includes jumpHeight.
+            return player.position + Vector3.up * 1.18f + player.right * .18f;
         }
 
         Vector3 AimTarget(ShotStyle style)
@@ -801,7 +807,7 @@ namespace FrutigerBadminton
             {
                 playerServeReady = true;
                 shuttleTrail.Clear();
-                shuttle.position = player.position + Vector3.up * (1.18f + jumpHeight) + player.right * .18f;
+                shuttle.position = PlayerServePosition();
                 shuttle.up = Vector3.up;
                 ShowMessage("Your serve — aim the ring, then choose a shot.", 2.2f);
                 return;
