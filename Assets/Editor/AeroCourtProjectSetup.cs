@@ -1,6 +1,8 @@
 using System.IO;
+using System.Reflection;
 using FrutigerBadminton;
 using UnityEditor;
+using UnityEditor.Build.Profile;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -44,8 +46,37 @@ namespace FrutigerBadminton.Editor
         static void EnsureControllerInput()
         {
             const int BothInputBackends = 2;
-            if (PlayerSettings.GetPropertyInt("activeInputHandler", BuildTargetGroup.Unknown) != BothInputBackends)
-                PlayerSettings.SetPropertyInt("activeInputHandler", BothInputBackends, BuildTargetGroup.Unknown);
+            // Unity 6 stores activeInputHandler on global or active Build Profile PlayerSettings.
+            var buildProfileType = typeof(BuildProfile);
+            var globalSettingsField = buildProfileType.GetField("s_GlobalPlayerSettings", BindingFlags.Static | BindingFlags.NonPublic);
+            if (globalSettingsField == null)
+                throw new System.InvalidOperationException("Unity did not expose global PlayerSettings for Input System configuration.");
+
+            var playerSettings = (PlayerSettings)globalSettingsField.GetValue(null);
+            var activeProfile = BuildProfile.GetActiveBuildProfile();
+            if (activeProfile != null)
+            {
+                var overrideField = buildProfileType.GetField("m_PlayerSettings", BindingFlags.Instance | BindingFlags.NonPublic);
+                if (overrideField == null)
+                    throw new System.InvalidOperationException("Unity did not expose active Build Profile PlayerSettings for Input System configuration.");
+                var profileSettings = (PlayerSettings)overrideField.GetValue(activeProfile);
+                if (profileSettings != null) playerSettings = profileSettings;
+            }
+
+            if (!playerSettings)
+                throw new System.InvalidOperationException("Unity PlayerSettings are unavailable; controller input cannot be enabled.");
+
+            var serializedSettings = new SerializedObject(playerSettings);
+            var activeInputHandler = serializedSettings.FindProperty("activeInputHandler");
+            if (activeInputHandler == null)
+                throw new System.InvalidOperationException("Unity PlayerSettings are missing activeInputHandler.");
+
+            if (activeInputHandler.intValue != BothInputBackends)
+            {
+                activeInputHandler.intValue = BothInputBackends;
+                serializedSettings.ApplyModifiedProperties();
+                Debug.Log("Enabled both the Input System and legacy input backends for controller-first controls.");
+            }
         }
 
         static void EnsurePipeline()
