@@ -119,6 +119,7 @@ namespace FrutigerBadminton
         float serveDelay;
         float messageDelay;
         float shotInputBufferRemaining;
+        float friendlyHomeSide = -1f;
         int playerScore;
         int rivalScore;
         int rallyHits;
@@ -606,9 +607,11 @@ namespace FrutigerBadminton
 
         void MovePartner(float deltaTime)
         {
-            float side = player.position.x >= 0f ? -1f : 1f;
-            MoveFriendlySupport(partner, assignedFriendlyReceiver, side * 1.65f, -4.8f, deltaTime);
-            MoveFriendlySupport(partnerTwo, assignedFriendlyReceiver, side * .85f, -2.9f, deltaTime);
+            // Avoid swapping formation every time the player crosses the centre by a few pixels.
+            if (player.position.x > .65f) friendlyHomeSide = -1f;
+            else if (player.position.x < -.65f) friendlyHomeSide = 1f;
+            MoveFriendlySupport(partner, assignedFriendlyReceiver, friendlyHomeSide * 1.65f, -4.8f, deltaTime);
+            MoveFriendlySupport(partnerTwo, assignedFriendlyReceiver, -friendlyHomeSide * .85f, -2.9f, deltaTime);
         }
 
         void UpdateFriendlyReceiver()
@@ -1120,6 +1123,7 @@ namespace FrutigerBadminton
             lastMovementDirection = CameraForwardOnCourt();
             jumpHeight = 0f;
             jumpVelocity = 0f;
+            friendlyHomeSide = -1f;
             messageDelay = 0f;
             player.position = new Vector3(0f, GroundY, -4.6f);
             partner.position = new Vector3(-1.65f, GroundY, -4.8f);
