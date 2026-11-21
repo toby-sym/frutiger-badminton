@@ -274,9 +274,13 @@ namespace FrutigerBadminton
         {
             Gamepad gamepad = Gamepad.current;
             bool up = Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W)
-                || (gamepad != null && gamepad.dpad.up.wasPressedThisFrame);
+                || (gamepad != null && (gamepad.dpad.up.wasPressedThisFrame || gamepad.leftStick.up.wasPressedThisFrame));
             bool down = Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)
-                || (gamepad != null && gamepad.dpad.down.wasPressedThisFrame);
+                || (gamepad != null && (gamepad.dpad.down.wasPressedThisFrame || gamepad.leftStick.down.wasPressedThisFrame));
+            bool left = Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A)
+                || (gamepad != null && (gamepad.dpad.left.wasPressedThisFrame || gamepad.leftStick.left.wasPressedThisFrame));
+            bool right = Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)
+                || (gamepad != null && (gamepad.dpad.right.wasPressedThisFrame || gamepad.leftStick.right.wasPressedThisFrame));
             bool confirm = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)
                 || (gamepad != null && (gamepad.buttonSouth.wasPressedThisFrame || gamepad.startButton.wasPressedThisFrame));
             bool back = Input.GetKeyDown(KeyCode.Escape)
@@ -287,9 +291,7 @@ namespace FrutigerBadminton
                 int optionCount = titleMenuPage == TitleMenuPage.Settings ? 3 : 1;
                 if (up) titleMenuSelection = (titleMenuSelection + optionCount - 1) % optionCount;
                 if (down) titleMenuSelection = (titleMenuSelection + 1) % optionCount;
-                if (titleMenuPage == TitleMenuPage.Settings
-                    && (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.RightArrow)
-                        || (gamepad != null && (gamepad.dpad.left.wasPressedThisFrame || gamepad.dpad.right.wasPressedThisFrame))))
+                if (titleMenuPage == TitleMenuPage.Settings && titleMenuSelection < 2 && (left || right))
                     ToggleSetting(titleMenuSelection);
                 if (back)
                 {
@@ -300,9 +302,10 @@ namespace FrutigerBadminton
                 return;
             }
 
-            const int homeOptionCount = 4;
-            if (up) titleMenuSelection = (titleMenuSelection + homeOptionCount - 1) % homeOptionCount;
-            if (down) titleMenuSelection = (titleMenuSelection + 1) % homeOptionCount;
+            if (up) titleMenuSelection = titleMenuSelection == 0 ? 3 : titleMenuSelection == 3 ? 1 : 0;
+            else if (down) titleMenuSelection = titleMenuSelection == 0 ? 1 : titleMenuSelection == 3 ? 0 : 3;
+            else if (left && titleMenuSelection == 2) titleMenuSelection = 1;
+            else if (right && titleMenuSelection == 1) titleMenuSelection = 2;
             if (confirm) ActivateTitleMenuOption(titleMenuSelection);
         }
 
@@ -1701,7 +1704,7 @@ namespace FrutigerBadminton
 
                 GUI.color = new Color(.64f, .86f, .9f);
                 GUI.Label(new Rect(mainPanel.x + 36f, top + panelHeight - 52f, buttonWidth, 24f),
-                    controllerConnected ? "D-PAD NAVIGATE     A SELECT     B BACK" : "ARROWS NAVIGATE     ENTER SELECT",
+                    controllerConnected ? "STICK / D-PAD NAVIGATE     A SELECT" : "ARROWS / WASD NAVIGATE     ENTER SELECT",
                     hintStyle);
             }
             else if (titleMenuPage == TitleMenuPage.Controls)
