@@ -110,6 +110,7 @@ namespace FrutigerBadminton
         float shuttleSpinDegreesPerSecond;
         float shuttleSpinAngle;
         float dashTime;
+        float dashRecoveryTime;
         float dashCooldown;
         float jumpHeight;
         float jumpVelocity;
@@ -498,6 +499,7 @@ namespace FrutigerBadminton
             {
                 dashDirection = direction.sqrMagnitude > .01f ? direction.normalized : lastMovementDirection;
                 dashTime = .16f;
+                dashRecoveryTime = 0f;
                 dashCooldown = Mathf.Max(.55f, 1.05f - upgradeLevels[(int)SoloUpgrade.TurboDash] * .1f);
                 isDashing = true;
                 dashUses++;
@@ -518,15 +520,21 @@ namespace FrutigerBadminton
             {
                 direction = dashDirection;
                 dashTime -= deltaTime;
-                if (dashTime <= 0f && dashTrail) dashTrail.emitting = false;
+                if (dashTime <= 0f)
+                {
+                    dashRecoveryTime = .14f;
+                    if (dashTrail) dashTrail.emitting = false;
+                }
                 playerVelocity = direction * speed;
             }
             else
             {
                 isDashing = false;
                 Vector3 desiredVelocity = direction * speed;
-                float acceleration = direction.sqrMagnitude > .001f ? 24f : 31f;
+                float acceleration = dashRecoveryTime > 0f
+                    ? Mathf.Max(70f, speed * 18f) : direction.sqrMagnitude > .001f ? 24f : 31f;
                 playerVelocity = Vector3.MoveTowards(playerVelocity, desiredVelocity, acceleration * deltaTime);
+                dashRecoveryTime = Mathf.Max(0f, dashRecoveryTime - deltaTime);
             }
 
             Vector3 next = player.position + playerVelocity * deltaTime;
@@ -1161,6 +1169,7 @@ namespace FrutigerBadminton
             playerMustReturn = false;
             isDashing = false;
             dashTime = 0f;
+            dashRecoveryTime = 0f;
             dashCooldown = 0f;
             playerVelocity = Vector3.zero;
             lastMovementDirection = CameraForwardOnCourt();

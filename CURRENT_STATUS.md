@@ -48,6 +48,7 @@
 - Title navigation accepts the left stick, D-pad, WASD and arrow keys, with left/right movement between the side-by-side options. Settings only toggle when an actual setting is selected; controller verification is pending.
 - Rally movement eases into and out of direction changes, with generated character squash on landing, stretch in the air, and a quicker racket strike with follow-through.
 - Movement now follows the camera's screen directions, and a dash with no input uses the last movement direction. Verify keyboard and controller movement in the Windows artifact.
+- A brief higher-deceleration recovery returns dash momentum toward the requested movement speed, limiting post-dash sliding. Dash feel and upgrade interactions need player verification.
 - Rally shot presses are buffered briefly while the incoming shuttle approaches reach, preserving the chosen shot type while the player can continue aiming. The buffer clears at the end of the point or run; timing still needs play verification.
 - Mouse and controller aim now hand off on input, the right-stick target stays in place when released, and mouse aim holds its last court position while the pointer is over the control panel. Verify mixed-device aiming in the artifact.
 - Player limbs use rounded generated shapes, and shoes follow the leg pivots. Landing compresses the body, torso lean eases between poses, racket swings settle back to rest, and restarting a run resets motion state; visual verification is pending.
