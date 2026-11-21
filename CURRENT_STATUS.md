@@ -4,6 +4,7 @@
 - The editor bootstrap generates the Aero Court scene and URP assets from C# using procedural meshes, primitives, and materials.
 - Cloud banks drift with gentle parallax while floating glass lanterns bob, twinkle, and orbit around the court; all motion is generated at runtime.
 - The court now has a texture-free HLSL sheen overlay with animated wave bands and view-angle glints; artifact validation is pending.
+- The floating court now sits on a generated chamfered crystal-mesa island with a bright aqua waist and layered blue underside facets.
 - The local practice loop is implemented with WASD movement, jump, dash, aimed clear, drop, drive, smash, scoring, and a returning rival.
 - GitHub Actions uses GameCI to build and package a portable Windows x64 Development player on every branch push. Unity's `Library` folder is cached in development and release workflows, and superseded builds on the same branch are canceled.
 - Development uploads skip redundant compression of the already packaged ZIP. After a direct merge to `main`, GameCI reuses the successful feature-branch artifact only when the merge tree is identical, and falls back to a fresh build for other main pushes.
