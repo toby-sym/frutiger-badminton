@@ -16,6 +16,7 @@ namespace FrutigerBadminton
         readonly List<CloudDrift> bubbleDrifts = new List<CloudDrift>();
         readonly Dictionary<string, Material> materialCache = new Dictionary<string, Material>();
         Material playerShadowMaterial;
+        Material playerGlazeMaterial;
 
         struct CloudDrift
         {
@@ -455,6 +456,7 @@ namespace FrutigerBadminton
             pose.SetParent(root.transform, false);
 
             Sphere("Glossy sport jacket", pose.TransformPoint(new Vector3(0f, .92f, 0f)), new Vector3(.62f, .82f, .38f), suit, .9f, .07f).transform.SetParent(pose, true);
+            CreatePlayerGlaze(pose);
             Sphere("Head", pose.TransformPoint(new Vector3(0f, 1.66f, 0f)), new Vector3(.36f, .39f, .35f), new Color(.94f, .72f, .56f), .55f, .025f).transform.SetParent(pose, true);
             Transform leftLeg = Limb(pose, "Left leg", new Vector3(-.18f, .58f, 0f), new Vector3(-.32f, .07f, 0f), .16f, suit);
             Transform rightLeg = Limb(pose, "Right leg", new Vector3(.18f, .58f, 0f), new Vector3(.32f, .07f, 0f), .16f, suit);
@@ -467,6 +469,24 @@ namespace FrutigerBadminton
             Renderer shadow = CreatePlayerShadow(root.transform);
             root.AddComponent<AeroPlayerAnimation>().Initialize(pose, leftArm, rightArm, leftLeg, rightLeg, racket, shadow);
             return root.transform;
+        }
+
+        void CreatePlayerGlaze(Transform pose)
+        {
+            if (!playerGlazeMaterial)
+            {
+                Shader shader = Resources.Load<Shader>("AeroGlass");
+                if (!shader) return;
+                playerGlazeMaterial = new Material(shader) { name = "Player pearl glaze" };
+                playerGlazeMaterial.SetColor("_Tint", new Color(.76f, .95f, 1f));
+                playerGlazeMaterial.SetFloat("_Opacity", 0f);
+                playerGlazeMaterial.SetFloat("_RimOpacity", .27f);
+                ownedMaterials.Add(playerGlazeMaterial);
+            }
+
+            var glaze = AddGlassPrimitive(PrimitiveType.Sphere, "Pearl jacket highlights",
+                pose.TransformPoint(new Vector3(0f, .92f, 0f)), new Vector3(.64f, .84f, .4f), playerGlazeMaterial);
+            glaze.transform.SetParent(pose, true);
         }
 
         Renderer CreatePlayerShadow(Transform playerRoot)
