@@ -22,6 +22,7 @@
 - The fixed full-court camera now gets a brief screen-space shake on shot contact, strongest for smashes and point-ending rallies, then returns to its exact rest position.
 - A controller- or keyboard-labeled aero dash meter fills while dash cooldown recovers and turns aqua when ready; trying to dash early displays a brief recharge cue.
 - Escape or controller Start now pauses the rally; the pause overlay resumes or restarts while preserving the current run and upgrades when resumed.
+- The game now opens on a controller-first Frutiger Badminton title screen over the generated court, with control instructions, an animated shuttlecock, and A/Enter/click start input; artifact smoke test pending.
 - All shot types, dash, and both teams' point awards now play short C# synthesized audio clips through a generated audio source and runtime audio listener; no audio files are imported.
 - Every three player points, the run pauses for a choice among three random upgrades: faster movement, longer racket reach, partner speed and reach, dash power, or earlier landing warnings. Upgrades stack for that run.
 - A solo run ends at 7 points with a two-point lead (hard cap 9), shows a win/loss screen, and lets the player replay with scores and upgrades reset.
