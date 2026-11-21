@@ -9,6 +9,7 @@
 - The sky shader now layers a slowly drifting procedural cloud field over the gradient, with a denser cloud sea below the horizon and lighter high clouds. This uses no image textures and needs visual inspection in the Windows artifact.
 - Softer tinted cloud banks and reduced emission help preserve colour and contrast.
 - The court now has a saturated blue lacquer finish with procedural grain, broad light patches, and suggested window-frame reflections. An open glass pavilion and drifting translucent bubbles frame the court, while player suits use a glossier, less emissive finish. These effects use generated geometry and shaders; visual inspection in the Windows artifact is pending.
+- The pavilion has shallow upper galleries, handrails, and luminous fixtures generated around the rear and side edges of the court; composition and brightness need an artifact check.
 - The local practice loop is implemented with WASD movement, jump, dash, aimed clear, drop, drive, smash, scoring, and a returning rival.
 - GitHub Actions uses GameCI to build and package a portable Windows x64 Development player on every branch push. Unity's `Library` folder is cached in development and release workflows, and superseded builds on the same branch are canceled.
 - Development uploads skip redundant compression of the already packaged ZIP. After a direct merge to `main`, GameCI reuses the successful feature-branch artifact only when the merge tree is identical, and falls back to a fresh build for other main pushes.
