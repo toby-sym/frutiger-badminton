@@ -54,6 +54,7 @@
 - Shot controls now occupy two short rows, and the return instruction describes tapping a shot; the dash and run-build elements have been repositioned within the same panel. Visual verification is pending.
 - All shot types, dash, and both teams' point awards now play short C# synthesized audio clips through a generated audio source and runtime audio listener; no audio files are imported.
 - Every three player points, the run pauses for a choice among three random upgrades: faster movement, longer racket reach, partner speed and reach, dash power, or earlier landing warnings. Upgrades stack for that run.
+- Upgrade selection accepts the left stick or D-pad, arrows or WASD with Enter, number keys, and mouse; controller verification is pending.
 - Upgrade and run-result screens ignore input on the frame they open, preventing the last rally input from immediately selecting an upgrade or restarting the run. Verify both transitions in the player.
 - Roguelite drafts now include Prism Strings, which shortens player-side shot flight time and shifts the generated shuttle trail through a pearl palette as levels stack.
 - The rally HUD shows a compact six-chip run build with the current level of each upgrade, including the new Prism Strings effect.

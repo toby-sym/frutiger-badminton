@@ -1212,15 +1212,15 @@ namespace FrutigerBadminton
             }
 
             Gamepad gamepad = Gamepad.current;
-            if (gamepad != null)
-            {
-                if (gamepad.dpad.left.wasPressedThisFrame)
-                    selectedUpgrade = (selectedUpgrade + upgradeOfferCount - 1) % upgradeOfferCount;
-                else if (gamepad.dpad.right.wasPressedThisFrame)
-                    selectedUpgrade = (selectedUpgrade + 1) % upgradeOfferCount;
-                else if (gamepad.buttonSouth.wasPressedThisFrame)
-                    ChooseUpgrade(selectedUpgrade);
-            }
+            bool left = Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A)
+                || (gamepad != null && (gamepad.dpad.left.wasPressedThisFrame || gamepad.leftStick.left.wasPressedThisFrame));
+            bool right = Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)
+                || (gamepad != null && (gamepad.dpad.right.wasPressedThisFrame || gamepad.leftStick.right.wasPressedThisFrame));
+            bool confirm = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)
+                || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame);
+            if (left) selectedUpgrade = (selectedUpgrade + upgradeOfferCount - 1) % upgradeOfferCount;
+            else if (right) selectedUpgrade = (selectedUpgrade + 1) % upgradeOfferCount;
+            else if (confirm) ChooseUpgrade(selectedUpgrade);
         }
 
         void ChooseUpgrade(int offerIndex)
@@ -2065,7 +2065,7 @@ namespace FrutigerBadminton
             }
 
             GUI.color = Color.white;
-            string inputHint = controllerConnected ? "D-pad to choose  •  A to confirm" : "Press 1, 2, or 3 to choose";
+            string inputHint = controllerConnected ? "Stick / D-pad to choose  •  A to confirm" : "Arrows + Enter, or press 1, 2, or 3";
             GUI.Label(new Rect(left + 20f, top + 270f, panelWidth - 40f, 24f), inputHint, labelStyle);
         }
 
