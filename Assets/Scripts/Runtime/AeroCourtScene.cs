@@ -90,25 +90,25 @@ namespace FrutigerBadminton
         void BuildWorld()
         {
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(.39f, .78f, .96f);
-            RenderSettings.ambientEquatorColor = new Color(.74f, .94f, .97f);
-            RenderSettings.ambientGroundColor = new Color(.17f, .40f, .45f);
+            RenderSettings.ambientSkyColor = new Color(.22f, .49f, .72f);
+            RenderSettings.ambientEquatorColor = new Color(.52f, .76f, .86f);
+            RenderSettings.ambientGroundColor = new Color(.08f, .20f, .31f);
             RenderSettings.fog = true;
-            RenderSettings.fogColor = new Color(.56f, .85f, .96f);
+            RenderSettings.fogColor = new Color(.43f, .76f, .9f);
             RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogDensity = .006f;
+            RenderSettings.fogDensity = .0025f;
 
             var key = new GameObject("Aqua sunlight").AddComponent<Light>();
             key.type = LightType.Directional;
             key.color = new Color(1f, .91f, .76f);
-            key.intensity = 1.65f;
+            key.intensity = 1.2f;
             key.transform.rotation = Quaternion.Euler(42f, -28f, 0f);
             key.shadows = LightShadows.Soft;
 
             var fill = new GameObject("Sky fill").AddComponent<Light>();
             fill.type = LightType.Directional;
             fill.color = new Color(.36f, .83f, 1f);
-            fill.intensity = .55f;
+            fill.intensity = .3f;
             fill.transform.rotation = Quaternion.Euler(18f, 150f, 0f);
 
             CreateSkyDome();
@@ -118,25 +118,31 @@ namespace FrutigerBadminton
             CreateCloudBanks();
             CreateSpectatorOrbs();
             CreateCamera();
+            CreateSolarHalo();
         }
 
         void CreateSkyDome()
         {
             var mesh = new Mesh { name = "Procedural gradient sky" };
-            const int segments = 48;
-            const int rings = 16;
+            const int segments = 64;
+            const int rings = 32;
             var vertices = new List<Vector3>();
             var colors = new List<Color>();
             var triangles = new List<int>();
             for (int y = 0; y <= rings; y++)
             {
                 float t = y / (float)rings;
-                float phi = t * Mathf.PI * .5f;
+                float phi = (t * 2f - 1f) * Mathf.PI * .5f;
                 for (int x = 0; x <= segments; x++)
                 {
                     float theta = x / (float)segments * Mathf.PI * 2f;
-                    vertices.Add(new Vector3(Mathf.Cos(theta) * Mathf.Cos(phi), Mathf.Sin(phi), Mathf.Sin(theta) * Mathf.Cos(phi)) * 180f);
-                    colors.Add(Color.Lerp(new Color(.76f, .96f, 1f), new Color(.035f, .40f, .78f), Mathf.SmoothStep(0f, 1f, t)));
+                    float height = Mathf.Sin(phi);
+                    vertices.Add(new Vector3(Mathf.Cos(theta) * Mathf.Cos(phi), height, Mathf.Sin(theta) * Mathf.Cos(phi)) * 180f);
+                    float horizonBlend = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-1f, 0f, height));
+                    Color color = height >= 0f
+                        ? Color.Lerp(new Color(.62f, .91f, .98f), new Color(.035f, .28f, .64f), Mathf.Pow(height, .72f))
+                        : Color.Lerp(new Color(.16f, .43f, .68f), new Color(.62f, .91f, .98f), horizonBlend);
+                    colors.Add(color);
                 }
             }
             for (int y = 0; y < rings; y++) for (int x = 0; x < segments; x++)
@@ -162,11 +168,11 @@ namespace FrutigerBadminton
             island.AddComponent<MeshFilter>().sharedMesh = islandMesh;
             island.AddComponent<MeshRenderer>().sharedMaterials = new[]
             {
-                MakeMaterial("Universal Render Pipeline/Lit", new Color(.2f, .75f, .83f), .78f, .12f),
-                MakeMaterial("Universal Render Pipeline/Lit", new Color(.08f, .42f, .56f), .82f, .2f),
-                MakeMaterial("Universal Render Pipeline/Lit", new Color(.3f, .96f, 1f), .5f, 1.35f),
-                MakeMaterial("Universal Render Pipeline/Lit", new Color(.08f, .34f, .6f), .76f, .24f),
-                MakeMaterial("Universal Render Pipeline/Lit", new Color(.045f, .19f, .43f), .68f, .2f)
+                MakeMaterial("Universal Render Pipeline/Lit", new Color(.13f, .47f, .6f), .78f, .04f),
+                MakeMaterial("Universal Render Pipeline/Lit", new Color(.045f, .25f, .4f), .82f, .08f),
+                MakeMaterial("Universal Render Pipeline/Lit", new Color(.2f, .8f, .96f), .5f, .68f),
+                MakeMaterial("Universal Render Pipeline/Lit", new Color(.04f, .2f, .42f), .76f, .12f),
+                MakeMaterial("Universal Render Pipeline/Lit", new Color(.025f, .1f, .27f), .68f, .08f)
             };
             for (int i = 0; i < 9; i++)
             {
@@ -255,9 +261,9 @@ namespace FrutigerBadminton
         void CreateCourt()
         {
             float top = -.72f;
-            Cube("Iridescent badminton court", new Vector3(0f, top, 0f), new Vector3(CourtWidth, .12f, CourtLength), new Color(.07f, .48f, .58f), .82f, .18f);
-            Cube("Far service box", new Vector3(0f, top + .068f, 3.05f), new Vector3(CourtWidth - .14f, .015f, 2.45f), new Color(.19f, .73f, .76f), .65f, .16f);
-            Cube("Near service box", new Vector3(0f, top + .068f, -3.05f), new Vector3(CourtWidth - .14f, .015f, 2.45f), new Color(.15f, .67f, .73f), .65f, .16f);
+            Cube("Iridescent badminton court", new Vector3(0f, top, 0f), new Vector3(CourtWidth, .12f, CourtLength), new Color(.035f, .22f, .34f), .86f, .06f);
+            Cube("Far service box", new Vector3(0f, top + .068f, 3.05f), new Vector3(CourtWidth - .14f, .015f, 2.45f), new Color(.08f, .46f, .59f), .7f, .04f);
+            Cube("Near service box", new Vector3(0f, top + .068f, -3.05f), new Vector3(CourtWidth - .14f, .015f, 2.45f), new Color(.055f, .34f, .48f), .74f, .04f);
             float lineY = top + .09f;
             Line("Left sideline", new Vector3(-CourtWidth / 2f, lineY, 0f), new Vector3(.075f, .015f, CourtLength), Color.white);
             Line("Right sideline", new Vector3(CourtWidth / 2f, lineY, 0f), new Vector3(.075f, .015f, CourtLength), Color.white);
@@ -292,12 +298,12 @@ namespace FrutigerBadminton
             ownedMeshes.Add(mesh);
             overlay.AddComponent<MeshFilter>().sharedMesh = mesh;
             var material = new Material(shader) { name = "Procedural aqua court glaze" };
-            material.SetColor("_BaseColor", new Color(.18f, .58f, .68f, 1f));
-            material.SetColor("_GlintColor", new Color(.76f, 1f, 1f, 1f));
-            material.SetFloat("_Opacity", .42f);
-            material.SetFloat("_WaveScale", 11f);
-            material.SetFloat("_FlowSpeed", .22f);
-            material.SetFloat("_FresnelStrength", .38f);
+            material.SetColor("_BaseColor", new Color(.08f, .32f, .46f, 1f));
+            material.SetColor("_GlintColor", new Color(.68f, .94f, 1f, 1f));
+            material.SetFloat("_Opacity", .27f);
+            material.SetFloat("_WaveScale", 9f);
+            material.SetFloat("_FlowSpeed", .18f);
+            material.SetFloat("_FresnelStrength", .46f);
             ownedMaterials.Add(material);
 
             var renderer = overlay.AddComponent<MeshRenderer>();
@@ -422,12 +428,12 @@ namespace FrutigerBadminton
                     bank.position = origin;
                     float phase = (side + 1) * .8f + row * 1.47f;
                     cloudDrifts.Add(new CloudDrift(bank, origin, phase, .075f + row * .009f));
-                    Color cloud = Color.Lerp(new Color(.92f, .99f, 1f), new Color(.45f, .83f, .98f), row * .07f);
+                    Color cloud = Color.Lerp(new Color(.72f, .9f, .98f), new Color(.42f, .68f, .88f), row * .08f);
                     for (int lobe = 0; lobe < 5; lobe++)
                     {
                         float dx = (lobe - 2) * .85f;
                         float lift = (lobe == 1 || lobe == 3) ? .5f : 0f;
-                        var lobeObject = Sphere("Procedural cloud lobe", origin + new Vector3(dx, lift, Mathf.Sin(lobe * 1.7f) * .5f), new Vector3(1.4f - Mathf.Abs(lobe - 2) * .18f, .75f + lift * .3f, 1.15f), cloud, .08f, .1f);
+                        var lobeObject = Sphere("Procedural cloud lobe", origin + new Vector3(dx, lift, Mathf.Sin(lobe * 1.7f) * .5f), new Vector3(1.55f - Mathf.Abs(lobe - 2) * .16f, .78f + lift * .3f, 1.25f), cloud, .12f, .015f);
                         lobeObject.transform.SetParent(bank, true);
                     }
                 }
@@ -440,7 +446,7 @@ namespace FrutigerBadminton
             {
                 float angle = i / 12f * Mathf.PI * 2f;
                 float height = 1.4f + (i % 3) * .55f;
-                var orb = Sphere("Floating glass lantern", new Vector3(Mathf.Cos(angle) * 10.3f, height, Mathf.Sin(angle) * 10.3f), Vector3.one * .22f, Color.Lerp(new Color(.2f, .94f, 1f), new Color(.9f, .68f, 1f), i / 12f), .8f, 1.8f);
+                var orb = Sphere("Floating glass lantern", new Vector3(Mathf.Cos(angle) * 10.3f, height, Mathf.Sin(angle) * 10.3f), Vector3.one * .28f, Color.Lerp(new Color(.24f, .84f, .98f), new Color(.78f, .63f, .92f), i / 12f), .88f, .78f);
                 orb.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 lanternOrbits.Add(new LanternOrbit(orb.transform, 10.3f, height, angle, angle, .014f + (i % 3) * .002f));
             }
@@ -451,9 +457,38 @@ namespace FrutigerBadminton
             var cameraObject = new GameObject("Court camera");
             var camera = cameraObject.AddComponent<Camera>();
             camera.fieldOfView = 44f; camera.nearClipPlane = .1f; camera.farClipPlane = 250f;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = new Color(.34f, .72f, .86f);
             cameraObject.tag = "MainCamera";
             cameraObject.transform.position = new Vector3(12f, 10f, -19f);
             cameraObject.transform.LookAt(new Vector3(0f, .3f, 0f));
+        }
+
+        void CreateSolarHalo()
+        {
+            Camera camera = Camera.main;
+            if (!camera) return;
+
+            Vector3 center = camera.transform.position + camera.transform.forward * 120f
+                + camera.transform.up * 24f - camera.transform.right * 38f;
+            var halo = new GameObject("Pearl sun halo").transform;
+            halo.position = center;
+            halo.rotation = Quaternion.LookRotation(camera.transform.position - center, Vector3.up);
+
+            var sun = Sphere("Soft pearl sun", center, Vector3.one * 5.4f, new Color(1f, .84f, .66f), .25f, .65f);
+            sun.transform.SetParent(halo, true);
+            sun.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            sun.GetComponent<Renderer>().receiveShadows = false;
+
+            Mesh haloMesh = BuildRing(9.4f, 9.4f, .12f, 72);
+            ownedMeshes.Add(haloMesh);
+            var ring = new GameObject("Aqua solar halo");
+            ring.transform.SetParent(halo, false);
+            ring.AddComponent<MeshFilter>().sharedMesh = haloMesh;
+            var ringRenderer = ring.AddComponent<MeshRenderer>();
+            ringRenderer.sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", new Color(.58f, .9f, 1f), .72f, .62f);
+            ringRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            ringRenderer.receiveShadows = false;
         }
 
         Transform Limb(Transform parent, string name, Vector3 from, Vector3 to, float radius, Color color)

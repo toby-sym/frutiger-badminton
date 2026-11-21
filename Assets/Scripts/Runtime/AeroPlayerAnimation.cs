@@ -13,6 +13,7 @@ namespace FrutigerBadminton
         Transform racket;
 
         Vector3 poseRestPosition;
+        Vector3 poseRestScale;
         Vector3 previousRootPosition;
         Quaternion poseRestRotation;
         Quaternion leftArmRestRotation;
@@ -25,6 +26,10 @@ namespace FrutigerBadminton
         float swingRemaining;
         float swingDuration;
         float swingPower;
+        float gaitBlend;
+        float gaitBlendVelocity;
+        float landingPulse;
+        bool wasAirborne;
 
         public void Initialize(Transform bodyPose, Transform leftArmJoint, Transform rightArmJoint,
             Transform leftLegJoint, Transform rightLegJoint, Transform racketAssembly)
@@ -37,6 +42,7 @@ namespace FrutigerBadminton
             racket = racketAssembly;
 
             poseRestPosition = pose.localPosition;
+            poseRestScale = pose.localScale;
             poseRestRotation = pose.localRotation;
             leftArmRestRotation = leftArm.localRotation;
             rightArmRestRotation = rightArm.localRotation;
@@ -65,21 +71,32 @@ namespace FrutigerBadminton
             movement.y = 0f;
             Vector3 localMovement = transform.InverseTransformDirection(movement);
             float speed = movement.magnitude;
-            float stride = Mathf.Clamp01(speed / 4.6f);
+            float targetStride = Mathf.Clamp01(speed / 4.6f);
+            float stride = Mathf.SmoothDamp(gaitBlend, targetStride, ref gaitBlendVelocity, .075f, Mathf.Infinity, deltaTime);
+            gaitBlend = stride;
             gaitPhase += deltaTime * (3.2f + stride * 8.5f);
             float step = Mathf.Sin(gaitPhase) * stride;
             bool airborne = transform.position.y > groundHeight + .05f;
             bool dashing = speed > 8f;
+            if (wasAirborne && !airborne) landingPulse = .24f;
+            wasAirborne = airborne;
+            landingPulse = Mathf.MoveTowards(landingPulse, 0f, deltaTime * 1.45f);
 
             float bounce = Mathf.Abs(Mathf.Sin(gaitPhase * 2f)) * .045f * stride;
             if (airborne) bounce += .035f;
             pose.localPosition = poseRestPosition + Vector3.up * bounce;
+            float airStretch = airborne ? Mathf.Clamp01((transform.position.y - groundHeight) * .22f) * .07f : 0f;
+            float squash = landingPulse;
+            pose.localScale = new Vector3(
+                poseRestScale.x * (1f - squash * .2f - airStretch * .25f),
+                poseRestScale.y * (1f + squash * .3f + airStretch),
+                poseRestScale.z * (1f - squash * .2f - airStretch * .25f));
 
-            float pitch = Mathf.Clamp(localMovement.z * 2.5f, -12f, 12f) + (dashing ? 8f : 0f) + (airborne ? -4f : 0f);
-            float roll = Mathf.Clamp(-localMovement.x * 3f, -10f, 10f);
+            float pitch = Mathf.Clamp(localMovement.z * 2.3f, -14f, 14f) + (dashing ? 12f : 0f) + (airborne ? -5f : 0f);
+            float roll = Mathf.Clamp(-localMovement.x * 3.4f, -12f, 12f);
             pose.localRotation = poseRestRotation * Quaternion.Euler(pitch, 0f, roll);
 
-            float raisedArms = airborne ? -18f : 0f;
+            float raisedArms = airborne ? -24f : dashing ? -12f : 0f;
             leftArm.localRotation = leftArmRestRotation * Quaternion.Euler(-step * 18f + raisedArms, 0f, -Mathf.Abs(step) * 5f);
             leftLeg.localRotation = leftLegRestRotation * Quaternion.Euler(step * 24f, 0f, 0f);
             rightLeg.localRotation = rightLegRestRotation * Quaternion.Euler(-step * 24f, 0f, 0f);
@@ -89,7 +106,9 @@ namespace FrutigerBadminton
             {
                 swingRemaining = Mathf.Max(0f, swingRemaining - deltaTime);
                 float progress = 1f - swingRemaining / swingDuration;
-                float pulse = Mathf.Sin(progress * Mathf.PI);
+                float anticipation = Mathf.SmoothStep(0f, 1f, progress / .18f);
+                float followThrough = 1f - Mathf.SmoothStep(.22f, .85f, progress);
+                float pulse = anticipation * followThrough;
                 rightArmPose *= Quaternion.Euler(-56f * swingPower * pulse, 0f, 24f * swingPower * pulse);
                 racket.localRotation = racketRestRotation * Quaternion.Euler(0f, 0f, -70f * swingPower * pulse);
             }

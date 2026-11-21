@@ -5,6 +5,8 @@
 - Cloud banks drift with gentle parallax while floating glass lanterns bob, twinkle, and orbit around the court; all motion is generated at runtime.
 - The court now has a texture-free HLSL sheen overlay with animated wave bands and view-angle glints; artifact validation is pending.
 - The floating court now sits on a generated chamfered crystal-mesa island with a bright aqua waist and layered blue underside facets.
+- The camera backdrop now uses a full-sphere pastel-to-azure vertex gradient and a generated sun halo, filling the previously gray below-horizon view.
+- The court has a deeper lagoon base, lower-emission glaze, and softer tinted cloud banks for clearer contrast and detail.
 - The local practice loop is implemented with WASD movement, jump, dash, aimed clear, drop, drive, smash, scoring, and a returning rival.
 - GitHub Actions uses GameCI to build and package a portable Windows x64 Development player on every branch push. Unity's `Library` folder is cached in development and release workflows, and superseded builds on the same branch are canceled.
 - Development uploads skip redundant compression of the already packaged ZIP. After a direct merge to `main`, GameCI reuses the successful feature-branch artifact only when the merge tree is identical, and falls back to a fresh build for other main pushes.
@@ -25,6 +27,9 @@
 - A controller- or keyboard-labeled aero dash meter fills while dash cooldown recovers and turns aqua when ready; trying to dash early displays a brief recharge cue.
 - Escape or controller Start now pauses the rally; the pause overlay resumes or restarts while preserving the current run and upgrades when resumed.
 - The game now opens on a controller-first Frutiger Badminton title screen over the generated court, with control instructions, an animated shuttlecock, and A/Enter/click start input; artifact smoke test pending.
+- The title screen now has Solo Circuit, How to Play, Settings, and Exit; settings persist audio and fullscreen choices, and the menu supports controller navigation.
+- Rally movement eases into and out of direction changes, with generated character squash on landing, stretch in the air, and a quicker racket strike with follow-through.
+- The rally control panel now uses short, non-wrapping labels and keeps the serve/return instruction, dash meter, and run-build chips within the panel.
 - All shot types, dash, and both teams' point awards now play short C# synthesized audio clips through a generated audio source and runtime audio listener; no audio files are imported.
 - Every three player points, the run pauses for a choice among three random upgrades: faster movement, longer racket reach, partner speed and reach, dash power, or earlier landing warnings. Upgrades stack for that run.
 - Roguelite drafts now include Prism Strings, which shortens player-side shot flight time and shifts the generated shuttle trail through a pearl palette as levels stack.
