@@ -13,6 +13,8 @@ namespace FrutigerBadminton
         const float CourtHalfLength = 6.7f;
         const float NetHeight = 1.56f;
         const float Gravity = 9.81f;
+        const int SoloRunTargetScore = 7;
+        const int SoloRunMaximumScore = 9;
         const int UpgradeScoreInterval = 3;
         const int MaxUpgradeLevel = 5;
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -55,6 +57,7 @@ namespace FrutigerBadminton
         GUIStyle labelStyle;
         GUIStyle upgradeButtonStyle;
         GUIStyle upgradeDescriptionStyle;
+        GUIStyle hintStyle;
 
         Vector3 flightStart;
         Vector3 flightTarget;
@@ -82,6 +85,8 @@ namespace FrutigerBadminton
         bool servePending;
         bool isDashing;
         bool upgradeDraftActive;
+        bool runComplete;
+        bool runWon;
         string message = "Move under the return, then time your shot.";
 
         void Start()
@@ -113,7 +118,7 @@ namespace FrutigerBadminton
 
         void Update()
         {
-            if (upgradeDraftActive) return;
+            if (upgradeDraftActive || runComplete) return;
 
             float deltaTime = Mathf.Min(Time.deltaTime, .05f);
             if (servePending)
@@ -388,27 +393,73 @@ namespace FrutigerBadminton
         void AwardPlayerPoint(string result)
         {
             playerScore++;
-            bool reachedUpgradeMilestone = playerScore >= nextUpgradeScore;
+            bool finishedRun = IsSoloRunComplete();
+            bool reachedUpgradeMilestone = !finishedRun && playerScore >= nextUpgradeScore;
             if (reachedUpgradeMilestone) nextUpgradeScore += UpgradeScoreInterval;
-            FinishPoint("Point  " + playerScore + " — " + rivalScore + "  " + result, reachedUpgradeMilestone);
+            FinishPoint("Point  " + playerScore + " — " + rivalScore + "  " + result,
+                reachedUpgradeMilestone, finishedRun, finishedRun);
         }
 
         void AwardRivalPoint(string result)
         {
             rivalScore++;
-            FinishPoint(result + "  " + playerScore + " — " + rivalScore);
+            bool finishedRun = IsSoloRunComplete();
+            FinishPoint(result + "  " + playerScore + " — " + rivalScore, false, finishedRun, false);
         }
 
-        void FinishPoint(string result, bool offerUpgrade = false)
+        bool IsSoloRunComplete()
+        {
+            int highScore = Mathf.Max(playerScore, rivalScore);
+            int lead = Mathf.Abs(playerScore - rivalScore);
+            return highScore >= SoloRunMaximumScore || (highScore >= SoloRunTargetScore && lead >= 2);
+        }
+
+        void FinishPoint(string result, bool offerUpgrade = false, bool endRun = false, bool won = false)
         {
             flightActive = false;
             playerMustReturn = false;
             shuttleTrail.Clear();
             shuttle.position = new Vector3(0f, GroundY + .25f, 0f);
-            servePending = true;
-            serveDelay = 1.45f;
+            servePending = !endRun;
+            serveDelay = endRun ? 0f : 1.45f;
             ShowMessage(result, 1.45f);
+            if (endRun)
+            {
+                runComplete = true;
+                runWon = won;
+                return;
+            }
             if (offerUpgrade) BeginUpgradeDraft();
+        }
+
+        void StartNewRun()
+        {
+            playerScore = 0;
+            rivalScore = 0;
+            rallyHits = 0;
+            nextUpgradeScore = UpgradeScoreInterval;
+            System.Array.Clear(upgradeLevels, 0, upgradeLevels.Length);
+            runComplete = false;
+            runWon = false;
+            upgradeDraftActive = false;
+            servePending = false;
+            flightActive = false;
+            playerMustReturn = false;
+            isDashing = false;
+            dashTime = 0f;
+            dashCooldown = 0f;
+            jumpHeight = 0f;
+            jumpVelocity = 0f;
+            messageDelay = 0f;
+            player.position = new Vector3(0f, GroundY, -4.6f);
+            partner.position = new Vector3(-1.65f, GroundY, -4.8f);
+            rival.position = new Vector3(0f, GroundY, 4.6f);
+            if (dashTrail)
+            {
+                dashTrail.Clear();
+                dashTrail.emitting = false;
+            }
+            BeginServe();
         }
 
         void BeginUpgradeDraft()
@@ -769,9 +820,11 @@ namespace FrutigerBadminton
                     alignment = TextAnchor.UpperLeft,
                     wordWrap = true
                 };
+                hintStyle = new GUIStyle(labelStyle) { fontSize = 12, alignment = TextAnchor.MiddleLeft };
                 scoreStyle.normal.textColor = Color.white;
                 labelStyle.normal.textColor = new Color(.82f, .98f, 1f);
                 upgradeDescriptionStyle.normal.textColor = new Color(.82f, .98f, 1f);
+                hintStyle.normal.textColor = new Color(.68f, .89f, .93f);
                 upgradeButtonStyle.normal.textColor = new Color(.03f, .18f, .2f);
             }
 
@@ -787,16 +840,17 @@ namespace FrutigerBadminton
             GUI.Label(new Rect(28f, 124f, 298f, 24f), controllerConnected ? "LB   Clear       X   Drop" : "Click   Clear       Right click   Drop", labelStyle);
             GUI.Label(new Rect(28f, 148f, 298f, 24f), controllerConnected ? "B   Drive       Y   Smash" : "F   Drive       R   Smash (airborne)", labelStyle);
             GUI.Label(new Rect(28f, 172f, 298f, 24f), "Follow the glowing ring to the landing spot", labelStyle);
-            GUI.Label(new Rect(28f, 194f, 298f, 24f), "Choose a run upgrade every 3 points", labelStyle);
+            GUI.Label(new Rect(28f, 194f, 298f, 24f), "First to 7 · win by 2 · upgrades every 3", hintStyle);
 
             GUI.color = new Color(.02f, .23f, .29f, .9f);
             GUI.Box(new Rect(Screen.width * .5f - 118f, 18f, 236f, 48f), GUIContent.none);
             GUI.color = Color.white;
             GUI.Label(new Rect(Screen.width * .5f - 110f, 21f, 220f, 42f), playerScore + "   —   " + rivalScore, scoreStyle);
 
-            if (upgradeDraftActive) DrawUpgradeDraft(controllerConnected);
+            if (runComplete) DrawRunEnd(controllerConnected);
+            else if (upgradeDraftActive) DrawUpgradeDraft(controllerConnected);
 
-            if (!upgradeDraftActive && messageDelay > 0f)
+            if (!runComplete && !upgradeDraftActive && messageDelay > 0f)
             {
                 GUI.color = new Color(.02f, .16f, .22f, .82f);
                 GUI.Box(new Rect(Screen.width * .5f - 235f, Screen.height - 76f, 470f, 48f), GUIContent.none);
@@ -804,6 +858,34 @@ namespace FrutigerBadminton
                 GUI.Label(new Rect(Screen.width * .5f - 225f, Screen.height - 72f, 450f, 40f), message, scoreStyle);
             }
             GUI.color = previous;
+        }
+
+        void DrawRunEnd(bool controllerConnected)
+        {
+            Gamepad gamepad = Gamepad.current;
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)
+                || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame))
+            {
+                StartNewRun();
+                return;
+            }
+
+            float panelWidth = Mathf.Min(540f, Screen.width - 32f);
+            float panelHeight = 310f;
+            float left = (Screen.width - panelWidth) * .5f;
+            float top = (Screen.height - panelHeight) * .5f;
+            GUI.color = new Color(.02f, .13f, .19f, .97f);
+            GUI.Box(new Rect(left, top, panelWidth, panelHeight), GUIContent.none);
+            GUI.color = runWon ? new Color(.55f, 1f, .83f) : new Color(1f, .63f, .69f);
+            GUI.Label(new Rect(left + 24f, top + 28f, panelWidth - 48f, 46f), runWon ? "RUN COMPLETE" : "RUN OVER", scoreStyle);
+            GUI.color = Color.white;
+            GUI.Label(new Rect(left + 24f, top + 92f, panelWidth - 48f, 40f), "SOLO RALLY   " + playerScore + "  —  " + rivalScore, scoreStyle);
+            GUI.Label(new Rect(left + 24f, top + 146f, panelWidth - 48f, 28f), "First to 7 points, win by 2 (cap 9)", labelStyle);
+            GUI.Label(new Rect(left + 24f, top + 178f, panelWidth - 48f, 24f), "Upgrades reset when you start a new run.", hintStyle);
+            if (GUI.Button(new Rect(left + 115f, top + 218f, panelWidth - 230f, 42f), "START A NEW RUN", upgradeButtonStyle))
+                StartNewRun();
+            GUI.Label(new Rect(left + 24f, top + 270f, panelWidth - 48f, 22f),
+                controllerConnected ? "Press A to play again" : "Press Enter to play again", hintStyle);
         }
 
         void DrawUpgradeDraft(bool controllerConnected)
