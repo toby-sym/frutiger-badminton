@@ -94,6 +94,8 @@ namespace FrutigerBadminton
         int selectedUpgrade;
         int upgradeInputFrame = -1;
         bool playerMustReturn;
+        bool playerServeReady;
+        bool playerServesNext = true;
         bool flightWasPlayerShot;
         bool flightActive;
         bool servePending;
@@ -158,6 +160,11 @@ namespace FrutigerBadminton
             if (dashCooldown > 0f) dashCooldown -= deltaTime;
 
             MovePlayer(deltaTime);
+            if (playerServeReady)
+            {
+                shuttle.position = player.position + Vector3.up * (1.18f + jumpHeight) + player.right * .18f;
+                shuttle.up = Vector3.up;
+            }
             MovePartner(deltaTime);
             MoveRival(deltaTime);
             MoveRivalPartner(deltaTime);
@@ -170,7 +177,9 @@ namespace FrutigerBadminton
             UpdateAIReceiverMarkers();
             UpdateLandingMarker();
             UpdateAimMarker();
-            if (flightActive && playerMustReturn && IsShotInput()
+            if (playerServeReady && IsShotInput()
+                && (!IsMouseShotInput() || !MouseIsOverHud())) TryPlayerServe();
+            else if (flightActive && playerMustReturn && IsShotInput()
                 && (!IsMouseShotInput() || !MouseIsOverHud())) TryPlayerShot();
         }
 
@@ -467,6 +476,33 @@ namespace FrutigerBadminton
             ShowMessage(hit + "  •  Rally " + rallyHits, .85f);
         }
 
+        void TryPlayerServe()
+        {
+            if (!playerServeReady) return;
+
+            ShotStyle style = CurrentShotStyle();
+            if (style == ShotStyle.Smash && jumpHeight < .8f)
+            {
+                ShowMessage("Jump before a smash serve.", .8f);
+                return;
+            }
+
+            Vector3 start = player.position + Vector3.up * (1.18f + jumpHeight) + player.right * .18f;
+            Vector3 target = ServeAimTarget(style);
+            float duration = style == ShotStyle.Clear ? 1.48f
+                           : style == ShotStyle.Drop ? 1.27f
+                           : style == ShotStyle.Drive ? 1.22f
+                           : 1.15f;
+            AeroHitEffect.Spawn(start, ShotTint(style), style == ShotStyle.Smash ? 1.55f : 1f);
+            Launch(start, target, duration, false, true);
+            if (playerAnimation) playerAnimation.Swing(style == ShotStyle.Smash);
+            rallyHits++;
+            string hit = style == ShotStyle.Clear ? "Aqua clear"
+                       : style == ShotStyle.Drop ? "Feather drop"
+                       : style == ShotStyle.Drive ? "Glass drive" : "Sky smash";
+            ShowMessage(hit + " serve  •  Rally " + rallyHits, .95f);
+        }
+
         Vector3 AimTarget(ShotStyle style)
         {
             float minZ = style == ShotStyle.Drop ? 1.25f : style == ShotStyle.Drive ? 2.2f : 3.6f;
@@ -495,10 +531,30 @@ namespace FrutigerBadminton
             return target;
         }
 
+        Vector3 ServeAimTarget(ShotStyle style)
+        {
+            Vector3 target = AimTarget(style);
+            target.z = Mathf.Max(target.z, 4f);
+            return target;
+        }
+
         void BeginServe()
         {
             servePending = false;
             rallyHits = 0;
+            bool playerServing = playerServesNext;
+            playerServesNext = !playerServesNext;
+            if (playerServing)
+            {
+                playerServeReady = true;
+                shuttleTrail.Clear();
+                shuttle.position = player.position + Vector3.up * (1.18f + jumpHeight) + player.right * .18f;
+                shuttle.up = Vector3.up;
+                ShowMessage("Your serve — aim the ring, then choose a shot.", 2.2f);
+                return;
+            }
+
+            playerServeReady = false;
             Vector3 start = rival.position + Vector3.up * 1.45f;
             Vector3 target = new Vector3(Mathf.Clamp(player.position.x + Random.Range(-1.1f, 1.1f), -2.2f, 2.2f), GroundY + .11f, Random.Range(-5.7f, -2.1f));
             AeroHitEffect.Spawn(start, new Color(.42f, .96f, 1f), .9f);
@@ -520,6 +576,7 @@ namespace FrutigerBadminton
 
         void Launch(Vector3 start, Vector3 target, float duration, bool receiverIsPlayer, bool playerShot)
         {
+            playerServeReady = false;
             flightStart = start;
             flightTarget = target;
             flightDuration = duration;
@@ -586,6 +643,8 @@ namespace FrutigerBadminton
             System.Array.Clear(upgradeLevels, 0, upgradeLevels.Length);
             runComplete = false;
             runWon = false;
+            playerServesNext = true;
+            playerServeReady = false;
             upgradeDraftActive = false;
             servePending = false;
             flightActive = false;
@@ -698,7 +757,8 @@ namespace FrutigerBadminton
         bool MouseIsOverHud()
         {
             Vector3 mouse = Input.mousePosition;
-            return mouse.x < 290f && mouse.y > Screen.height - 170f;
+            return mouse.x >= 16f && mouse.x <= 336f
+                && mouse.y >= Screen.height - 242f && mouse.y <= Screen.height - 16f;
         }
 
         ShotStyle CurrentShotStyle()
@@ -851,12 +911,12 @@ namespace FrutigerBadminton
 
         void UpdateAimMarker()
         {
-            bool show = flightActive && playerMustReturn;
+            bool show = playerServeReady || (flightActive && playerMustReturn);
             if (aimMarker.gameObject.activeSelf != show) aimMarker.gameObject.SetActive(show);
             if (!show) return;
 
             ShotStyle previewStyle = PreviewShotStyle();
-            Vector3 target = AimTarget(previewStyle);
+            Vector3 target = playerServeReady ? ServeAimTarget(previewStyle) : AimTarget(previewStyle);
             aimMarker.position = new Vector3(target.x, GroundY + .16f, target.z);
             float pulse = Mathf.Sin(Time.time * Mathf.PI * 3f) * .5f + .5f;
             aimMarker.localScale = Vector3.one * Mathf.Lerp(.76f, .92f, pulse);
@@ -1030,7 +1090,9 @@ namespace FrutigerBadminton
             GUI.Label(new Rect(28f, 100f, 298f, 24f), controllerConnected ? "A   Jump       RB   Dash" : "Space   Jump       Shift   Dash", labelStyle);
             GUI.Label(new Rect(28f, 124f, 298f, 24f), controllerConnected ? "LB   Clear       X   Drop" : "Click   Clear       Right click   Drop", labelStyle);
             GUI.Label(new Rect(28f, 148f, 298f, 24f), controllerConnected ? "B   Drive       Y   Smash" : "F   Drive       R   Smash (airborne)", labelStyle);
-            GUI.Label(new Rect(28f, 172f, 298f, 24f), "Hold shot to preview aim  •  Follow landing ring", labelStyle);
+            GUI.Label(new Rect(28f, 172f, 298f, 24f), playerServeReady
+                ? "Aim the glowing ring, then tap a shot to serve"
+                : "Hold shot to preview aim  •  Follow landing ring", labelStyle);
             GUI.Label(new Rect(28f, 194f, 298f, 24f), "First to 7 · win by 2 · upgrades every 3", hintStyle);
 
             GUI.color = new Color(.02f, .23f, .29f, .9f);
