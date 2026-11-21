@@ -1635,13 +1635,21 @@ namespace FrutigerBadminton
         void DrawTitleScreen(bool controllerConnected)
         {
             Color previous = GUI.color;
+            Matrix4x4 previousMatrix = GUI.matrix;
+            // Keep the complete layout visible in smaller windows while retaining the same
+            // coordinate system for IMGUI drawing and mouse hit testing.
+            float scale = Mathf.Min(1f, Mathf.Min(Screen.width / 1128f, Screen.height / 684f));
+            scale = Mathf.Max(scale, .01f);
+            float viewWidth = Screen.width / scale;
+            float viewHeight = Screen.height / scale;
+            GUI.matrix = previousMatrix * Matrix4x4.Scale(new Vector3(scale, scale, 1f));
             GUI.color = new Color(.015f, .075f, .16f, .2f);
-            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(0f, 0f, viewWidth, viewHeight), Texture2D.whiteTexture);
 
-            float panelWidth = Mathf.Min(1080f, Screen.width - 48f);
-            float panelHeight = Mathf.Min(620f, Screen.height - 48f);
-            float left = (Screen.width - panelWidth) * .5f;
-            float top = (Screen.height - panelHeight) * .5f;
+            float panelWidth = Mathf.Min(1080f, viewWidth - 48f);
+            float panelHeight = Mathf.Min(620f, viewHeight - 64f);
+            float left = (viewWidth - panelWidth) * .5f;
+            float top = (viewHeight - panelHeight) * .5f;
             float mainWidth = (panelWidth - 20f) * .58f;
             float sideWidth = panelWidth - mainWidth - 20f;
             titleStyle.fontSize = Mathf.Clamp(Mathf.RoundToInt(mainWidth * .09f), 36, 56);
@@ -1772,6 +1780,7 @@ namespace FrutigerBadminton
             GUI.color = new Color(.61f, .82f, .87f);
             GUI.Label(new Rect(left, top - 28f, panelWidth, 22f), "FRUTIGER BADMINTON   /   ABOVE THE CLOUDS", hintStyle);
             GUI.color = previous;
+            GUI.matrix = previousMatrix;
         }
 
         bool DrawTitleButton(Rect rect, string label, bool selected)

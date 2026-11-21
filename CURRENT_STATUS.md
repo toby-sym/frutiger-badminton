@@ -31,6 +31,7 @@
 - Escape or controller Start now pauses the rally; the pause overlay resumes or restarts while preserving the current run and upgrades when resumed.
 - The game now opens on a controller-first Frutiger Badminton title screen over the generated court, with control instructions, an animated shuttlecock, and A/Enter/click start input; artifact smoke test pending.
 - The title screen now has Solo Circuit, How to Play, Settings, and Exit; settings persist audio and fullscreen choices, and the menu supports controller navigation.
+- The title layout scales to fit smaller windows, including the controls and settings pages; verify readability and mouse selection at smaller resolutions in the artifact.
 - Rally movement eases into and out of direction changes, with generated character squash on landing, stretch in the air, and a quicker racket strike with follow-through.
 - Player limbs use rounded generated shapes, and shoes follow the leg pivots. Landing compresses the body, torso lean eases between poses, racket swings settle back to rest, and restarting a run resets motion state; visual verification is pending.
 - The rally control panel now uses short, non-wrapping labels and keeps the serve/return instruction, dash meter, and run-build chips within the panel.
