@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -7,6 +8,8 @@ namespace FrutigerBadminton
     public sealed class AeroHitEffect : MonoBehaviour
     {
         const float Duration = .42f;
+        const int MaxRetainedEffects = 12;
+        static readonly Stack<AeroHitEffect> Available = new Stack<AeroHitEffect>();
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         static readonly int ColorId = Shader.PropertyToID("_Color");
         static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
@@ -36,21 +39,34 @@ namespace FrutigerBadminton
 
         public static void Spawn(Vector3 position, Color color, float intensity)
         {
-            var effectObject = new GameObject("Procedural racket impact");
-            var effect = effectObject.AddComponent<AeroHitEffect>();
-            effect.Initialize(position, color, intensity);
+            AeroHitEffect effect = null;
+            while (Available.Count > 0 && !effect) effect = Available.Pop();
+            if (!effect)
+            {
+                var effectObject = new GameObject("Procedural racket impact");
+                effect = effectObject.AddComponent<AeroHitEffect>();
+                effect.InitializeVisuals(color);
+            }
+            else effect.gameObject.SetActive(true);
+            effect.Play(position, color, intensity);
         }
 
-        void Initialize(Vector3 position, Color color, float intensity)
+        void Play(Vector3 position, Color color, float intensity)
         {
             transform.position = position;
             tint = color;
             strength = Mathf.Clamp(intensity, .6f, 1.8f);
+            elapsed = 0f;
 
             Camera camera = Camera.main;
             Vector3 facing = camera ? camera.transform.position - position : Vector3.forward;
-            if (facing.sqrMagnitude > .001f) transform.rotation = Quaternion.LookRotation(facing.normalized, Vector3.up);
+            transform.rotation = facing.sqrMagnitude > .001f
+                ? Quaternion.LookRotation(facing.normalized, Vector3.up) : Quaternion.identity;
+            ApplyFrame();
+        }
 
+        void InitializeVisuals(Color color)
+        {
             ringMesh = BuildRingMesh();
             ringMaterial = CreateGlowMaterial(color, 2.8f);
             flashMaterial = CreateGlowMaterial(Color.Lerp(color, Color.white, .65f), 4.2f);
@@ -96,6 +112,18 @@ namespace FrutigerBadminton
         void Update()
         {
             elapsed += Time.deltaTime;
+            ApplyFrame();
+            if (elapsed < Duration) return;
+            if (Available.Count >= MaxRetainedEffects) Destroy(gameObject);
+            else
+            {
+                gameObject.SetActive(false);
+                Available.Push(this);
+            }
+        }
+
+        void ApplyFrame()
+        {
             float progress = Mathf.Clamp01(elapsed / Duration);
             float fade = 1f - progress;
             float expansion = Mathf.SmoothStep(0f, 1f, Mathf.Min(1f, progress * 1.45f));
@@ -119,7 +147,6 @@ namespace FrutigerBadminton
                 SetGlow(shardRenderers[i], Color.Lerp(tint, Color.white, .34f), fade, 2.1f);
             }
 
-            if (elapsed >= Duration) Destroy(gameObject);
         }
 
         void SetGlow(Renderer renderer, Color color, float fade, float emission)
