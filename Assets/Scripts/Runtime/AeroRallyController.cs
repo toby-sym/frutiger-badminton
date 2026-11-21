@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 
 namespace FrutigerBadminton
 {
-    /// <summary>Runs a local doubles practice rally using generated characters and controller-first input.</summary>
+    /// <summary>Runs a local 3v3 practice rally using generated characters and controller-first input.</summary>
     public sealed class AeroRallyController : MonoBehaviour
     {
         const float GroundY = -.72f;
@@ -37,6 +37,7 @@ namespace FrutigerBadminton
         readonly int[] upgradeLevels = new int[5];
         readonly SoloUpgrade[] upgradeOffers = new SoloUpgrade[3];
         readonly MaterialPropertyBlock landingMarkerProperties = new MaterialPropertyBlock();
+        readonly MaterialPropertyBlock aimMarkerProperties = new MaterialPropertyBlock();
         Transform player;
         Transform partner;
         Transform partnerTwo;
@@ -45,6 +46,7 @@ namespace FrutigerBadminton
         Transform rivalWing;
         Transform shuttle;
         Transform landingMarker;
+        Transform aimMarker;
         Transform partnerReceiverMarker;
         Transform partnerTwoReceiverMarker;
         Transform rivalReceiverMarker;
@@ -59,6 +61,7 @@ namespace FrutigerBadminton
         TrailRenderer shuttleTrail;
         TrailRenderer dashTrail;
         Renderer landingMarkerRenderer;
+        Renderer aimMarkerRenderer;
         Mesh landingMarkerMesh;
         Material shuttleMaterial;
         Material corkMaterial;
@@ -135,6 +138,7 @@ namespace FrutigerBadminton
             rivalWing.position = new Vector3(-1.65f, GroundY, 4.2f);
             CreateShuttlecock();
             CreateLandingMarker();
+            CreateAimMarker();
             CreateReceiverMarkers();
             CreateDashTrail();
             BeginServe();
@@ -165,6 +169,7 @@ namespace FrutigerBadminton
             }
             UpdateAIReceiverMarkers();
             UpdateLandingMarker();
+            UpdateAimMarker();
             if (flightActive && playerMustReturn && IsShotInput()
                 && (!IsMouseShotInput() || !MouseIsOverHud())) TryPlayerShot();
         }
@@ -478,7 +483,7 @@ namespace FrutigerBadminton
                     target.z = Mathf.Lerp(minZ, maxZ, Mathf.Clamp01((stickAim.y + 1f) * .5f));
                 }
             }
-            else if (camera && Mouse.current != null)
+            else if (camera && Mouse.current != null && !MouseIsOverHud())
             {
                 Ray ray = camera.ScreenPointToRay(Input.mousePosition);
                 Plane court = new Plane(Vector3.up, new Vector3(0f, GroundY + .11f, 0f));
@@ -776,6 +781,20 @@ namespace FrutigerBadminton
             marker.SetActive(false);
         }
 
+        void CreateAimMarker()
+        {
+            var marker = new GameObject("Generated aimed shot preview");
+            ownedObjects.Add(marker);
+            aimMarker = marker.transform;
+            aimMarker.position = new Vector3(0f, GroundY + .16f, 5.65f);
+            marker.AddComponent<MeshFilter>().sharedMesh = landingMarkerMesh;
+            aimMarkerRenderer = marker.AddComponent<MeshRenderer>();
+            aimMarkerRenderer.sharedMaterial = CreateMaterial("Universal Render Pipeline/Lit", new Color(.34f, .97f, 1f), .82f, 1.05f);
+            aimMarkerRenderer.shadowCastingMode = ShadowCastingMode.Off;
+            aimMarkerRenderer.receiveShadows = false;
+            marker.SetActive(false);
+        }
+
         void CreateDashTrail()
         {
             var anchor = new GameObject("Dash trail anchor").transform;
@@ -828,6 +847,35 @@ namespace FrutigerBadminton
             landingMarkerProperties.SetColor(ColorId, tint * brightness);
             landingMarkerProperties.SetColor(EmissionColorId, tint * Mathf.Lerp(.55f, 1.5f, urgency) * pulse);
             landingMarkerRenderer.SetPropertyBlock(landingMarkerProperties);
+        }
+
+        void UpdateAimMarker()
+        {
+            bool show = flightActive && playerMustReturn;
+            if (aimMarker.gameObject.activeSelf != show) aimMarker.gameObject.SetActive(show);
+            if (!show) return;
+
+            ShotStyle previewStyle = PreviewShotStyle();
+            Vector3 target = AimTarget(previewStyle);
+            aimMarker.position = new Vector3(target.x, GroundY + .16f, target.z);
+            float pulse = Mathf.Sin(Time.time * Mathf.PI * 3f) * .5f + .5f;
+            aimMarker.localScale = Vector3.one * Mathf.Lerp(.76f, .92f, pulse);
+
+            Color tint = ShotTint(previewStyle);
+            aimMarkerProperties.Clear();
+            aimMarkerProperties.SetColor(BaseColorId, tint);
+            aimMarkerProperties.SetColor(ColorId, tint);
+            aimMarkerProperties.SetColor(EmissionColorId, tint * Mathf.Lerp(.8f, 1.55f, pulse));
+            aimMarkerRenderer.SetPropertyBlock(aimMarkerProperties);
+        }
+
+        ShotStyle PreviewShotStyle()
+        {
+            Gamepad gamepad = Gamepad.current;
+            if (Input.GetMouseButton(1) || (gamepad != null && gamepad.buttonWest.isPressed)) return ShotStyle.Drop;
+            if (Input.GetKey(KeyCode.F) || (gamepad != null && gamepad.buttonEast.isPressed)) return ShotStyle.Drive;
+            if (Input.GetKey(KeyCode.R) || (gamepad != null && gamepad.buttonNorth.isPressed)) return ShotStyle.Smash;
+            return ShotStyle.Clear;
         }
 
         static Mesh BuildLandingMarkerMesh()
@@ -973,16 +1021,16 @@ namespace FrutigerBadminton
 
             Color previous = GUI.color;
             GUI.color = new Color(.025f, .15f, .2f, .84f);
-            GUI.Box(new Rect(16f, 16f, 320f, 204f), GUIContent.none);
+            GUI.Box(new Rect(16f, 16f, 320f, 226f), GUIContent.none);
             GUI.color = Color.white;
             GUI.Label(new Rect(28f, 22f, 298f, 30f), "FRUTIGER BADMINTON   •   3V3", labelStyle);
             bool controllerConnected = Gamepad.current != null;
             GUI.Label(new Rect(28f, 52f, 298f, 24f), controllerConnected ? "Left stick / D-pad   Move" : "WASD / arrows   Move", labelStyle);
-            GUI.Label(new Rect(28f, 76f, 298f, 24f), controllerConnected ? "Right stick   Aim" : "Mouse   Aim", labelStyle);
+            GUI.Label(new Rect(28f, 76f, 298f, 24f), controllerConnected ? "Right stick   Aim at glowing target" : "Mouse   Aim at glowing target", labelStyle);
             GUI.Label(new Rect(28f, 100f, 298f, 24f), controllerConnected ? "A   Jump       RB   Dash" : "Space   Jump       Shift   Dash", labelStyle);
             GUI.Label(new Rect(28f, 124f, 298f, 24f), controllerConnected ? "LB   Clear       X   Drop" : "Click   Clear       Right click   Drop", labelStyle);
             GUI.Label(new Rect(28f, 148f, 298f, 24f), controllerConnected ? "B   Drive       Y   Smash" : "F   Drive       R   Smash (airborne)", labelStyle);
-            GUI.Label(new Rect(28f, 172f, 298f, 24f), "Follow the glowing ring to the landing spot", labelStyle);
+            GUI.Label(new Rect(28f, 172f, 298f, 24f), "Hold shot to preview aim  •  Follow landing ring", labelStyle);
             GUI.Label(new Rect(28f, 194f, 298f, 24f), "First to 7 · win by 2 · upgrades every 3", hintStyle);
 
             GUI.color = new Color(.02f, .23f, .29f, .9f);
