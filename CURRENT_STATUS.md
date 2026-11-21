@@ -1,6 +1,7 @@
 # Current status
 
 - Project version is Unity 6000.0.64f1 with URP 17.0.4.
+- The generated court pipeline enables 4x MSAA, HDR and soft-shadow support for smoother geometry and lighting. Image quality and performance need Windows artifact verification.
 - The editor bootstrap generates the Aero Court scene and URP assets from C# using procedural meshes, primitives, and materials.
 - Cloud banks drift with gentle parallax while floating glass lanterns bob, twinkle, and orbit around the court; all motion is generated at runtime.
 - The court now has a texture-free HLSL sheen overlay with animated wave bands and view-angle glints; artifact validation is pending.
