@@ -49,6 +49,7 @@
 - Player jackets have a generated translucent pearl highlight shell over the team colours for a glossier rim and specular accents; artifact visual verification is pending.
 - Players now have a soft procedural court shadow that spreads and fades with jump height, helping separate airborne motion from the floor; artifact visual verification is pending.
 - The rally control panel now uses short, non-wrapping labels and keeps the serve/return instruction, dash meter, and run-build chips within the panel.
+- Shot controls now occupy two short rows, and the return instruction describes tapping a shot; the dash and run-build elements have been repositioned within the same panel. Visual verification is pending.
 - All shot types, dash, and both teams' point awards now play short C# synthesized audio clips through a generated audio source and runtime audio listener; no audio files are imported.
 - Every three player points, the run pauses for a choice among three random upgrades: faster movement, longer racket reach, partner speed and reach, dash power, or earlier landing warnings. Upgrades stack for that run.
 - Roguelite drafts now include Prism Strings, which shortens player-side shot flight time and shifts the generated shuttle trail through a pearl palette as levels stack.
