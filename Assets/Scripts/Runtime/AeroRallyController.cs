@@ -675,6 +675,15 @@ namespace FrutigerBadminton
                 return;
             }
 
+            if (!playerMustReturn && assignedOpponentReceiver && velocity.y <= 0f
+                && current.z > .15f && current.y > GroundY + .2f && current.y <= GroundY + 2.85f
+                && HorizontalDistance(assignedOpponentReceiver.position, current) <= 1.05f)
+            {
+                Transform returner = assignedOpponentReceiver;
+                BeginRivalReturn(GetOpponentAnimation(returner));
+                return;
+            }
+
             if (flightElapsed < flightDuration) return;
             shuttle.position = flightTarget;
             if (playerMustReturn)
@@ -684,18 +693,7 @@ namespace FrutigerBadminton
                 return;
             }
 
-            Transform returner = assignedOpponentReceiver;
-            if (!returner)
-            {
-                AwardPlayerPoint("Clean winner.");
-                return;
-            }
-            if (HorizontalDistance(returner.position, flightTarget) > 1.05f)
-            {
-                AwardPlayerPoint("Clean winner.");
-                return;
-            }
-            BeginRivalReturn(returner, GetOpponentAnimation(returner));
+            AwardPlayerPoint("Clean winner.");
         }
 
         void TryPlayerShot()
@@ -828,7 +826,7 @@ namespace FrutigerBadminton
             ShowMessage("Return the serve.", 1.1f);
         }
 
-        void BeginRivalReturn(Transform returner, AeroPlayerAnimation returnerAnimation)
+        void BeginRivalReturn(AeroPlayerAnimation returnerAnimation)
         {
             ShotStyle style = ChooseRivalShot();
             float targetZ = style == ShotStyle.Drop ? Random.Range(-2.35f, -1.5f)
@@ -838,7 +836,7 @@ namespace FrutigerBadminton
             float rightCoverage = Mathf.Min(Mathf.Abs(player.position.x - 2.2f), Mathf.Abs(partner.position.x - 2.2f), Mathf.Abs(partnerTwo.position.x - 2.2f));
             bool aimLeft = leftCoverage > rightCoverage || (Mathf.Approximately(leftCoverage, rightCoverage) && Random.value < .5f);
             float targetX = (aimLeft ? -2.25f : 2.25f) + Random.Range(-.45f, .45f);
-            Vector3 start = returner.position + Vector3.up * 1.4f;
+            Vector3 start = shuttle.position;
             Vector3 target = new Vector3(Mathf.Clamp(targetX, -CourtHalfWidth + .35f, CourtHalfWidth - .35f), GroundY + .11f, targetZ);
             AeroHitEffect.Spawn(start, ShotTint(style), style == ShotStyle.Drive ? 1.08f : .95f);
             PlayShotAudio(style);
