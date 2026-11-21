@@ -40,11 +40,13 @@ namespace FrutigerBadminton
         Transform player;
         Transform partner;
         Transform rival;
+        Transform rivalPartner;
         Transform shuttle;
         Transform landingMarker;
         AeroPlayerAnimation playerAnimation;
         AeroPlayerAnimation partnerAnimation;
         AeroPlayerAnimation rivalAnimation;
+        AeroPlayerAnimation rivalPartnerAnimation;
         TrailRenderer shuttleTrail;
         TrailRenderer dashTrail;
         Renderer landingMarkerRenderer;
@@ -94,9 +96,10 @@ namespace FrutigerBadminton
             var playerObject = GameObject.Find("Player silhouette");
             var partnerObject = GameObject.Find("Partner silhouette");
             var rivalObject = GameObject.Find("Rival silhouette");
-            if (!playerObject || !partnerObject || !rivalObject)
+            var rivalPartnerObject = GameObject.Find("Rival Partner silhouette");
+            if (!playerObject || !partnerObject || !rivalObject || !rivalPartnerObject)
             {
-                Debug.LogError("The Aero Court scene needs generated player, partner, and rival silhouettes before the rally can start.");
+                Debug.LogError("The Aero Court scene needs both generated doubles teams before the rally can start.");
                 enabled = false;
                 return;
             }
@@ -104,12 +107,15 @@ namespace FrutigerBadminton
             player = playerObject.transform;
             partner = partnerObject.transform;
             rival = rivalObject.transform;
+            rivalPartner = rivalPartnerObject.transform;
             playerAnimation = playerObject.GetComponent<AeroPlayerAnimation>();
             partnerAnimation = partnerObject.GetComponent<AeroPlayerAnimation>();
             rivalAnimation = rivalObject.GetComponent<AeroPlayerAnimation>();
+            rivalPartnerAnimation = rivalPartnerObject.GetComponent<AeroPlayerAnimation>();
             player.position = new Vector3(0f, GroundY, -4.6f);
             partner.position = new Vector3(-1.65f, GroundY, -4.8f);
             rival.position = new Vector3(0f, GroundY, 4.6f);
+            rivalPartner.position = new Vector3(1.65f, GroundY, 4.8f);
             CreateShuttlecock();
             CreateLandingMarker();
             CreateDashTrail();
@@ -132,6 +138,7 @@ namespace FrutigerBadminton
             MovePlayer(deltaTime);
             MovePartner(deltaTime);
             MoveRival(deltaTime);
+            MoveRivalPartner(deltaTime);
             if (flightActive)
             {
                 UpdateShuttlecock(deltaTime);
@@ -202,10 +209,28 @@ namespace FrutigerBadminton
         void MoveRival(float deltaTime)
         {
             if (!flightActive || playerMustReturn) return;
+            if (rivalPartner && HorizontalDistance(rivalPartner.position, flightTarget) + .75f
+                < HorizontalDistance(rival.position, flightTarget)) return;
             Vector3 destination = new Vector3(flightTarget.x, GroundY, flightTarget.z + .25f);
             destination.x = Mathf.Clamp(destination.x, -CourtHalfWidth + .35f, CourtHalfWidth - .35f);
             destination.z = Mathf.Clamp(destination.z, .42f, CourtHalfLength - .45f);
             rival.position = Vector3.MoveTowards(rival.position, destination, 5.1f * deltaTime);
+        }
+
+        void MoveRivalPartner(float deltaTime)
+        {
+            if (!rivalPartner) return;
+
+            Vector3 destination = new Vector3(rival.position.x >= 0f ? -1.65f : 1.65f, GroundY, 4.8f);
+            if (flightActive && !playerMustReturn
+                && HorizontalDistance(rivalPartner.position, flightTarget) + .75f
+                < HorizontalDistance(rival.position, flightTarget))
+            {
+                destination.x = Mathf.Clamp(flightTarget.x, -CourtHalfWidth + .45f, CourtHalfWidth - .45f);
+                destination.z = Mathf.Clamp(flightTarget.z, .42f, CourtHalfLength - .45f);
+            }
+
+            rivalPartner.position = Vector3.MoveTowards(rivalPartner.position, destination, 5.1f * deltaTime);
         }
 
         void MovePartner(float deltaTime)
@@ -282,12 +307,14 @@ namespace FrutigerBadminton
             }
 
             float rivalDistance = HorizontalDistance(rival.position, flightTarget);
-            if (rivalDistance > 1.05f)
+            float rivalPartnerDistance = HorizontalDistance(rivalPartner.position, flightTarget);
+            Transform returner = rivalDistance <= rivalPartnerDistance ? rival : rivalPartner;
+            if (Mathf.Min(rivalDistance, rivalPartnerDistance) > 1.05f)
             {
                 AwardPlayerPoint("Clean winner.");
                 return;
             }
-            BeginRivalReturn();
+            BeginRivalReturn(returner, returner == rival ? rivalAnimation : rivalPartnerAnimation);
         }
 
         void TryPlayerShot()
@@ -362,15 +389,15 @@ namespace FrutigerBadminton
             ShowMessage("Return the serve.", 1.1f);
         }
 
-        void BeginRivalReturn()
+        void BeginRivalReturn(Transform returner, AeroPlayerAnimation returnerAnimation)
         {
             float targetZ = Mathf.Clamp(player.position.z + Random.Range(-1.9f, 1.9f), -5.9f, -1.35f);
             float targetX = Mathf.Clamp(player.position.x + Random.Range(-1.6f, 1.6f), -2.45f, 2.45f);
-            Vector3 start = rival.position + Vector3.up * 1.4f;
+            Vector3 start = returner.position + Vector3.up * 1.4f;
             Vector3 target = new Vector3(targetX, GroundY + .11f, targetZ);
             AeroHitEffect.Spawn(start, new Color(1f, .72f, .63f), .95f);
             Launch(start, target, Random.Range(1.24f, 1.43f), true, false);
-            if (rivalAnimation) rivalAnimation.Swing(false);
+            if (returnerAnimation) returnerAnimation.Swing(false);
         }
 
         void Launch(Vector3 start, Vector3 target, float duration, bool receiverIsPlayer, bool playerShot)
@@ -454,6 +481,7 @@ namespace FrutigerBadminton
             player.position = new Vector3(0f, GroundY, -4.6f);
             partner.position = new Vector3(-1.65f, GroundY, -4.8f);
             rival.position = new Vector3(0f, GroundY, 4.6f);
+            rivalPartner.position = new Vector3(1.65f, GroundY, 4.8f);
             if (dashTrail)
             {
                 dashTrail.Clear();
@@ -832,7 +860,7 @@ namespace FrutigerBadminton
             GUI.color = new Color(.025f, .15f, .2f, .84f);
             GUI.Box(new Rect(16f, 16f, 320f, 204f), GUIContent.none);
             GUI.color = Color.white;
-            GUI.Label(new Rect(28f, 22f, 298f, 30f), "FRUTIGER BADMINTON", labelStyle);
+            GUI.Label(new Rect(28f, 22f, 298f, 30f), "FRUTIGER BADMINTON   •   DOUBLES", labelStyle);
             bool controllerConnected = Gamepad.current != null;
             GUI.Label(new Rect(28f, 52f, 298f, 24f), controllerConnected ? "Left stick / D-pad   Move" : "WASD / arrows   Move", labelStyle);
             GUI.Label(new Rect(28f, 76f, 298f, 24f), controllerConnected ? "Right stick   Aim" : "Mouse   Aim", labelStyle);

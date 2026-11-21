@@ -11,6 +11,7 @@
 - Racket hoops now render double-sided and use generated crossed string-bed meshes; the artifact visual check is pending.
 - Player silhouettes now have generated shorts, headbands, hair locks, pearl court shoes, bright traction soles, and team-colored side flashes; visual check is pending.
 - A generated green-kit doubles partner covers the near court when positioned closer to an incoming landing; the player keeps priority when in racket range, and the partner returns automatically when the player cannot reach.
+- The opponent is now a generated doubles pair too. Both opponents reposition toward their shared landing target, and the closer player returns the shuttle.
 - Every three player points, the run pauses for a choice among three random upgrades: faster movement, longer racket reach, partner speed and reach, dash power, or earlier landing warnings. Upgrades stack for that run.
 - A solo run ends at 7 points with a two-point lead (hard cap 9), shows a win/loss screen, and lets the player replay with scores and upgrades reset.
 - Controller-first gamepad mappings and keyboard/mouse fallback are built with both input backends enabled from startup in `ProjectSettings/ProjectSettings.asset`. GameCI run `44843252147` passed in 8m39, uploaded a Windows artifact, and saved a compatible 765 MB Unity Library cache. Verify gamepad behavior in the artifact.
