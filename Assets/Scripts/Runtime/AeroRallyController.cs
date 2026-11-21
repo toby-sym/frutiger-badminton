@@ -878,6 +878,7 @@ namespace FrutigerBadminton
             if (playerServing)
             {
                 playerServeReady = true;
+                shuttleTrail.emitting = false;
                 shuttleTrail.Clear();
                 shuttle.position = PlayerServePosition();
                 shuttle.up = Vector3.up;
@@ -950,9 +951,11 @@ namespace FrutigerBadminton
             float verticalSpeed = (target.y - start.y + .5f * Gravity * duration * duration) / duration;
             flightVelocity = new Vector3((target.x - start.x) / duration, verticalSpeed, (target.z - start.z) / duration);
             previousShuttlePosition = start;
+            shuttleTrail.emitting = false;
             shuttle.position = start;
             shuttle.up = flightVelocity.normalized;
             shuttleTrail.Clear();
+            shuttleTrail.emitting = true;
             SetShuttleTrailTint(playerShot ? PlayerShotTint(style) : ShotTint(style));
             float shake = style == ShotStyle.Smash ? .075f
                         : style == ShotStyle.Drive ? .043f
@@ -1029,6 +1032,7 @@ namespace FrutigerBadminton
             shotInputBuffered = false;
             assignedOpponentReceiver = null;
             playerMustReturn = false;
+            shuttleTrail.emitting = false;
             shuttleTrail.Clear();
             shuttle.position = new Vector3(0f, GroundY + .25f, 0f);
             shuttle.rotation = Quaternion.identity;
@@ -1249,8 +1253,6 @@ namespace FrutigerBadminton
         {
             shuttleTrail.startColor = new Color(tint.r, tint.g, tint.b, .82f);
             shuttleTrail.endColor = new Color(tint.r, tint.g, tint.b, 0f);
-            if (trailMaterial && trailMaterial.HasProperty(EmissionColorId))
-                trailMaterial.SetColor(EmissionColorId, tint * .72f);
         }
 
         void CreateShuttlecock()
@@ -1288,7 +1290,7 @@ namespace FrutigerBadminton
             band.transform.localScale = new Vector3(.072f, .025f, .072f);
             band.GetComponent<Renderer>().sharedMaterial = bandMaterial;
 
-            trailMaterial = CreateMaterial("Universal Render Pipeline/Unlit", Color.white, 0f, .8f);
+            trailMaterial = CreateTrailMaterial();
             shuttleTrail = root.AddComponent<TrailRenderer>();
             shuttleTrail.time = .24f;
             shuttleTrail.minVertexDistance = .09f;
@@ -1298,6 +1300,8 @@ namespace FrutigerBadminton
             shuttleTrail.endColor = new Color(.35f, .94f, 1f, 0f);
             shuttleTrail.sharedMaterial = trailMaterial;
             shuttleTrail.shadowCastingMode = ShadowCastingMode.Off;
+            shuttleTrail.receiveShadows = false;
+            shuttleTrail.emitting = false;
         }
 
         void CreateLandingMarker()
@@ -1337,14 +1341,6 @@ namespace FrutigerBadminton
             anchor.SetParent(player, false);
             anchor.localPosition = Vector3.up * .92f;
 
-            var trailMaterial = CreateMaterial("Universal Render Pipeline/Particles/Unlit", new Color(.3f, .95f, 1f), 0f, 1.1f);
-            if (trailMaterial.HasProperty("_Surface")) trailMaterial.SetFloat("_Surface", 1f);
-            if (trailMaterial.HasProperty("_SrcBlend")) trailMaterial.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
-            if (trailMaterial.HasProperty("_DstBlend")) trailMaterial.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
-            if (trailMaterial.HasProperty("_ZWrite")) trailMaterial.SetFloat("_ZWrite", 0f);
-            trailMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-            trailMaterial.renderQueue = (int)RenderQueue.Transparent;
-
             dashTrail = anchor.gameObject.AddComponent<TrailRenderer>();
             dashTrail.time = .24f;
             dashTrail.minVertexDistance = .035f;
@@ -1358,6 +1354,22 @@ namespace FrutigerBadminton
             dashTrail.shadowCastingMode = ShadowCastingMode.Off;
             dashTrail.receiveShadows = false;
             dashTrail.emitting = false;
+        }
+
+        Material CreateTrailMaterial()
+        {
+            Shader shader = Resources.Load<Shader>("AeroTrail");
+            if (shader) return CreateMaterial("Frutiger/Aero Trail", Color.white, 0f, 0f, shader);
+
+            Debug.LogWarning("The Aero trail shader is missing; using the particle shader.");
+            var material = CreateMaterial("Universal Render Pipeline/Particles/Unlit", Color.white, 0f, 0f);
+            if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 1f);
+            if (material.HasProperty("_SrcBlend")) material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+            if (material.HasProperty("_DstBlend")) material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+            if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", 0f);
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.renderQueue = (int)RenderQueue.Transparent;
+            return material;
         }
 
         void UpdateLandingMarker()
