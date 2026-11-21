@@ -10,6 +10,7 @@ namespace FrutigerBadminton
         const float CourtWidth = 6.1f;
         const float CourtLength = 13.4f;
         readonly List<Material> ownedMaterials = new List<Material>();
+        readonly List<Mesh> ownedMeshes = new List<Mesh>();
         readonly Dictionary<string, Material> materialCache = new Dictionary<string, Material>();
 
         void Awake()
@@ -21,6 +22,8 @@ namespace FrutigerBadminton
         {
             foreach (var material in ownedMaterials)
                 if (material) Destroy(material);
+            foreach (var mesh in ownedMeshes)
+                if (mesh) Destroy(mesh);
             materialCache.Clear();
         }
 
@@ -83,6 +86,7 @@ namespace FrutigerBadminton
                 triangles.Add(a + 1); triangles.Add(b); triangles.Add(b + 1);
             }
             mesh.SetVertices(vertices); mesh.SetColors(colors); mesh.SetTriangles(triangles, 0); mesh.RecalculateNormals();
+            ownedMeshes.Add(mesh);
             var dome = new GameObject("Sky gradient dome");
             dome.transform.position = new Vector3(0f, -5f, 0f);
             dome.AddComponent<MeshFilter>().sharedMesh = mesh;
@@ -164,8 +168,21 @@ namespace FrutigerBadminton
 
             var ring = new GameObject("Carbon racket oval");
             var mf = ring.AddComponent<MeshFilter>(); var mr = ring.AddComponent<MeshRenderer>();
-            mf.sharedMesh = BuildRing(.29f, .235f, .04f, 48); mr.sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", color, .68f, .65f);
+            var ringMesh = BuildRing(.29f, .235f, .04f, 48);
+            ownedMeshes.Add(ringMesh);
+            mf.sharedMesh = ringMesh; mr.sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", color, .68f, .65f);
             ring.transform.SetParent(racket, false);
+
+            var stringBed = new GameObject("Procedural aqua racket strings");
+            var stringFilter = stringBed.AddComponent<MeshFilter>();
+            var stringMesh = BuildRacketStringBed(.25f, .195f, 19, 15, .007f, .018f);
+            ownedMeshes.Add(stringMesh);
+            stringFilter.sharedMesh = stringMesh;
+            var stringRenderer = stringBed.AddComponent<MeshRenderer>();
+            stringRenderer.sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", new Color(.83f, 1f, .99f), .78f, .32f);
+            stringRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            stringRenderer.receiveShadows = false;
+            stringBed.transform.SetParent(racket, false);
 
             var grip = Cylinder("Racket grip", Vector3.zero, new Vector3(.055f, .28f, .055f), new Color(.13f, .32f, .39f), .35f, .2f);
             grip.transform.SetParent(racket, false);
@@ -271,17 +288,68 @@ namespace FrutigerBadminton
         static Mesh BuildRing(float outerX, float outerY, float width, int steps)
         {
             var mesh = new Mesh { name = "Generated racket ring" };
-            var vertices = new Vector3[steps * 2]; var triangles = new int[steps * 6];
+            var vertices = new Vector3[steps * 4]; var triangles = new int[steps * 12];
             for (int i = 0; i < steps; i++)
             {
                 float a = i / (float)steps * Mathf.PI * 2f;
-                vertices[i * 2] = new Vector3(Mathf.Cos(a) * outerX, Mathf.Sin(a) * outerY, 0f);
-                vertices[i * 2 + 1] = new Vector3(Mathf.Cos(a) * (outerX - width), Mathf.Sin(a) * (outerY - width), 0f);
-                int j = i * 6, n = ((i + 1) % steps) * 2;
-                triangles[j] = i * 2; triangles[j + 1] = n; triangles[j + 2] = i * 2 + 1;
-                triangles[j + 3] = i * 2 + 1; triangles[j + 4] = n; triangles[j + 5] = n + 1;
+                int outer = i * 2, inner = outer + 1, outerBack = steps * 2 + outer, innerBack = outerBack + 1;
+                vertices[outer] = new Vector3(Mathf.Cos(a) * outerX, Mathf.Sin(a) * outerY, 0f);
+                vertices[inner] = new Vector3(Mathf.Cos(a) * (outerX - width), Mathf.Sin(a) * (outerY - width), 0f);
+                vertices[outerBack] = vertices[outer];
+                vertices[innerBack] = vertices[inner];
+                int j = i * 12, nextOuter = ((i + 1) % steps) * 2, nextInner = nextOuter + 1;
+                triangles[j] = outer; triangles[j + 1] = nextOuter; triangles[j + 2] = inner;
+                triangles[j + 3] = inner; triangles[j + 4] = nextOuter; triangles[j + 5] = nextInner;
+                triangles[j + 6] = innerBack; triangles[j + 7] = steps * 2 + nextOuter; triangles[j + 8] = outerBack;
+                triangles[j + 9] = steps * 2 + nextInner; triangles[j + 10] = steps * 2 + nextOuter; triangles[j + 11] = innerBack;
             }
             mesh.vertices = vertices; mesh.triangles = triangles; mesh.RecalculateNormals(); return mesh;
+        }
+
+        static Mesh BuildRacketStringBed(float innerX, float innerY, int verticalCount, int horizontalCount, float width, float depth)
+        {
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>();
+            for (int i = 0; i < verticalCount; i++)
+            {
+                float normalizedX = Mathf.Lerp(-.88f, .88f, i / (float)(verticalCount - 1));
+                float x = normalizedX * innerX;
+                float halfLength = innerY * Mathf.Sqrt(1f - normalizedX * normalizedX) * .96f;
+                AddString(vertices, triangles, new Vector2(x, -halfLength), new Vector2(x, halfLength), width, depth);
+            }
+            for (int i = 0; i < horizontalCount; i++)
+            {
+                float normalizedY = Mathf.Lerp(-.84f, .84f, i / (float)(horizontalCount - 1));
+                float y = normalizedY * innerY;
+                float halfLength = innerX * Mathf.Sqrt(1f - normalizedY * normalizedY) * .96f;
+                AddString(vertices, triangles, new Vector2(-halfLength, y), new Vector2(halfLength, y), width, depth);
+            }
+
+            var mesh = new Mesh { name = "Generated crossed racket strings" };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            return mesh;
+        }
+
+        static void AddString(List<Vector3> vertices, List<int> triangles, Vector2 start, Vector2 end, float width, float depth)
+        {
+            Vector2 direction = (end - start).normalized;
+            Vector2 side = new Vector2(-direction.y, direction.x) * (width * .5f);
+            int first = vertices.Count;
+            vertices.Add(new Vector3(start.x + side.x, start.y + side.y, depth));
+            vertices.Add(new Vector3(end.x + side.x, end.y + side.y, depth));
+            vertices.Add(new Vector3(end.x - side.x, end.y - side.y, depth));
+            vertices.Add(new Vector3(start.x - side.x, start.y - side.y, depth));
+            triangles.Add(first); triangles.Add(first + 2); triangles.Add(first + 1);
+            triangles.Add(first); triangles.Add(first + 3); triangles.Add(first + 2);
+            int back = vertices.Count;
+            vertices.Add(new Vector3(start.x + side.x, start.y + side.y, depth));
+            vertices.Add(new Vector3(end.x + side.x, end.y + side.y, depth));
+            vertices.Add(new Vector3(end.x - side.x, end.y - side.y, depth));
+            vertices.Add(new Vector3(start.x - side.x, start.y - side.y, depth));
+            triangles.Add(back + 1); triangles.Add(back + 2); triangles.Add(back);
+            triangles.Add(back + 2); triangles.Add(back + 3); triangles.Add(back);
         }
     }
 }
