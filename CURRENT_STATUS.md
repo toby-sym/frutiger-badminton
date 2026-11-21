@@ -13,6 +13,7 @@
 - A generated green-kit doubles partner covers the near court when positioned closer to an incoming landing; the player keeps priority when in racket range, and the partner returns automatically when the player cannot reach.
 - The opponent is now a generated doubles pair too. Both opponents reposition toward their shared landing target, and the closer player returns the shuttle.
 - The local match now has a full 3v3 roster: the player and two AI partners against three generated opponents. Each AI side assigns the closest teammate to its predicted return.
+- A pulsing, team-colored receiver reticle identifies the AI teammate assigned to cover an incoming landing, making the 3v3 coverage decision readable.
 - Every three player points, the run pauses for a choice among three random upgrades: faster movement, longer racket reach, partner speed and reach, dash power, or earlier landing warnings. Upgrades stack for that run.
 - A solo run ends at 7 points with a two-point lead (hard cap 9), shows a win/loss screen, and lets the player replay with scores and upgrades reset.
 - Controller-first gamepad mappings and keyboard/mouse fallback are built with both input backends enabled from startup in `ProjectSettings/ProjectSettings.asset`. GameCI run `44843252147` passed in 8m39, uploaded a Windows artifact, and saved a compatible 765 MB Unity Library cache. Verify gamepad behavior in the artifact.
