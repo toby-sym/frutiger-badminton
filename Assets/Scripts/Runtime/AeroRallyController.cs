@@ -131,6 +131,8 @@ namespace FrutigerBadminton
         int upgradeOfferCount;
         int selectedUpgrade;
         int upgradeInputFrame = -1;
+        int upgradeOpenedFrame = -1;
+        int runEndOpenedFrame = -1;
         ShotStyle flightShotStyle;
         ShotStyle bufferedShotStyle;
         bool playerMustReturn;
@@ -1083,6 +1085,7 @@ namespace FrutigerBadminton
             {
                 runComplete = true;
                 runWon = won;
+                runEndOpenedFrame = Time.frameCount;
                 return;
             }
             if (offerUpgrade) BeginUpgradeDraft();
@@ -1188,7 +1191,8 @@ namespace FrutigerBadminton
             }
 
             selectedUpgrade = 0;
-            upgradeInputFrame = -1;
+            upgradeOpenedFrame = Time.frameCount;
+            upgradeInputFrame = upgradeOpenedFrame;
             upgradeDraftActive = true;
             servePending = false;
         }
@@ -1961,8 +1965,8 @@ namespace FrutigerBadminton
         void DrawRunEnd(bool controllerConnected)
         {
             Gamepad gamepad = Gamepad.current;
-            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)
-                || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame))
+            if (Time.frameCount > runEndOpenedFrame && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)
+                || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame)))
             {
                 StartNewRun();
                 return;
@@ -2004,8 +2008,11 @@ namespace FrutigerBadminton
             GUI.color = Color.white;
             GUI.Label(new Rect(left + 24f, top + 290f, panelWidth - 48f, 22f), "First to 7 points, win by 2 (cap 9)", labelStyle);
             GUI.Label(new Rect(left + 24f, top + 315f, panelWidth - 48f, 22f), "Upgrades reset when you start a new run.", hintStyle);
+            bool wasEnabled = GUI.enabled;
+            GUI.enabled = wasEnabled && Time.frameCount > runEndOpenedFrame;
             if (GUI.Button(new Rect(left + 115f, top + 348f, panelWidth - 230f, 42f), "START A NEW RUN", upgradeButtonStyle))
                 StartNewRun();
+            GUI.enabled = wasEnabled;
             GUI.Label(new Rect(left + 24f, top + 394f, panelWidth - 48f, 22f),
                 controllerConnected ? "Press A to play again" : "Press Enter to play again", hintStyle);
         }
@@ -2039,6 +2046,7 @@ namespace FrutigerBadminton
             float cardWidth = (panelWidth - 40f - gap * (upgradeOfferCount - 1)) / upgradeOfferCount;
             float cardTop = top + 92f;
             float cardHeight = 168f;
+            bool wasEnabled = GUI.enabled;
             for (int i = 0; i < upgradeOfferCount; i++)
             {
                 SoloUpgrade upgrade = upgradeOffers[i];
@@ -2050,8 +2058,10 @@ namespace FrutigerBadminton
                 GUI.Label(new Rect(x + 10f, cardTop + 12f, cardWidth - 20f, 28f), (i + 1) + ". " + UpgradeNames[(int)upgrade], labelStyle);
                 GUI.Label(new Rect(x + 10f, cardTop + 48f, cardWidth - 20f, 58f), UpgradeDescriptions[(int)upgrade], upgradeDescriptionStyle);
                 GUI.Label(new Rect(x + 10f, cardTop + 108f, cardWidth - 20f, 24f), "Level " + (level + 1) + " / " + MaxUpgradeLevel, labelStyle);
+                GUI.enabled = wasEnabled && Time.frameCount > upgradeOpenedFrame;
                 if (GUI.Button(new Rect(x + 12f, cardTop + 132f, cardWidth - 24f, 28f), "SELECT", upgradeButtonStyle))
                     ChooseUpgrade(i);
+                GUI.enabled = wasEnabled;
             }
 
             GUI.color = Color.white;
