@@ -21,6 +21,7 @@
 - A pulsing, team-colored receiver reticle identifies the AI teammate assigned to cover an incoming landing, making the 3v3 coverage decision readable.
 - A shot-colored generated reticle previews the selected clear, drop, drive, or smash target on the opponent's court as the right stick or mouse moves; the HUD now calls out the aim preview and distinguishes it from the incoming landing ring.
 - Player and rival teams alternate service. On player serve turns, the shuttle waits at the racket and the player chooses a shot and aims it with the same reticle before serving; the input HUD blocks mouse clicks over its actual panel bounds.
+- The control panel's drawn rectangle and mouse exclusion share the same bounds, including the dash and run-build area; verify mouse aiming and shots around the panel in the artifact.
 - The held shuttle and launch position now share one player-relative offset, so jumping while serving does not apply jump height twice. Verify airborne serves in the Windows artifact.
 - Rivals now mix clears, drops, and drives, aiming toward the lane least covered by the near-side team; generated shuttle trails change tint with the shot so trajectory style reads in motion.
 - Point awards now trigger a team-colored procedural impact burst at the shuttle's finish and a brief matching pulse in the score panel; longer rallies get a stronger burst.
