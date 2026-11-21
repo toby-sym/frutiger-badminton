@@ -27,6 +27,7 @@
 - All shot types, dash, and both teams' point awards now play short C# synthesized audio clips through a generated audio source and runtime audio listener; no audio files are imported.
 - Every three player points, the run pauses for a choice among three random upgrades: faster movement, longer racket reach, partner speed and reach, dash power, or earlier landing warnings. Upgrades stack for that run.
 - Roguelite drafts now include Prism Strings, which shortens player-side shot flight time and shifts the generated shuttle trail through a pearl palette as levels stack.
+- The rally HUD shows a compact six-chip run build with the current level of each upgrade, including the new Prism Strings effect.
 - A solo run ends at 7 points with a two-point lead (hard cap 9), shows a win/loss screen, and lets the player replay with scores and upgrades reset.
 - Controller-first gamepad mappings and keyboard/mouse fallback are built with both input backends enabled from startup in `ProjectSettings/ProjectSettings.asset`. GameCI run `44843252147` passed in 8m39, uploaded a Windows artifact, and saved a compatible 765 MB Unity Library cache. Verify gamepad behavior in the artifact.
 - Incoming shots now display a generated segmented landing reticle that follows the shuttle's predicted landing spot and pulses from aqua to coral as impact approaches. The HUD explains the cue. Fixed shuttle setup to assign its generated feather mesh directly instead of retrieving it from a mixed object list; artifact verification is pending.
