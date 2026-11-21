@@ -99,6 +99,7 @@ namespace FrutigerBadminton
         Vector3 previousShuttlePosition;
         Vector3 dashDirection;
         Vector3 playerVelocity;
+        Vector3 lastMovementDirection = Vector3.forward;
         Vector3 cameraRestPosition;
         Vector3 lastMouseAim;
         Vector2 lastStickAim;
@@ -195,6 +196,7 @@ namespace FrutigerBadminton
             {
                 courtCamera = mainCamera.transform;
                 cameraRestPosition = courtCamera.position;
+                lastMovementDirection = CameraForwardOnCourt();
             }
             CreateAudioFeedback();
             player.position = new Vector3(0f, GroundY, -4.6f);
@@ -458,14 +460,17 @@ namespace FrutigerBadminton
                 - (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow) ? 1f : 0f));
             if (keyboardInput.sqrMagnitude > directionInput.sqrMagnitude) directionInput = keyboardInput;
             directionInput = Vector2.ClampMagnitude(directionInput, 1f);
-            Vector3 direction = new Vector3(directionInput.x, 0f, directionInput.y);
+            Vector3 forward = CameraForwardOnCourt();
+            Vector3 right = Vector3.Cross(Vector3.up, forward);
+            Vector3 direction = right * directionInput.x + forward * directionInput.y;
+            if (direction.sqrMagnitude > .01f) lastMovementDirection = direction.normalized;
 
             if ((Input.GetKeyDown(KeyCode.Space) || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame)) && jumpHeight <= .01f)
                 jumpVelocity = 5.1f;
             bool dashPressed = Input.GetKeyDown(KeyCode.LeftShift) || (gamepad != null && gamepad.rightShoulder.wasPressedThisFrame);
             if (dashPressed && dashCooldown <= 0f)
             {
-                dashDirection = direction.sqrMagnitude > .01f ? direction.normalized : Vector3.forward;
+                dashDirection = direction.sqrMagnitude > .01f ? direction.normalized : lastMovementDirection;
                 dashTime = .16f;
                 dashCooldown = Mathf.Max(.55f, 1.05f - upgradeLevels[(int)SoloUpgrade.TurboDash] * .1f);
                 isDashing = true;
@@ -515,6 +520,14 @@ namespace FrutigerBadminton
             next.z = clampedZ;
             next.y = GroundY + jumpHeight;
             player.position = next;
+        }
+
+        Vector3 CameraForwardOnCourt()
+        {
+            if (!courtCamera) return Vector3.forward;
+            Vector3 forward = courtCamera.forward;
+            forward.y = 0f;
+            return forward.sqrMagnitude > .001f ? forward.normalized : Vector3.forward;
         }
 
         void MoveRival(float deltaTime)
@@ -1063,6 +1076,7 @@ namespace FrutigerBadminton
             dashTime = 0f;
             dashCooldown = 0f;
             playerVelocity = Vector3.zero;
+            lastMovementDirection = CameraForwardOnCourt();
             jumpHeight = 0f;
             jumpVelocity = 0f;
             messageDelay = 0f;
