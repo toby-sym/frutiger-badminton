@@ -954,6 +954,8 @@ namespace FrutigerBadminton
             ownedMeshes.Add(ringMesh);
             mf.sharedMesh = ringMesh; mr.sharedMaterial = PlayerCrystalMaterial(color, .72f, .25f);
             mr.sortingOrder = 2;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
             ring.transform.SetParent(racket, false);
             ring.transform.localPosition = new Vector3(0f, .59f, 0f);
             if (!racketTrailMaterial)
