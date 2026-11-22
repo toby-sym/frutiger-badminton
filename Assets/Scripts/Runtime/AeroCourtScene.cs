@@ -127,6 +127,7 @@ namespace FrutigerBadminton
             CreateIslandFloorSheen();
             CreateCourt();
             CreatePavilion();
+            CreateArenaScoreboard();
             CreateNet();
             CreateCloudBanks();
             CreateSpectatorOrbs();
@@ -541,6 +542,40 @@ namespace FrutigerBadminton
                 strip.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
             canopy.AddComponent<AeroCanopyVisibility>();
+        }
+
+        void CreateArenaScoreboard()
+        {
+            var scoreboard = new GameObject("Arena scoreboard");
+            var frame = Cube("Scoreboard frame", new Vector3(0f, 4.65f, 8.97f), new Vector3(3.55f, 1.08f, .16f), new Color(.10f, .36f, .47f), .8f, .04f);
+            frame.transform.SetParent(scoreboard.transform, true);
+            var face = Cube("Scoreboard face", new Vector3(0f, 4.65f, 8.87f), new Vector3(3.42f, .95f, .05f), new Color(.015f, .075f, .16f), .72f, .025f);
+            face.transform.SetParent(scoreboard.transform, true);
+            var digits = new Renderer[28];
+            float[] centers = { -1.08f, -.57f, .57f, 1.08f };
+            Vector2[] offsets =
+            {
+                new Vector2(0f, .30f), new Vector2(.15f, .15f), new Vector2(.15f, -.15f),
+                new Vector2(0f, -.30f), new Vector2(-.15f, -.15f), new Vector2(-.15f, .15f), Vector2.zero
+            };
+            for (int digit = 0; digit < 4; digit++)
+            for (int segment = 0; segment < 7; segment++)
+            {
+                bool horizontal = segment == 0 || segment == 3 || segment == 6;
+                Vector2 offset = offsets[segment];
+                var stroke = Cube("Score display segment", new Vector3(centers[digit] + offset.x, 4.65f + offset.y, 8.82f),
+                    horizontal ? new Vector3(.25f, .045f, .025f) : new Vector3(.045f, .25f, .025f),
+                    new Color(.42f, .96f, .94f), .4f, .85f);
+                stroke.transform.SetParent(scoreboard.transform, true);
+                digits[digit * 7 + segment] = stroke.GetComponent<Renderer>();
+                digits[digit * 7 + segment].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            var separator = Cube("Score separator", new Vector3(0f, 4.65f, 8.82f), new Vector3(.22f, .045f, .025f), new Color(.42f, .96f, .94f), .4f, .85f);
+            separator.transform.SetParent(scoreboard.transform, true);
+            separator.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            frame.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            face.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            scoreboard.AddComponent<AeroArenaScoreboard>().Initialize(digits);
         }
 
         GameObject AddGlassPrimitive(PrimitiveType type, string objectName, Vector3 position, Vector3 scale, Material material)
