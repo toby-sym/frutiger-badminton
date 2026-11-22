@@ -241,7 +241,8 @@ namespace FrutigerBadminton
             {
                 float x = -6.3f + i * 1.58f;
                 float z = (i % 2 == 0 ? -8f : 8f);
-                var support = Cylinder("Crystal island support", new Vector3(x, -2.2f, z), new Vector3(.35f, 2.2f, .35f), new Color(.24f, .72f, .9f), .7f, .3f);
+                // Keep the angled supports below the island top instead of protruding through the court surround.
+                var support = Cylinder("Crystal island support", new Vector3(x, -3.5f, z), new Vector3(.35f, 2.2f, .35f), new Color(.24f, .72f, .9f), .7f, .3f);
                 support.transform.rotation = Quaternion.Euler(0f, 0f, (i % 2 == 0 ? -1f : 1f) * 11f);
             }
         }
