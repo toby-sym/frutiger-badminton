@@ -11,7 +11,9 @@ Shader "Frutiger/Player Crystal"
     {
         Tags { "RenderType"="Transparent" "Queue"="Transparent" "RenderPipeline"="UniversalPipeline" }
         Blend SrcAlpha OneMinusSrcAlpha
-        ZWrite On
+        // Character shells and their inner gel layer both need to blend. Writing
+        // depth here made the near shell hide the tinted core and racket strings.
+        ZWrite Off
         Cull Back
         Pass
         {
