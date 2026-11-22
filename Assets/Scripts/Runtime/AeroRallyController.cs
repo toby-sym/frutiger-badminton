@@ -220,8 +220,8 @@ namespace FrutigerBadminton
             }
             CreateAudioFeedback();
             player.position = new Vector3(0f, GroundY, -4.6f);
-            partner.position = new Vector3(-1.65f, GroundY, -4.8f);
-            partnerTwo.position = new Vector3(1.65f, GroundY, -4.2f);
+            partner.position = new Vector3(-1.65f, GroundY, -2.1f);
+            partnerTwo.position = new Vector3(1.65f, GroundY, -2.9f);
             rival.position = new Vector3(0f, GroundY, 4.6f);
             rivalPartner.position = new Vector3(1.65f, GroundY, 4.8f);
             rivalWing.position = new Vector3(-1.65f, GroundY, 4.2f);
@@ -672,7 +672,7 @@ namespace FrutigerBadminton
             // Avoid swapping formation every time the player crosses the centre by a few pixels.
             if (player.position.x > .65f) friendlyHomeSide = -1f;
             else if (player.position.x < -.65f) friendlyHomeSide = 1f;
-            MoveFriendlySupport(partner, assignedFriendlyReceiver, friendlyHomeSide * 1.65f, -4.8f, deltaTime);
+            MoveFriendlySupport(partner, assignedFriendlyReceiver, friendlyHomeSide * 1.65f, -2.1f, deltaTime);
             MoveFriendlySupport(partnerTwo, assignedFriendlyReceiver, -friendlyHomeSide * .85f, -2.9f, deltaTime);
         }
 
@@ -1254,8 +1254,8 @@ namespace FrutigerBadminton
             friendlyHomeSide = -1f;
             messageDelay = 0f;
             player.position = new Vector3(0f, GroundY, -4.6f);
-            partner.position = new Vector3(-1.65f, GroundY, -4.8f);
-            partnerTwo.position = new Vector3(1.65f, GroundY, -4.2f);
+            partner.position = new Vector3(-1.65f, GroundY, -2.1f);
+            partnerTwo.position = new Vector3(1.65f, GroundY, -2.9f);
             rival.position = new Vector3(0f, GroundY, 4.6f);
             rivalPartner.position = new Vector3(1.65f, GroundY, 4.8f);
             rivalWing.position = new Vector3(-1.65f, GroundY, 4.2f);
