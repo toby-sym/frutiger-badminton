@@ -129,9 +129,9 @@ namespace FrutigerBadminton
             float expansion = Mathf.SmoothStep(0f, 1f, Mathf.Min(1f, progress * 1.45f));
             float retract = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.68f, 1f, progress)) * .82f;
 
-            ring.localScale = Vector3.one * Mathf.Lerp(.12f, .95f * strength, expansion) * retract;
+            ring.localScale = Vector3.one * Mathf.Lerp(.08f, .32f * strength, expansion) * retract;
             ring.localRotation = Quaternion.Euler(0f, 0f, progress * 36f);
-            SetGlow(ringRenderer, tint, fade, 2.8f);
+            SetGlow(ringRenderer, Color.Lerp(tint, Color.white, .42f), fade, 1.4f);
 
             float flashIn = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / .055f));
             float flashOut = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.08f, .31f, elapsed));
@@ -140,11 +140,11 @@ namespace FrutigerBadminton
 
             for (int i = 0; i < shards.Length; i++)
             {
-                float distance = Mathf.SmoothStep(0f, .72f * strength, progress);
+                float distance = Mathf.SmoothStep(0f, .52f * strength, progress);
                 shards[i].localPosition = shardDirections[i] * distance;
                 shards[i].localRotation = shardRestRotations[i] * Quaternion.Euler(progress * (120f + i * 11f), progress * 90f, 0f);
                 shards[i].localScale = new Vector3(.045f, .11f, .045f) * (1f - progress);
-                SetGlow(shardRenderers[i], Color.Lerp(tint, Color.white, .34f), fade, 2.1f);
+                SetGlow(shardRenderers[i], Color.Lerp(tint, Color.white, .34f), fade, 1.65f);
             }
 
         }
@@ -153,8 +153,9 @@ namespace FrutigerBadminton
         {
             if (!renderer) return;
             propertyBlock.Clear();
-            propertyBlock.SetColor(BaseColorId, color * fade);
-            propertyBlock.SetColor(ColorId, color * fade);
+            Color translucentTint = new Color(color.r, color.g, color.b, fade * .72f);
+            propertyBlock.SetColor(BaseColorId, translucentTint);
+            propertyBlock.SetColor(ColorId, translucentTint);
             propertyBlock.SetColor(EmissionId, color * (emission * fade));
             renderer.SetPropertyBlock(propertyBlock);
         }
@@ -164,6 +165,16 @@ namespace FrutigerBadminton
             Shader shader = AeroRuntimeShaderLibrary.Resolve("Universal Render Pipeline/Lit");
             var material = new Material(shader) { name = "Procedural impact glow" };
             if (material.HasProperty(BaseColorId)) material.SetColor(BaseColorId, color); else material.color = color;
+            if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 1f);
+            if (material.HasProperty("_Blend")) material.SetFloat("_Blend", 0f);
+            if (material.HasProperty("_SrcBlend")) material.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha);
+            if (material.HasProperty("_DstBlend")) material.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
+            if (material.HasProperty("_ZWrite")) material.SetInt("_ZWrite", 0);
+            material.SetOverrideTag("RenderType", "Transparent");
+            material.renderQueue = (int)RenderQueue.Transparent;
+            material.DisableKeyword("_SURFACE_TYPE_OPAQUE");
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.SetShaderPassEnabled("ShadowCaster", false);
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", .78f);
             if (material.HasProperty(EmissionId))
             {
