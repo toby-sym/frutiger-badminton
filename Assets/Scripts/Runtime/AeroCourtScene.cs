@@ -532,12 +532,9 @@ namespace FrutigerBadminton
                 digits[digit * 7 + segment] = stroke.GetComponent<Renderer>();
                 digits[digit * 7 + segment].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
-            for (int i = -1; i <= 1; i += 2)
-            {
-                var dot = Cube("Score separator", new Vector3(0f, 4.65f + i * .12f, 8.82f), new Vector3(.06f, .06f, .025f), new Color(.42f, .96f, .94f), .4f, .85f);
-                dot.transform.SetParent(scoreboard.transform, true);
-                dot.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            }
+            var separator = Cube("Score separator", new Vector3(0f, 4.65f, 8.82f), new Vector3(.22f, .045f, .025f), new Color(.42f, .96f, .94f), .4f, .85f);
+            separator.transform.SetParent(scoreboard.transform, true);
+            separator.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             frame.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             face.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             scoreboard.AddComponent<AeroArenaScoreboard>().Initialize(digits);
