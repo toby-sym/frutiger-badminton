@@ -790,7 +790,7 @@ namespace FrutigerBadminton
             headCore.transform.SetParent(headPivot, true);
             headCore.GetComponent<Renderer>().sortingOrder = 0;
             var head = AddGlassPrimitive(PrimitiveType.Sphere, "Crystal head shell", headPivot.position, Vector3.one * .61f,
-                PlayerCrystalMaterial(suit, .38f, .42f, true, .72f, .012f));
+                PlayerCrystalMaterial(suit, .38f, .42f, true, .72f, .016f));
             head.transform.SetParent(headPivot, true);
             head.GetComponent<Renderer>().sortingOrder = 1;
             Transform leftLeg = ArticulatedLeg(pose, "Left leg", new Vector3(-.2f, .65f, 0f), new Vector3(-.34f, .14f, 0f), out Transform leftKnee);
@@ -901,7 +901,7 @@ namespace FrutigerBadminton
 
         void CreatePlayerGlaze(Transform pose, Color suit)
         {
-            Material material = PlayerCrystalMaterial(suit, .38f, .42f, true, .72f, .012f);
+            Material material = PlayerCrystalMaterial(suit, .38f, .42f, true, .72f, .016f);
             if (!material) return;
             var glaze = new GameObject("Crystal torso shell");
             glaze.transform.SetParent(pose, false);
@@ -1205,7 +1205,7 @@ namespace FrutigerBadminton
             shell.sharedMesh = shellMesh;
             shell.bones = bones;
             shell.rootBone = pose;
-            shell.sharedMaterial = PlayerCrystalMaterial(suit, .38f, .42f, true, .72f, .012f);
+            shell.sharedMaterial = PlayerCrystalMaterial(suit, .38f, .42f, true, .72f, .016f);
             shell.sortingOrder = 1;
             shell.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             shell.receiveShadows = false;
