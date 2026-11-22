@@ -125,6 +125,8 @@ namespace FrutigerBadminton
         float friendlyHomeSide = -1f;
         int playerScore;
         int rivalScore;
+        public int PlayerScore => playerScore;
+        public int RivalScore => rivalScore;
         int rallyHits;
         int longestRallyHits;
         int smashesHit;
