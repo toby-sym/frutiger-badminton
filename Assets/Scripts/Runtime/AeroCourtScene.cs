@@ -622,6 +622,10 @@ namespace FrutigerBadminton
 
         void CreateCloudBanks()
         {
+            Shader shader = Resources.Load<Shader>("CloudMist");
+            if (!shader) return;
+            var mist = new Material(shader) { name = "Soft cloud mist" };
+            ownedMaterials.Add(mist);
             for (int side = -1; side <= 1; side += 2)
             {
                 for (int row = 0; row < 4; row++)
@@ -633,12 +637,13 @@ namespace FrutigerBadminton
                     bank.position = origin;
                     float phase = (side + 1) * .8f + row * 1.47f;
                     cloudDrifts.Add(new CloudDrift(bank, origin, phase, .075f + row * .009f));
-                    Color cloud = Color.Lerp(new Color(.72f, .9f, .98f), new Color(.42f, .68f, .88f), row * .08f);
                     for (int lobe = 0; lobe < 5; lobe++)
                     {
-                        float dx = (lobe - 2) * .85f;
-                        float lift = (lobe == 1 || lobe == 3) ? .5f : 0f;
-                        var lobeObject = Sphere("Procedural cloud lobe", origin + new Vector3(dx, lift, Mathf.Sin(lobe * 1.7f) * .5f), new Vector3(1.55f - Mathf.Abs(lobe - 2) * .16f, .78f + lift * .3f, 1.25f), cloud, .12f, .015f);
+                        float dx = (lobe - 2) * .7f;
+                        float lift = (lobe == 1 || lobe == 3) ? .3f : 0f;
+                        var lobeObject = AddGlassPrimitive(PrimitiveType.Sphere, "Procedural cloud mist",
+                            origin + new Vector3(dx, lift, Mathf.Sin(lobe * 1.7f) * .3f),
+                            new Vector3(2.1f - Mathf.Abs(lobe - 2) * .18f, 1.05f + lift * .4f, 1.65f), mist);
                         lobeObject.transform.SetParent(bank, true);
                     }
                 }
