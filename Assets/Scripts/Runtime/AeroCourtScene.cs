@@ -192,13 +192,17 @@ namespace FrutigerBadminton
                 Color mist = new Color(.58f, .86f, .86f, 0f);
                 for (int i = 0; i <= segments; i++)
                 {
-                    float x = Mathf.Lerp(-85f, 85f, i / (float)segments);
+                    float t = i / (float)segments;
+                    float x = Mathf.Lerp(-175f, 175f, t);
+                    float edgeFade = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(Mathf.Min(t, 1f - t) * 8f));
+                    Color fadedRidge = ridge; fadedRidge.a *= edgeFade;
+                    Color fadedMid = mid; fadedMid.a *= edgeFade;
                     float crest = topOffset + Mathf.Sin(x * .042f + layer * 1.6f) * 2.4f
                         + Mathf.Sin(x * .095f + layer * 2.3f + .7f) * .75f
                         + Mathf.Sin(x * .16f - layer) * .2f;
                     vertices.Add(new Vector3(x, -13f, depth)); colors.Add(mist);
-                    vertices.Add(new Vector3(x, Mathf.Lerp(-13f, crest, .6f), depth)); colors.Add(mid);
-                    vertices.Add(new Vector3(x, crest, depth)); colors.Add(ridge);
+                    vertices.Add(new Vector3(x, Mathf.Lerp(-13f, crest, .6f), depth)); colors.Add(fadedMid);
+                    vertices.Add(new Vector3(x, crest, depth)); colors.Add(fadedRidge);
                     if (i == segments) continue;
                     int first = i * 3;
                     for (int row = 0; row < 2; row++)
