@@ -19,6 +19,8 @@ namespace FrutigerBadminton
         const int MaxUpgradeLevel = 5;
         const float CameraShakeDuration = .18f;
         const float ShotInputBufferDuration = .18f;
+        const float RivalReactionDelay = .22f;
+        const float RivalMoveSpeed = 4.25f;
         static readonly Rect ControlsPanelRect = new Rect(16f, 16f, 320f, 360f);
         static readonly Rect CompactControlsPanelRect = new Rect(16f, 16f, 260f, 112f);
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -579,11 +581,11 @@ namespace FrutigerBadminton
 
         void MoveRival(float deltaTime)
         {
-            if (!flightActive || playerMustReturn || assignedOpponentReceiver != rival) return;
+            if (!flightActive || playerMustReturn || assignedOpponentReceiver != rival || flightElapsed < RivalReactionDelay) return;
             Vector3 destination = new Vector3(flightTarget.x, GroundY, flightTarget.z + .25f);
             destination.x = Mathf.Clamp(destination.x, -CourtHalfWidth + .35f, CourtHalfWidth - .35f);
             destination.z = Mathf.Clamp(destination.z, .42f, CourtHalfLength - .45f);
-            rival.position = Vector3.MoveTowards(rival.position, destination, 5.1f * deltaTime);
+            rival.position = Vector3.MoveTowards(rival.position, destination, RivalMoveSpeed * deltaTime);
         }
 
         void MoveRivalPartner(float deltaTime)
@@ -600,12 +602,12 @@ namespace FrutigerBadminton
         {
             if (!member) return;
             Vector3 destination = new Vector3(homeX, GroundY, homeZ);
-            if (flightActive && !playerMustReturn && assignedOpponentReceiver == member)
+            if (flightActive && !playerMustReturn && assignedOpponentReceiver == member && flightElapsed >= RivalReactionDelay)
             {
                 destination.x = Mathf.Clamp(flightTarget.x, -CourtHalfWidth + .45f, CourtHalfWidth - .45f);
                 destination.z = Mathf.Clamp(flightTarget.z, .42f, CourtHalfLength - .45f);
             }
-            member.position = Vector3.MoveTowards(member.position, destination, 5.1f * deltaTime);
+            member.position = Vector3.MoveTowards(member.position, destination, RivalMoveSpeed * deltaTime);
         }
 
         Transform ChooseClosestOpponent()
@@ -653,6 +655,13 @@ namespace FrutigerBadminton
             float firstPartnerDistance = HorizontalDistance(partner.position, flightTarget);
             float secondPartnerDistance = HorizontalDistance(partnerTwo.position, flightTarget);
             float playerReach = 1.7f + upgradeLevels[(int)SoloUpgrade.ExtendedSweetSpot] * .16f + jumpHeight * .5f;
+            // A shot landing at the controlled player belongs to them; partners
+            // cover it again if the player moves away from the landing spot.
+            if (playerDistance <= playerReach * .75f)
+            {
+                assignedFriendlyReceiver = null;
+                return;
+            }
             bool playerCannotReach = playerDistance - playerReach > timeToLanding * 4.6f;
             Transform nearestPartner = firstPartnerDistance <= secondPartnerDistance ? partner : partnerTwo;
             float nearestDistance = Mathf.Min(firstPartnerDistance, secondPartnerDistance);
@@ -769,8 +778,10 @@ namespace FrutigerBadminton
             float firstPartnerDistance = HorizontalDistance(partner.position, shuttle.position);
             float secondPartnerDistance = HorizontalDistance(partnerTwo.position, shuttle.position);
             Transform returner = firstPartnerDistance <= secondPartnerDistance ? partner : partnerTwo;
+            float playerReach = 1.7f + upgradeLevels[(int)SoloUpgrade.ExtendedSweetSpot] * .16f + jumpHeight * .5f;
+            if (HorizontalDistance(player.position, flightTarget) <= playerReach * .75f) return false;
             bool playerCanReturn = HorizontalDistance(player.position, shuttle.position)
-                <= 1.7f + upgradeLevels[(int)SoloUpgrade.ExtendedSweetSpot] * .16f + jumpHeight * .5f
+                <= playerReach
                 && shuttle.position.y <= GroundY + 2.9f + jumpHeight;
             if (playerCanReturn || shuttle.position.y > GroundY + 2.85f
                 || Mathf.Min(firstPartnerDistance, secondPartnerDistance) > partnerReach) return false;
@@ -999,7 +1010,11 @@ namespace FrutigerBadminton
             float leftCoverage = Mathf.Min(Mathf.Abs(player.position.x + 2.2f), Mathf.Abs(partner.position.x + 2.2f), Mathf.Abs(partnerTwo.position.x + 2.2f));
             float rightCoverage = Mathf.Min(Mathf.Abs(player.position.x - 2.2f), Mathf.Abs(partner.position.x - 2.2f), Mathf.Abs(partnerTwo.position.x - 2.2f));
             bool aimLeft = leftCoverage > rightCoverage || (Mathf.Approximately(leftCoverage, rightCoverage) && Random.value < .5f);
-            float targetX = (aimLeft ? -2.25f : 2.25f) + Random.Range(-.45f, .45f);
+            bool aimAtPlayer = Random.value < .35f;
+            float targetX = aimAtPlayer ? player.position.x + Random.Range(-.35f, .35f)
+                : (aimLeft ? -2.25f : 2.25f) + Random.Range(-.45f, .45f);
+            if (aimAtPlayer && style != ShotStyle.Drop)
+                targetZ = Mathf.Clamp(player.position.z + Random.Range(-.5f, .5f), -5.9f, -2.9f);
             Vector3 start = shuttle.position;
             Vector3 target = new Vector3(Mathf.Clamp(targetX, -CourtHalfWidth + .35f, CourtHalfWidth - .35f), GroundY + .11f, targetZ);
             AeroHitEffect.Spawn(start, ShotTint(style), style == ShotStyle.Drive ? 1.08f : .95f);
