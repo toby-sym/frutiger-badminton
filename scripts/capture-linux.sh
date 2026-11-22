@@ -45,7 +45,7 @@ xvfb-run -a -s '-screen 0 1920x1080x24 +extension GLX' bash -c '
   # Attempt a serve and record the ensuing frames for visual review. Timing can
   # vary with software rendering, so these images are observations, not a test.
   xdotool mousemove --window "$window" 960 420
-  xdotool click 1
+  xdotool key f
   sleep .25
   import -window root "$capture_dir/racket-swing.png"
   sleep 2
