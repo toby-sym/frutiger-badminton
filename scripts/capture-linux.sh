@@ -59,6 +59,17 @@ xvfb-run -a -s '-screen 0 1920x1080x24 +extension GLX' bash -c '
     import -window root "$capture_dir/rally-extended.png"
   fi
 
+  # Optionally record the sequence as well as stills. Software rendering does
+  # not represent Windows frame pacing, but the clip helps inspect poses.
+  clip_pid=""
+  if [[ "${CAPTURE_MOTION_CLIP:-0}" == 1 ]]; then
+    ffmpeg -y -loglevel warning -f x11grab -framerate 12 -video_size 1920x1080 \
+      -i "$DISPLAY" -t 10 -vf scale=960:-2 -c:v libx264 -preset ultrafast \
+      -pix_fmt yuv420p "$capture_dir/movement.mp4" > "$capture_dir/ffmpeg.log" 2>&1 &
+    clip_pid=$!
+    sleep 1
+  fi
+
   # Capture frames after movement inputs; timing on software rendering varies.
   xdotool keydown d
   sleep 1
@@ -76,6 +87,7 @@ xvfb-run -a -s '-screen 0 1920x1080x24 +extension GLX' bash -c '
   xdotool keyup Shift_L
   xdotool keyup d
   sleep 1
+  if [[ -n "$clip_pid" ]]; then wait "$clip_pid"; fi
 
   # Return to the title, select the overview camera and capture that composition.
   # Spacing key presses gives the software-rendered player time to handle each one.

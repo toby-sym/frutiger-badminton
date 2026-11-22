@@ -7,6 +7,10 @@ on:
         description: Capture a longer rally to inspect score changes
         type: boolean
         default: false
+      motion_clip:
+        description: Record a short software-rendered movement clip
+        type: boolean
+        default: false
   push:
     branches:
       - capability/automated-visual-capture
@@ -47,9 +51,13 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends xvfb xauth xdotool imagemagick libgl1-mesa-dri libglx-mesa0
+      - name: Install motion capture tools
+        if: ${{ inputs.motion_clip }}
+        run: sudo apt-get install -y --no-install-recommends ffmpeg
       - name: Capture title and court
         env:
           CAPTURE_EXTENDED_RALLY: ${{ inputs.extended_rally && '1' || '0' }}
+          CAPTURE_MOTION_CLIP: ${{ inputs.motion_clip && '1' || '0' }}
         run: bash scripts/capture-linux.sh
       - name: Upload views and player log
         if: always()
