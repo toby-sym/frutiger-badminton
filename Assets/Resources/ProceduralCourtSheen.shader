@@ -78,13 +78,20 @@ Shader "Frutiger/Procedural Court Sheen"
                 float frameReflection = max(smoothstep(.45, .495, panelX), smoothstep(.46, .495, panelZ));
                 float2 glowPosition = float2((p.x + 1.1 + p.y * .20) * .24, (p.y - 1.7) * .085);
                 float windowGlow = exp(-dot(glowPosition, glowPosition) * 1.7);
-                float glint = saturate(windowGlow * (.48 + field * .52) + max(0, grain) * .035);
+                // A soft, elongated window reflection gives the blue lacquer depth
+                // without obscuring court markings or using a sampled texture.
+                float acrossBeam = (p.x + p.y * .16 - .65) * .52;
+                float alongBeam = (p.y - 1.1) * .095;
+                float lightRibbon = exp(-acrossBeam * acrossBeam - alongBeam * alongBeam)
+                    * (.64 + field * .36);
+                float glint = saturate(windowGlow * (.40 + field * .40) + lightRibbon * .55 + max(0, grain) * .035);
                 float3 normalWS = normalize(input.normalWS);
                 float3 viewDirectionWS = normalize(GetWorldSpaceViewDir(input.positionWS));
                 float fresnel = pow(saturate(1 - saturate(dot(normalWS, viewDirectionWS))), 3);
                 float alpha = saturate(_Opacity * (.70 + glint * .25 + fresnel * _FresnelStrength));
                 float3 color = lerp(_BaseColor.rgb * (.74 + .38 * field), _GlintColor.rgb,
                     saturate(glint * .68 + fresnel * .18));
+                color = lerp(color, _GlintColor.rgb * 1.15, lightRibbon * .48);
                 color *= 1 - frameReflection * .20;
                 return half4(color * alpha, alpha);
             }
