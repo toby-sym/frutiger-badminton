@@ -10,7 +10,7 @@ export capture_dir player
 xvfb-run -a -s '-screen 0 1920x1080x24 +extension GLX' bash -c '
   set -euo pipefail
   export LIBGL_ALWAYS_SOFTWARE=1
-  "$player" -screen-fullscreen 0 -screen-width 1920 -screen-height 1080 -force-glcore -logFile "$capture_dir/player.log" &
+  "$player" -screen-fullscreen 0 -screen-width 1920 -screen-height 1080 -force-glcore -noaudio -logFile "$capture_dir/player.log" &
   player_pid=$!
   trap "kill $player_pid 2>/dev/null || true" EXIT
   window=""
