@@ -1789,18 +1789,19 @@ namespace FrutigerBadminton
                 GUI.color = new Color(.78f, .95f, .97f);
                 GUI.Label(new Rect(28f, 180f, 298f, 22f), RallyGuidance(false), labelStyle);
                 GUI.color = new Color(.64f, .84f, .88f);
-                GUI.Label(new Rect(28f, 204f, 298f, 20f), "First to 7  ·  Win by 2  ·  Draft every 3", hintStyle);
+                GUI.Label(new Rect(28f, 204f, 298f, 18f), "First to 7  ·  Win by 2  ·  Cap 9", hintStyle);
+                GUI.Label(new Rect(28f, 220f, 298f, 18f), "Draft every 3 points", hintStyle);
 
                 float dashDuration = Mathf.Max(.55f, 1.05f - upgradeLevels[(int)SoloUpgrade.TurboDash] * .1f);
                 float dashReady = 1f - Mathf.Clamp01(dashCooldown / dashDuration);
-                GUI.Label(new Rect(28f, 232f, 160f, 22f), controllerConnected ? "RB  AERO DASH" : "SHIFT  AERO DASH", labelStyle);
-                GUI.Label(new Rect(190f, 232f, 136f, 22f), dashCooldown <= 0f ? "READY" : "RECHARGING", hintStyle);
+                GUI.Label(new Rect(28f, 238f, 160f, 22f), controllerConnected ? "RB  AERO DASH" : "SHIFT  AERO DASH", labelStyle);
+                GUI.Label(new Rect(190f, 238f, 136f, 22f), dashCooldown <= 0f ? "READY" : "RECHARGING", hintStyle);
                 GUI.color = new Color(.04f, .18f, .23f, .95f);
-                GUI.DrawTexture(new Rect(28f, 257f, 298f, 8f), Texture2D.whiteTexture);
+                GUI.DrawTexture(new Rect(28f, 263f, 298f, 8f), Texture2D.whiteTexture);
                 GUI.color = Color.Lerp(new Color(1f, .56f, .53f), new Color(.3f, 1f, .82f), dashReady);
-                GUI.DrawTexture(new Rect(28f, 257f, 298f * dashReady, 8f), Texture2D.whiteTexture);
+                GUI.DrawTexture(new Rect(28f, 263f, 298f * dashReady, 8f), Texture2D.whiteTexture);
                 GUI.color = Color.white;
-                GUI.Label(new Rect(28f, 272f, 298f, 20f), controllerConnected ? "START  PAUSE   /   A SELECT" : "ESC  PAUSE   /   ENTER SELECT", hintStyle);
+                GUI.Label(new Rect(28f, 278f, 298f, 20f), controllerConnected ? "START  PAUSE   /   A SELECT" : "ESC  PAUSE   /   ENTER SELECT", hintStyle);
                 DrawRunBuild();
             }
             else DrawCompactControls(controllerConnected);
@@ -1879,7 +1880,7 @@ namespace FrutigerBadminton
         void DrawRunBuild()
         {
             GUI.color = new Color(.68f, .91f, .95f);
-            GUI.Label(new Rect(28f, 297f, 298f, 18f), "RUN BUILD", hintStyle);
+            GUI.Label(new Rect(28f, 300f, 298f, 18f), "RUN BUILD", hintStyle);
 
             const float chipWidth = 94f;
             const float chipHeight = 22f;
@@ -1891,7 +1892,7 @@ namespace FrutigerBadminton
                 int column = i % 3;
                 int row = i / 3;
                 float x = 28f + column * (chipWidth + gapX);
-                float y = 316f + row * (chipHeight + gapY);
+                float y = 320f + row * (chipHeight + gapY);
                 Color idle = new Color(.045f, .18f, .22f, .76f);
                 Color active = Color.Lerp(new Color(.1f, .34f, .39f, .93f), new Color(.19f, .62f, .63f, .98f), level / (float)MaxUpgradeLevel);
                 GUI.color = level > 0 ? active : idle;
@@ -2030,7 +2031,7 @@ namespace FrutigerBadminton
                 "YOU + TWO AI TEAMMATES",
                 "AIM CLEARS, DROPS & SMASHES",
                 "DRAFT RUN UPGRADES",
-                "FIRST TO 7  ·  WIN BY 2"
+                "FIRST TO 7  ·  WIN BY 2  ·  CAP 9"
             };
             for (int i = 0; i < features.Length; i++)
             {
