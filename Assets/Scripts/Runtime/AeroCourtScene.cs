@@ -157,8 +157,8 @@ namespace FrutigerBadminton
                     vertices.Add(new Vector3(Mathf.Cos(theta) * Mathf.Cos(phi), height, Mathf.Sin(theta) * Mathf.Cos(phi)) * 180f);
                     float horizonBlend = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-1f, 0f, height));
                     Color color = height >= 0f
-                        ? Color.Lerp(new Color(.62f, .91f, .98f), new Color(.035f, .28f, .64f), Mathf.Pow(height, .72f))
-                        : Color.Lerp(new Color(.16f, .43f, .68f), new Color(.62f, .91f, .98f), horizonBlend);
+                        ? Color.Lerp(new Color(.42f, .82f, .96f), new Color(.025f, .22f, .61f), Mathf.Pow(height, .72f))
+                        : Color.Lerp(new Color(.16f, .43f, .68f), new Color(.42f, .82f, .96f), horizonBlend);
                     colors.Add(color);
                 }
             }
