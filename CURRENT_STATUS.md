@@ -7,13 +7,13 @@
 - The island supports now sit below its top surface rather than protruding as posts through the court surround; a Linux capture confirmed the posts no longer appear above the floor.
 - Rally messages use a wider, text-sized panel that wraps on narrow screens; a Linux capture showed the serve prompt fitting on one line. Narrow-screen and Windows checks remain.
 - Cloud banks use overlapping, softly faded procedural mist instead of hard, opaque lobes. A Linux capture confirmed their softer appearance; Windows and motion checks remain.
-- A generated glass canopy, ceiling grid and light strips frame the court-level view; a Linux capture showed the court remains visible. The elevated camera hides them and needs visual inspection.
+- A generated glass canopy, ceiling grid and light strips frame the court-level view; Linux captures showed the court remains visible and the elevated camera hides the canopy.
 - The island surround has a deeper blue finish and a procedural glaze extending the reflective court treatment across the floor. A Linux capture confirmed clear court markings; Windows visual checks remain.
 - The court now has a texture-free HLSL sheen overlay with animated wave bands and view-angle glints; artifact validation is pending.
 - The floating court now sits on a generated chamfered crystal-mesa island with a bright aqua waist and layered blue underside facets.
 - The camera backdrop now uses a full-sphere pastel-to-azure vertex gradient and a generated sun halo, filling the previously gray below-horizon view.
-- The sky shader layers a slowly drifting procedural cloud field over the gradient, with a brighter cloud sea and more defined high clouds. This uses no image textures; capture and Windows visual checks are pending.
-- Three generated, mist-faded meadow ridges add a rolling silhouette and soft procedural colour variation beyond the pavilion; inspect their composition in both camera views.
+- The sky shader layers a slowly drifting procedural cloud field over the gradient, with a brighter cloud sea and more defined high clouds. A Linux capture confirmed the appearance; Windows checks remain.
+- Three generated, mist-faded meadow ridges add a rolling silhouette and procedural colour variation beyond the pavilion. Wider geometry and faded ends removed the rectangular edges in Linux captures of both cameras.
 - Softer tinted cloud banks and reduced emission help preserve colour and contrast.
 - The court now has a saturated blue lacquer finish with procedural grain, broad light patches, and suggested window-frame reflections. An open glass pavilion and drifting translucent bubbles frame the court, while player suits use a glossier, less emissive finish. These effects use generated geometry and shaders; visual inspection in the Windows artifact is pending.
 - The pavilion has shallow upper galleries, handrails, and luminous fixtures generated around the rear and side edges of the court; composition and brightness need an artifact check.
