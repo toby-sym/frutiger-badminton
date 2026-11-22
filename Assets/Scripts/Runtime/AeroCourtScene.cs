@@ -17,6 +17,7 @@ namespace FrutigerBadminton
         readonly Dictionary<string, Material> materialCache = new Dictionary<string, Material>();
         Material playerShadowMaterial;
         Material playerGlazeMaterial;
+        Mesh playerJacketMesh;
 
         struct CloudDrift
         {
@@ -715,7 +716,7 @@ namespace FrutigerBadminton
             var pose = new GameObject("Animated pose").transform;
             pose.SetParent(root.transform, false);
 
-            Sphere("Glossy sport jacket", pose.TransformPoint(new Vector3(0f, .92f, 0f)), new Vector3(.62f, .82f, .38f), suit, .9f, .07f).transform.SetParent(pose, true);
+            CreatePlayerJacket(pose, suit);
             CreatePlayerGlaze(pose);
             Sphere("Head", pose.TransformPoint(new Vector3(0f, 1.66f, 0f)), new Vector3(.36f, .39f, .35f), new Color(.94f, .72f, .56f), .55f, .025f).transform.SetParent(pose, true);
             Transform leftLeg = Limb(pose, "Left leg", new Vector3(-.18f, .58f, 0f), new Vector3(-.32f, .07f, 0f), .16f, suit);
@@ -731,6 +732,53 @@ namespace FrutigerBadminton
             return root.transform;
         }
 
+        void CreatePlayerJacket(Transform pose, Color suit)
+        {
+            if (!playerJacketMesh)
+            {
+                playerJacketMesh = BuildPlayerJacketMesh();
+                ownedMeshes.Add(playerJacketMesh);
+            }
+            var jacket = new GameObject("Glossy sport jacket");
+            jacket.transform.SetParent(pose, false);
+            jacket.transform.localPosition = new Vector3(0f, .92f, 0f);
+            jacket.AddComponent<MeshFilter>().sharedMesh = playerJacketMesh;
+            jacket.AddComponent<MeshRenderer>().sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", suit, .9f, .07f);
+        }
+
+        static Mesh BuildPlayerJacketMesh()
+        {
+            const int rings = 20, segments = 32;
+            var vertices = new List<Vector3>((rings + 1) * (segments + 1));
+            var triangles = new List<int>(rings * segments * 6);
+            for (int ring = 0; ring <= rings; ring++)
+            {
+                float height = ring / (float)rings * 2f - 1f;
+                float radius = Mathf.Sqrt(Mathf.Max(0f, 1f - Mathf.Pow(Mathf.Abs(height), 4f)));
+                float shoulderTaper = Mathf.Lerp(.86f, 1f, (height + 1f) * .5f);
+                for (int segment = 0; segment <= segments; segment++)
+                {
+                    float angle = segment / (float)segments * Mathf.PI * 2f;
+                    vertices.Add(new Vector3(Mathf.Cos(angle) * .30f * radius * shoulderTaper,
+                        height * .41f, Mathf.Sin(angle) * .19f * radius * shoulderTaper));
+                }
+            }
+            for (int ring = 0; ring < rings; ring++)
+            for (int segment = 0; segment < segments; segment++)
+            {
+                int a = ring * (segments + 1) + segment;
+                int b = a + segments + 1;
+                triangles.Add(a); triangles.Add(b); triangles.Add(a + 1);
+                triangles.Add(a + 1); triangles.Add(b); triangles.Add(b + 1);
+            }
+            var mesh = new Mesh { name = "Generated tailored player jacket" };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
         void CreatePlayerGlaze(Transform pose)
         {
             if (!playerGlazeMaterial)
@@ -744,9 +792,15 @@ namespace FrutigerBadminton
                 ownedMaterials.Add(playerGlazeMaterial);
             }
 
-            var glaze = AddGlassPrimitive(PrimitiveType.Sphere, "Pearl jacket highlights",
-                pose.TransformPoint(new Vector3(0f, .92f, 0f)), new Vector3(.64f, .84f, .4f), playerGlazeMaterial);
-            glaze.transform.SetParent(pose, true);
+            var glaze = new GameObject("Pearl jacket highlights");
+            glaze.transform.SetParent(pose, false);
+            glaze.transform.localPosition = new Vector3(0f, .92f, 0f);
+            glaze.transform.localScale = Vector3.one * 1.035f;
+            glaze.AddComponent<MeshFilter>().sharedMesh = playerJacketMesh;
+            var renderer = glaze.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = playerGlazeMaterial;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
         }
 
         Renderer CreatePlayerShadow(Transform playerRoot)
