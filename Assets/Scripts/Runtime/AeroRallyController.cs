@@ -1787,9 +1787,7 @@ namespace FrutigerBadminton
                 GUI.Label(new Rect(104f, 138f, 220f, 20f), controllerConnected ? "LB clear  ·  X drop" : "LMB clear  ·  RMB drop", hintStyle);
                 GUI.Label(new Rect(104f, 156f, 220f, 20f), controllerConnected ? "B drive  ·  Y smash" : "F drive  ·  R smash", hintStyle);
                 GUI.color = new Color(.78f, .95f, .97f);
-                GUI.Label(new Rect(28f, 180f, 298f, 22f), playerServeReady
-                    ? "SERVE  ·  Aim, then tap a shot"
-                    : "RETURN  ·  Aim, then tap a shot", labelStyle);
+                GUI.Label(new Rect(28f, 180f, 298f, 22f), RallyGuidance(false), labelStyle);
                 GUI.color = new Color(.64f, .84f, .88f);
                 GUI.Label(new Rect(28f, 204f, 298f, 20f), "First to 7  ·  Win by 2  ·  Draft every 3", hintStyle);
 
@@ -1850,13 +1848,22 @@ namespace FrutigerBadminton
             GUI.color = previous;
         }
 
+        string RallyGuidance(bool compact)
+        {
+            if (playerServeReady) return compact ? "YOUR SERVE" : "SERVE  ·  Aim, then tap a shot";
+            if (servePending || !flightActive) return compact ? "GET READY" : "GET READY  ·  Watch for the serve";
+            if (!playerMustReturn) return compact ? "TO RIVALS" : "TO RIVALS  ·  Get ready";
+            if (assignedFriendlyReceiver) return compact ? "PARTNER MOVING" : "PARTNER MOVING  ·  Be ready";
+            return compact ? "YOUR RETURN" : "YOUR RETURN  ·  Aim, then tap a shot";
+        }
+
         void DrawCompactControls(bool controllerConnected)
         {
             DrawGlassPanel(CompactControlsPanelRect, new Color(.035f, .19f, .25f, .94f), new Color(.01f, .065f, .12f, .95f));
             GUI.color = new Color(.49f, 1f, .94f);
             GUI.Label(new Rect(28f, 22f, 236f, 24f), "FRUTIGER BADMINTON", labelStyle);
             GUI.color = new Color(.78f, .95f, .97f);
-            GUI.Label(new Rect(28f, 46f, 236f, 20f), servePending ? "NEXT SERVE" : playerServeReady ? "YOUR SERVE" : "RALLY", hintStyle);
+            GUI.Label(new Rect(28f, 46f, 236f, 20f), RallyGuidance(true), hintStyle);
             float dashDuration = Mathf.Max(.55f, 1.05f - upgradeLevels[(int)SoloUpgrade.TurboDash] * .1f);
             float dashReady = 1f - Mathf.Clamp01(dashCooldown / dashDuration);
             GUI.Label(new Rect(28f, 68f, 236f, 20f), dashCooldown <= 0f ? "AERO DASH  READY" : "AERO DASH  RECHARGING", hintStyle);
