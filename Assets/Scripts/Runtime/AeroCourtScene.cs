@@ -782,7 +782,7 @@ namespace FrutigerBadminton
             CreatePlayerGlaze(pose, suit);
             var headPivot = new GameObject("Springy gel head pivot").transform;
             headPivot.SetParent(pose, false);
-            headPivot.localPosition = new Vector3(0f, 1.62f, 0f);
+            headPivot.localPosition = new Vector3(0f, 1.59f, 0f);
             var headCore = AddGlassPrimitive(PrimitiveType.Sphere, "Tinted jelly head interior",
                 headPivot.position, Vector3.one * .585f,
                 PlayerCrystalMaterial(PlayerCoreColor(suit), .88f, .06f, false));
@@ -833,13 +833,13 @@ namespace FrutigerBadminton
             {
                 float height = ring / (float)rings * 2f - 1f;
                 float radius = Mathf.Pow(Mathf.Max(0f, 1f - height * height), .48f);
-                float shoulderTaper = Mathf.Lerp(.82f, 1.08f, Mathf.InverseLerp(-.55f, .72f, height));
+                float shoulderTaper = Mathf.Lerp(.82f, 1.12f, Mathf.InverseLerp(-.55f, .72f, height));
                 float waist = 1f - .13f * Mathf.Exp(-height * height * 12f);
                 for (int segment = 0; segment <= segments; segment++)
                 {
                     float angle = segment / (float)segments * Mathf.PI * 2f;
-                    vertices.Add(new Vector3(Mathf.Cos(angle) * .4f * radius * shoulderTaper * waist,
-                        height * .51f, Mathf.Sin(angle) * .27f * radius * Mathf.Lerp(.88f, 1.04f, shoulderTaper)));
+                    vertices.Add(new Vector3(Mathf.Cos(angle) * .43f * radius * shoulderTaper * waist,
+                        height * .51f, Mathf.Sin(angle) * .29f * radius * Mathf.Lerp(.88f, 1.04f, shoulderTaper)));
                 }
             }
             for (int ring = 0; ring < rings; ring++)
