@@ -23,6 +23,7 @@ namespace FrutigerBadminton
         readonly List<CloudDrift> bubbleDrifts = new List<CloudDrift>();
         readonly Dictionary<string, Material> materialCache = new Dictionary<string, Material>();
         Material playerShadowMaterial;
+        Material racketTrailMaterial;
         readonly Dictionary<string, Material> playerCrystalMaterials = new Dictionary<string, Material>();
         Mesh playerTorsoMesh;
         Mesh playerLimbShellNearMesh;
@@ -953,8 +954,35 @@ namespace FrutigerBadminton
             ownedMeshes.Add(ringMesh);
             mf.sharedMesh = ringMesh; mr.sharedMaterial = PlayerCrystalMaterial(color, .72f, .25f);
             mr.sortingOrder = 2;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
             ring.transform.SetParent(racket, false);
             ring.transform.localPosition = new Vector3(0f, .59f, 0f);
+            if (!racketTrailMaterial)
+            {
+                Shader trailShader = Resources.Load<Shader>("AeroTrail");
+                if (trailShader) racketTrailMaterial = MakeMaterial("Frutiger/Aero Trail", Color.white, 0f, 0f, trailShader);
+            }
+            if (racketTrailMaterial)
+            {
+                var trailTip = new GameObject("Gel racket tip trail").transform;
+                trailTip.SetParent(ring.transform, false);
+                trailTip.localPosition = new Vector3(0f, .305f, 0f);
+                var trail = trailTip.gameObject.AddComponent<TrailRenderer>();
+                trail.time = .34f;
+                trail.minVertexDistance = .012f;
+                trail.startWidth = .085f;
+                trail.endWidth = .003f;
+                trail.startColor = new Color(color.r, color.g, color.b, .74f);
+                trail.endColor = new Color(color.r, color.g, color.b, 0f);
+                trail.sharedMaterial = racketTrailMaterial;
+                trail.alignment = LineAlignment.View;
+                trail.textureMode = LineTextureMode.Stretch;
+                trail.sortingOrder = 4;
+                trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                trail.receiveShadows = false;
+                trail.emitting = false;
+            }
 
             var stringBed = new GameObject("Translucent team colour strings");
             var stringFilter = stringBed.AddComponent<MeshFilter>();

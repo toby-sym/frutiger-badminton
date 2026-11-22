@@ -16,6 +16,7 @@ namespace FrutigerBadminton
         Transform leftElbow;
         Transform rightElbow;
         Transform racket;
+        TrailRenderer racketTrail;
         Renderer shadowRenderer;
         MaterialPropertyBlock shadowProperties;
 
@@ -68,6 +69,7 @@ namespace FrutigerBadminton
             leftElbow = leftElbowJoint;
             rightElbow = rightElbowJoint;
             racket = racketAssembly;
+            racketTrail = racket.GetComponentInChildren<TrailRenderer>();
             shadowRenderer = contactShadow;
             if (shadowRenderer) shadowProperties = new MaterialPropertyBlock();
 
@@ -96,10 +98,15 @@ namespace FrutigerBadminton
 
         public void Swing(bool smash)
         {
-            swingDuration = smash ? .34f : .27f;
+            swingDuration = smash ? .48f : .4f;
             swingRemaining = swingDuration;
             swingPower = smash ? 1.25f : 1f;
             racketFlexVelocity += smash ? 560f : 460f;
+            if (racketTrail)
+            {
+                racketTrail.Clear();
+                racketTrail.emitting = true;
+            }
         }
 
         public void ResetMotion()
@@ -133,6 +140,11 @@ namespace FrutigerBadminton
             rightElbow.localRotation = rightElbowRestRotation;
             racket.localRotation = racketRestRotation;
             racket.localScale = racketRestScale;
+            if (racketTrail)
+            {
+                racketTrail.emitting = false;
+                racketTrail.Clear();
+            }
         }
 
         void LateUpdate()
@@ -226,11 +238,9 @@ namespace FrutigerBadminton
             {
                 swingRemaining = Mathf.Max(0f, swingRemaining - deltaTime);
                 float progress = 1f - swingRemaining / swingDuration;
-                float anticipation = Mathf.SmoothStep(0f, 1f, progress / .18f);
-                float followThrough = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.22f, .85f, progress));
-                float pulse = anticipation * followThrough;
-                rightArmPose *= Quaternion.Euler(-56f * swingPower * pulse, 0f, 24f * swingPower * pulse);
-                racketStrikeAngle = -70f * swingPower * pulse;
+                float pulse = Mathf.Sin(progress * Mathf.PI);
+                rightArmPose *= Quaternion.Euler(-44f * swingPower * pulse, 0f, 18f * swingPower * pulse);
+                racketStrikeAngle = -50f * swingPower * pulse;
             }
             float relaxedWobble = Mathf.Sin(gaitPhase * 1.5f + idlePhase) * (stride * 1.8f + idleWeight * .8f);
             Quaternion racketTarget = racketRestRotation * Quaternion.Euler(0f, 0f,
@@ -240,6 +250,7 @@ namespace FrutigerBadminton
             float racketStretch = Mathf.Clamp01(Mathf.Abs(racketFlexAngle) / 24f);
             racket.localScale = Vector3.Scale(racketRestScale,
                 new Vector3(1f - racketStretch * .018f, 1f + racketStretch * .045f, 1f - racketStretch * .018f));
+            if (racketTrail && swingRemaining <= 0f) racketTrail.emitting = false;
             rightArm.localRotation = rightArmPose;
         }
     }
