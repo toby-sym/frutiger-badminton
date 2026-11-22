@@ -685,7 +685,7 @@ namespace FrutigerBadminton
         {
             if (!playerGlazeMaterial)
             {
-                Shader shader = Resources.Load<Shader>("AeroGlass");
+                Shader shader = Resources.Load<Shader>("PlayerLacquerGlaze");
                 if (!shader) return;
                 playerGlazeMaterial = new Material(shader) { name = "Player pearl glaze" };
                 playerGlazeMaterial.SetColor("_Tint", new Color(.76f, .95f, 1f));
