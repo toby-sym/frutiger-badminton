@@ -1206,12 +1206,12 @@ namespace FrutigerBadminton
             var vertices = new List<Vector3>();
             var triangles = new List<int>();
             var weights = new List<BoneWeight>();
-            AddSkinnedLimb(vertices, triangles, weights, new Vector3(-.32f, 1.22f, 0f), new Vector3(-.49f, .92f, .02f), new Vector3(-.66f, .56f, .04f), 0, 4, .18f * radiusScale, .145f * radiusScale);
-            AddSkinnedLimb(vertices, triangles, weights, new Vector3(.32f, 1.22f, 0f), new Vector3(.47f, 1.08f, racketDepth * .4f), new Vector3(.6f, .92f, racketDepth), 1, 5, .18f * radiusScale, .145f * radiusScale);
+            AddSkinnedLimb(vertices, triangles, weights, new Vector3(-.32f, 1.22f, 0f), new Vector3(-.49f, .92f, .02f), new Vector3(-.66f, .56f, .04f), 0, 4, .16f * radiusScale, .13f * radiusScale);
+            AddSkinnedLimb(vertices, triangles, weights, new Vector3(.32f, 1.22f, 0f), new Vector3(.47f, 1.08f, racketDepth * .4f), new Vector3(.6f, .92f, racketDepth), 1, 5, .16f * radiusScale, .13f * radiusScale);
             Vector3 leftHip = new Vector3(-.2f, .65f, 0f), leftAnkle = new Vector3(-.34f, .14f, 0f);
             Vector3 rightHip = new Vector3(.2f, .65f, 0f), rightAnkle = new Vector3(.34f, .14f, 0f);
-            AddSkinnedLimb(vertices, triangles, weights, leftHip, Vector3.Lerp(leftHip, leftAnkle, .52f), leftAnkle, 2, 6, .19f * radiusScale, .15f * radiusScale);
-            AddSkinnedLimb(vertices, triangles, weights, rightHip, Vector3.Lerp(rightHip, rightAnkle, .52f), rightAnkle, 3, 7, .19f * radiusScale, .15f * radiusScale);
+            AddSkinnedLimb(vertices, triangles, weights, leftHip, Vector3.Lerp(leftHip, leftAnkle, .52f), leftAnkle, 2, 6, .17f * radiusScale, .135f * radiusScale);
+            AddSkinnedLimb(vertices, triangles, weights, rightHip, Vector3.Lerp(rightHip, rightAnkle, .52f), rightAnkle, 3, 7, .17f * radiusScale, .135f * radiusScale);
 
             var mesh = new Mesh { name = "Generated seamless crystal limbs" };
             mesh.SetVertices(vertices);
