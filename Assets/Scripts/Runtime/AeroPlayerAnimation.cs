@@ -154,15 +154,19 @@ namespace FrutigerBadminton
 
             float idleWeight = (1f - stride) * (1f - airBlend);
             float breathing = Mathf.Sin(Time.time * 1.65f + idlePhase) * idleWeight;
-            float bounce = Mathf.Abs(Mathf.Sin(gaitPhase * 2f)) * .075f * stride * (1f - airBlend)
-                + .055f * airBlend + breathing * .025f;
+            float idleCycle = Mathf.Sin(Time.time * 2.15f + idlePhase);
+            float idleSpring = idleCycle * idleWeight;
+            float idleBob = (idleCycle * .5f + .5f) * .065f * idleWeight;
+            float bounce = Mathf.Abs(Mathf.Sin(gaitPhase * 2f)) * .09f * stride * (1f - airBlend)
+                + .07f * airBlend + idleBob + breathing * .012f;
             pose.localPosition = poseRestPosition + Vector3.up * bounce;
             float airStretch = airborne ? Mathf.Clamp01((transform.position.y - groundHeight) * .22f) * .07f : 0f;
             float squash = landingPulse;
+            float idleStretch = idleSpring * .026f;
             pose.localScale = new Vector3(
-                poseRestScale.x * (1f + squash * .34f - airStretch * .28f),
-                poseRestScale.y * (1f - squash * .48f + airStretch + breathing * .02f),
-                poseRestScale.z * (1f + squash * .34f - airStretch * .28f));
+                poseRestScale.x * (1f + squash * .34f - airStretch * .28f - idleStretch * .42f),
+                poseRestScale.y * (1f - squash * .48f + airStretch + breathing * .02f + idleStretch),
+                poseRestScale.z * (1f + squash * .34f - airStretch * .28f - idleStretch * .42f));
 
             float pitch = Mathf.Clamp(localMovement.z * 2.3f, -14f, 14f) + 12f * dashBlend - 5f * airBlend;
             float yaw = Mathf.Clamp(localMovement.x * 2.4f, -18f, 18f);
