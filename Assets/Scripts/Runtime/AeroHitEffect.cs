@@ -153,8 +153,9 @@ namespace FrutigerBadminton
         {
             if (!renderer) return;
             propertyBlock.Clear();
-            propertyBlock.SetColor(BaseColorId, color * fade);
-            propertyBlock.SetColor(ColorId, color * fade);
+            Color translucentTint = new Color(color.r, color.g, color.b, fade * .72f);
+            propertyBlock.SetColor(BaseColorId, translucentTint);
+            propertyBlock.SetColor(ColorId, translucentTint);
             propertyBlock.SetColor(EmissionId, color * (emission * fade));
             renderer.SetPropertyBlock(propertyBlock);
         }
@@ -164,6 +165,16 @@ namespace FrutigerBadminton
             Shader shader = AeroRuntimeShaderLibrary.Resolve("Universal Render Pipeline/Lit");
             var material = new Material(shader) { name = "Procedural impact glow" };
             if (material.HasProperty(BaseColorId)) material.SetColor(BaseColorId, color); else material.color = color;
+            if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 1f);
+            if (material.HasProperty("_Blend")) material.SetFloat("_Blend", (float)BlendMode.Alpha);
+            if (material.HasProperty("_SrcBlend")) material.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha);
+            if (material.HasProperty("_DstBlend")) material.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
+            if (material.HasProperty("_ZWrite")) material.SetInt("_ZWrite", 0);
+            material.SetOverrideTag("RenderType", "Transparent");
+            material.renderQueue = (int)RenderQueue.Transparent;
+            material.DisableKeyword("_SURFACE_TYPE_OPAQUE");
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.SetShaderPassEnabled("ShadowCaster", false);
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", .78f);
             if (material.HasProperty(EmissionId))
             {
