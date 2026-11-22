@@ -42,13 +42,22 @@ xvfb-run -a -s '-screen 0 1920x1080x24 +extension GLX' bash -c '
   import -window root "$capture_dir/compact-controls.png"
   xdotool key F1
   sleep 2
-  # Attempt a serve and record the ensuing frames for visual review. Timing can
-  # vary with software rendering, so these images are observations, not a test.
+  # Attempt a serve and record the swing itself. The software renderer may
+  # process an input several frames after xdotool sends it, so start the clip
+  # first and inspect the whole response rather than one early still.
   xdotool mousemove --window "$window" 960 420
+  ffmpeg -y -loglevel warning -f x11grab -framerate 12 -video_size 1920x1080 \
+    -i "$DISPLAY" -t 4 -vf scale=960:-2 -c:v libx264 -preset ultrafast \
+    -pix_fmt yuv420p "$capture_dir/racket-swing.mp4" > "$capture_dir/racket-swing-ffmpeg.log" 2>&1 &
+  swing_clip_pid=$!
+  sleep .3
   xdotool key f
-  sleep .25
+  sleep 1
   import -window root "$capture_dir/racket-swing.png"
-  sleep 2
+  wait "$swing_clip_pid"
+  ffmpeg -y -loglevel error -i "$capture_dir/racket-swing.mp4" \
+    -vf 'fps=4,scale=480:-2,tile=4x4' -frames:v 1 "$capture_dir/racket-swing-sheet.png"
+  sleep 1
   import -window root "$capture_dir/rally-early.png"
   sleep 3
   import -window root "$capture_dir/rally-middle.png"

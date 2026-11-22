@@ -964,11 +964,11 @@ namespace FrutigerBadminton
             if (racketTrailMaterial)
             {
                 var trail = ring.AddComponent<TrailRenderer>();
-                trail.time = .24f;
-                trail.minVertexDistance = .018f;
-                trail.startWidth = .085f;
-                trail.endWidth = .003f;
-                trail.startColor = new Color(color.r, color.g, color.b, .72f);
+                trail.time = .38f;
+                trail.minVertexDistance = .014f;
+                trail.startWidth = .11f;
+                trail.endWidth = .004f;
+                trail.startColor = new Color(color.r, color.g, color.b, .82f);
                 trail.endColor = new Color(color.r, color.g, color.b, 0f);
                 trail.sharedMaterial = racketTrailMaterial;
                 trail.alignment = LineAlignment.View;
