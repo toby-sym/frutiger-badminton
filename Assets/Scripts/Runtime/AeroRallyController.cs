@@ -83,6 +83,7 @@ namespace FrutigerBadminton
         Material bandMaterial;
         Material trailMaterial;
         GUIStyle scoreStyle;
+        GUIStyle messageStyle;
         GUIStyle scoreTeamStyle;
         GUIStyle labelStyle;
         GUIStyle upgradeButtonStyle;
@@ -1670,6 +1671,7 @@ namespace FrutigerBadminton
             if (scoreStyle == null)
             {
                 scoreStyle = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+                messageStyle = new GUIStyle(scoreStyle) { fontSize = 18, wordWrap = true };
                 scoreTeamStyle = new GUIStyle(GUI.skin.label) { fontSize = 11, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
                 labelStyle = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft };
                 upgradeButtonStyle = new GUIStyle(GUI.skin.button) { fontSize = 14, fontStyle = FontStyle.Bold };
@@ -1717,6 +1719,7 @@ namespace FrutigerBadminton
                 titleButtonStyle.hover.background = Texture2D.whiteTexture;
                 titleButtonStyle.active.background = Texture2D.whiteTexture;
                 scoreStyle.normal.textColor = Color.white;
+                messageStyle.normal.textColor = Color.white;
                 labelStyle.normal.textColor = new Color(.82f, .98f, 1f);
                 upgradeDescriptionStyle.normal.textColor = new Color(.82f, .98f, 1f);
                 hintStyle.normal.textColor = new Color(.68f, .89f, .93f);
@@ -1802,11 +1805,16 @@ namespace FrutigerBadminton
 
             if (!runComplete && !upgradeDraftActive && !isPaused && messageDelay > 0f)
             {
-                float messageTop = Mathf.Max(16f, Screen.height - 64f);
-                DrawGlassPanel(new Rect(Screen.width * .5f - 235f, messageTop, 470f, 48f),
+                float panelWidth = Mathf.Max(1f, Mathf.Min(620f, Screen.width - 32f));
+                float textWidth = Mathf.Max(1f, panelWidth - 32f);
+                float textHeight = messageStyle.CalcHeight(new GUIContent(message), textWidth);
+                float panelHeight = Mathf.Max(48f, textHeight + 20f);
+                float panelLeft = (Screen.width - panelWidth) * .5f;
+                float messageTop = Mathf.Max(16f, Screen.height - panelHeight - 24f);
+                DrawGlassPanel(new Rect(panelLeft, messageTop, panelWidth, panelHeight),
                     new Color(.045f, .24f, .29f, .9f), new Color(.01f, .09f, .15f, .92f));
                 GUI.color = Color.white;
-                GUI.Label(new Rect(Screen.width * .5f - 225f, messageTop + 4f, 450f, 40f), message, scoreStyle);
+                GUI.Label(new Rect(panelLeft + 16f, messageTop + 10f, textWidth, panelHeight - 20f), message, messageStyle);
             }
             GUI.color = previous;
         }

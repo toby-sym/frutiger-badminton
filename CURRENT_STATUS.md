@@ -5,6 +5,7 @@
 - The editor bootstrap generates the Aero Court scene and URP assets from C# using procedural meshes, primitives, and materials.
 - Cloud banks drift with gentle parallax while floating glass lanterns bob, twinkle, and orbit around the court; all motion is generated at runtime.
 - The island supports now sit below its top surface rather than protruding as posts through the court surround; a Linux capture confirmed the posts no longer appear above the floor.
+- Rally messages use a wider, text-sized panel that wraps on narrow screens; a Linux capture showed the serve prompt fitting on one line. Narrow-screen and Windows checks remain.
 - The court now has a texture-free HLSL sheen overlay with animated wave bands and view-angle glints; artifact validation is pending.
 - The floating court now sits on a generated chamfered crystal-mesa island with a bright aqua waist and layered blue underside facets.
 - The camera backdrop now uses a full-sphere pastel-to-azure vertex gradient and a generated sun halo, filling the previously gray below-horizon view.
@@ -15,7 +16,7 @@
 - The pavilion has shallow upper galleries, handrails, and luminous fixtures generated around the rear and side edges of the court; composition and brightness need an artifact check.
 - The local practice loop is implemented with WASD movement, jump, dash, aimed clear, drop, drive, smash, scoring, and a returning rival.
 - GitHub Actions uses GameCI to build and package a portable Windows x64 Development player on every branch push. Unity's `Library` folder is cached in development and release workflows, and superseded builds on the same branch are canceled.
-- An optional visual-capture workflow builds a Linux player and records title/court views using a virtual display; it does not run on ordinary main pushes. Run 44962945423 captured both the title menu and match using Mesa software rendering. The captured landscape initially read as flat green bands and has since been refined. The headless audio-device error overlay occurred intermittently despite -noaudio; the capture script now provides a silent ALSA device and needs another capture check.
+- An optional visual-capture workflow builds a Linux player and records title/court views using a virtual display; it does not run on ordinary main pushes. Run 44962945423 captured both the title menu and match using Mesa software rendering. The captured landscape initially read as flat green bands and has since been refined. The headless audio-device error overlay occurred intermittently despite -noaudio; the capture script now provides a silent ALSA device, and a subsequent capture logged no FMOD or audio-device errors.
 - Development uploads skip redundant compression of the already packaged ZIP. After a direct merge to `main`, GameCI reuses the successful feature-branch artifact only when the merge tree is identical, and falls back to a fresh build for other main pushes.
 - The impact feedback Windows build passed in run `44836155335` (10m) and uploaded its artifact. The direct merge to `main` passed in run `44837552946` (10m20s) and saved a 746 MB `Library` cache for the default branch.
 - Procedural body pivots, responsive run/jump/dash/racket-swing animation, and generated shock rings and sparks at racket contact are implemented.
