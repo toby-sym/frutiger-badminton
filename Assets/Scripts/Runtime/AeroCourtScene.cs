@@ -782,13 +782,13 @@ namespace FrutigerBadminton
             CreatePlayerGlaze(pose, suit);
             var headPivot = new GameObject("Springy gel head pivot").transform;
             headPivot.SetParent(pose, false);
-            headPivot.localPosition = new Vector3(0f, 1.59f, 0f);
+            headPivot.localPosition = new Vector3(0f, 1.55f, 0f);
             var headCore = AddGlassPrimitive(PrimitiveType.Sphere, "Tinted jelly head interior",
-                headPivot.position, Vector3.one * .585f,
+                headPivot.position, Vector3.one * .52f,
                 PlayerCrystalMaterial(PlayerCoreColor(suit), .88f, .06f, false));
             headCore.transform.SetParent(headPivot, true);
             headCore.GetComponent<Renderer>().sortingOrder = 0;
-            var head = AddGlassPrimitive(PrimitiveType.Sphere, "Crystal head shell", headPivot.position, Vector3.one * .61f,
+            var head = AddGlassPrimitive(PrimitiveType.Sphere, "Crystal head shell", headPivot.position, Vector3.one * .545f,
                 PlayerCrystalMaterial(suit, .38f, .42f, true, .72f, .016f));
             head.transform.SetParent(headPivot, true);
             head.GetComponent<Renderer>().sortingOrder = 1;
