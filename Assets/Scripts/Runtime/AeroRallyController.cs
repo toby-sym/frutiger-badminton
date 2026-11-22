@@ -1852,7 +1852,7 @@ namespace FrutigerBadminton
         {
             if (playerServeReady) return compact ? "YOUR SERVE" : "SERVE  ·  Aim, then tap a shot";
             if (servePending || !flightActive) return compact ? "GET READY" : "GET READY  ·  Watch for the serve";
-            if (!playerMustReturn) return compact ? "SHUTTLE OUT" : "SHUTTLE OUT  ·  Get ready";
+            if (!playerMustReturn) return compact ? "TO RIVALS" : "TO RIVALS  ·  Get ready";
             if (assignedFriendlyReceiver) return compact ? "PARTNER MOVING" : "PARTNER MOVING  ·  Be ready";
             return compact ? "YOUR RETURN" : "YOUR RETURN  ·  Aim, then tap a shot";
         }
