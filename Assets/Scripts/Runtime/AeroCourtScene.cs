@@ -751,16 +751,16 @@ namespace FrutigerBadminton
             CreatePlayerJacket(pose, suit);
             CreatePlayerGlaze(pose);
             Sphere("Head", pose.TransformPoint(new Vector3(0f, 1.66f, 0f)), new Vector3(.36f, .39f, .35f), new Color(.94f, .72f, .56f), .55f, .025f).transform.SetParent(pose, true);
-            Transform leftLeg = Limb(pose, "Left leg", new Vector3(-.18f, .58f, 0f), new Vector3(-.32f, .07f, 0f), .16f, suit);
-            Transform rightLeg = Limb(pose, "Right leg", new Vector3(.18f, .58f, 0f), new Vector3(.32f, .07f, 0f), .16f, suit);
+            Transform leftLeg = ArticulatedLeg(pose, "Left leg", new Vector3(-.18f, .58f, 0f), new Vector3(-.32f, .07f, 0f), .16f, suit, out Transform leftKnee);
+            Transform rightLeg = ArticulatedLeg(pose, "Right leg", new Vector3(.18f, .58f, 0f), new Vector3(.32f, .07f, 0f), .16f, suit, out Transform rightKnee);
             Transform leftArm = Limb(pose, "Left arm", new Vector3(-.3f, 1.08f, 0f), new Vector3(-.48f, .52f, .05f), .12f, suit);
             Transform rightArm = Limb(pose, "Right arm", new Vector3(.3f, 1.08f, 0f), new Vector3(.52f, 1.38f, 0f), .12f, suit);
-            CreatePlayerKit(pose, leftLeg, rightLeg, name, suit);
+            CreatePlayerKit(pose, leftKnee, rightKnee, name, suit);
             bool rival = name == "Rival" || name == "Rival Partner" || name == "Rival Wing";
             Color racketColor = rival ? new Color(1f, .88f, .77f) : new Color(.8f, 1f, .98f);
             Transform racket = CreateRacket(rightArm, pose.TransformPoint(new Vector3(.62f, 1.14f, 0f)), racketColor);
             Renderer shadow = CreatePlayerShadow(root.transform);
-            root.AddComponent<AeroPlayerAnimation>().Initialize(pose, leftArm, rightArm, leftLeg, rightLeg, racket, shadow);
+            root.AddComponent<AeroPlayerAnimation>().Initialize(pose, leftArm, rightArm, leftLeg, rightLeg, leftKnee, rightKnee, racket, shadow);
             return root.transform;
         }
 
@@ -1017,6 +1017,14 @@ namespace FrutigerBadminton
             ringRenderer.sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", new Color(.58f, .9f, 1f), .72f, .62f);
             ringRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             ringRenderer.receiveShadows = false;
+        }
+
+        Transform ArticulatedLeg(Transform parent, string name, Vector3 from, Vector3 to, float radius, Color color, out Transform knee)
+        {
+            Vector3 midpoint = Vector3.Lerp(from, to, .52f);
+            Transform hip = Limb(parent, name + " upper", from, midpoint, radius, color);
+            knee = Limb(hip, name + " lower", midpoint - from, to - from, radius * .92f, color);
+            return hip;
         }
 
         Transform Limb(Transform parent, string name, Vector3 from, Vector3 to, float radius, Color color)
