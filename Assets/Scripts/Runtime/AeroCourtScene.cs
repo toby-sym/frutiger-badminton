@@ -9,6 +9,7 @@ namespace FrutigerBadminton
         [SerializeField] Shader vertexColorShader;
         const float CourtWidth = 6.1f;
         const float CourtLength = 13.4f;
+        const int ReflectionBackdropLayer = 29;
         readonly List<Material> ownedMaterials = new List<Material>();
         readonly List<Mesh> ownedMeshes = new List<Mesh>();
         readonly List<CloudDrift> cloudDrifts = new List<CloudDrift>();
@@ -136,6 +137,7 @@ namespace FrutigerBadminton
             CreateSpectatorOrbs();
             CreateCamera();
             CreateSolarHalo();
+            CreateSkyReflectionProbe();
         }
 
         void CreateSkyDome()
@@ -171,6 +173,7 @@ namespace FrutigerBadminton
             mesh.SetVertices(vertices); mesh.SetColors(colors); mesh.SetTriangles(triangles, 0); mesh.RecalculateNormals();
             ownedMeshes.Add(mesh);
             var dome = new GameObject("Sky gradient dome");
+            dome.layer = ReflectionBackdropLayer;
             dome.transform.position = new Vector3(0f, -5f, 0f);
             dome.AddComponent<MeshFilter>().sharedMesh = mesh;
             dome.AddComponent<MeshRenderer>().sharedMaterial = MakeMaterial("Frutiger/Vertex Color", Color.white, 0f, .2f, vertexColorShader);
@@ -223,6 +226,7 @@ namespace FrutigerBadminton
                 mesh.RecalculateBounds();
                 ownedMeshes.Add(mesh);
                 var ridgeObject = new GameObject("Distant meadow ridge " + layer);
+                ridgeObject.layer = ReflectionBackdropLayer;
                 ridgeObject.AddComponent<MeshFilter>().sharedMesh = mesh;
                 var renderer = ridgeObject.AddComponent<MeshRenderer>();
                 renderer.sharedMaterial = material;
@@ -990,6 +994,26 @@ namespace FrutigerBadminton
             cameraObject.tag = "MainCamera";
             cameraObject.transform.position = new Vector3(12f, 10f, -19f);
             cameraObject.transform.LookAt(new Vector3(0f, .3f, 0f));
+        }
+
+        void CreateSkyReflectionProbe()
+        {
+            // Capture only the generated backdrop once; animated players and shuttle
+            // stay out of the cubemap, so they cannot leave frozen reflections.
+            var probeObject = new GameObject("Procedural sky reflection probe");
+            probeObject.transform.SetParent(transform, false);
+            probeObject.transform.position = new Vector3(0f, 1f, 0f);
+            var probe = probeObject.AddComponent<ReflectionProbe>();
+            probe.mode = UnityEngine.Rendering.ReflectionProbeMode.Realtime;
+            probe.refreshMode = UnityEngine.Rendering.ReflectionProbeRefreshMode.ViaScripting;
+            probe.timeSlicingMode = UnityEngine.Rendering.ReflectionProbeTimeSlicingMode.IndividualFaces;
+            probe.resolution = 128;
+            probe.hdr = true;
+            probe.size = new Vector3(40f, 24f, 40f);
+            probe.farClipPlane = 250f;
+            probe.cullingMask = 1 << ReflectionBackdropLayer;
+            probe.intensity = .8f;
+            probe.RenderProbe();
         }
 
         void CreateSolarHalo()
