@@ -23,6 +23,7 @@ namespace FrutigerBadminton
         readonly List<CloudDrift> bubbleDrifts = new List<CloudDrift>();
         readonly Dictionary<string, Material> materialCache = new Dictionary<string, Material>();
         Material playerShadowMaterial;
+        Material racketTrailMaterial;
         readonly Dictionary<string, Material> playerCrystalMaterials = new Dictionary<string, Material>();
         Mesh playerTorsoMesh;
         Mesh playerLimbShellNearMesh;
@@ -955,6 +956,28 @@ namespace FrutigerBadminton
             mr.sortingOrder = 2;
             ring.transform.SetParent(racket, false);
             ring.transform.localPosition = new Vector3(0f, .59f, 0f);
+            if (!racketTrailMaterial)
+            {
+                Shader trailShader = Resources.Load<Shader>("AeroTrail");
+                if (trailShader) racketTrailMaterial = MakeMaterial("Frutiger/Aero Trail", Color.white, 0f, 0f, trailShader);
+            }
+            if (racketTrailMaterial)
+            {
+                var trail = ring.AddComponent<TrailRenderer>();
+                trail.time = .16f;
+                trail.minVertexDistance = .018f;
+                trail.startWidth = .085f;
+                trail.endWidth = .003f;
+                trail.startColor = new Color(color.r, color.g, color.b, .72f);
+                trail.endColor = new Color(color.r, color.g, color.b, 0f);
+                trail.sharedMaterial = racketTrailMaterial;
+                trail.alignment = LineAlignment.View;
+                trail.textureMode = LineTextureMode.Stretch;
+                trail.sortingOrder = 4;
+                trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                trail.receiveShadows = false;
+                trail.emitting = false;
+            }
 
             var stringBed = new GameObject("Translucent team colour strings");
             var stringFilter = stringBed.AddComponent<MeshFilter>();
