@@ -539,6 +539,9 @@ namespace FrutigerBadminton
             handrail.transform.SetParent(gallery.transform, true);
             var panel = AddGlassPrimitive(PrimitiveType.Cube, "Right glass", new Vector3(right + .06f, 2.5f, .05f), new Vector3(.02f, 6.3f, 18f), glass);
             panel.transform.SetParent(gallery.transform, true);
+            // Keep the thin glass structure from casting a heavy grid over the playing floor.
+            foreach (Renderer part in gallery.GetComponentsInChildren<Renderer>())
+                part.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             gallery.AddComponent<AeroCourtLevelVisibility>();
         }
 
