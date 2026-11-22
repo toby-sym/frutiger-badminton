@@ -16,7 +16,6 @@ namespace FrutigerBadminton
         Transform leftElbow;
         Transform rightElbow;
         Transform racket;
-        TrailRenderer racketTrail;
         Renderer shadowRenderer;
         MaterialPropertyBlock shadowProperties;
 
@@ -69,7 +68,6 @@ namespace FrutigerBadminton
             leftElbow = leftElbowJoint;
             rightElbow = rightElbowJoint;
             racket = racketAssembly;
-            racketTrail = racket.GetComponentInChildren<TrailRenderer>();
             shadowRenderer = contactShadow;
             if (shadowRenderer) shadowProperties = new MaterialPropertyBlock();
 
@@ -102,11 +100,6 @@ namespace FrutigerBadminton
             swingRemaining = swingDuration;
             swingPower = smash ? 1.25f : 1f;
             racketFlexVelocity += smash ? 560f : 460f;
-            if (racketTrail)
-            {
-                racketTrail.Clear();
-                racketTrail.emitting = true;
-            }
         }
 
         public void ResetMotion()
@@ -140,11 +133,6 @@ namespace FrutigerBadminton
             rightElbow.localRotation = rightElbowRestRotation;
             racket.localRotation = racketRestRotation;
             racket.localScale = racketRestScale;
-            if (racketTrail)
-            {
-                racketTrail.emitting = false;
-                racketTrail.Clear();
-            }
         }
 
         void LateUpdate()
@@ -250,7 +238,6 @@ namespace FrutigerBadminton
             float racketStretch = Mathf.Clamp01(Mathf.Abs(racketFlexAngle) / 24f);
             racket.localScale = Vector3.Scale(racketRestScale,
                 new Vector3(1f - racketStretch * .018f, 1f + racketStretch * .045f, 1f - racketStretch * .018f));
-            if (racketTrail && swingRemaining <= 0f) racketTrail.emitting = false;
             rightArm.localRotation = rightArmPose;
         }
     }
