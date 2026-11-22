@@ -25,6 +25,8 @@ namespace FrutigerBadminton
         Material playerShadowMaterial;
         readonly Dictionary<string, Material> playerCrystalMaterials = new Dictionary<string, Material>();
         Mesh playerTorsoMesh;
+        Mesh playerLimbShellMesh;
+        Mesh playerLimbCoreMesh;
 
         struct CloudDrift
         {
@@ -780,10 +782,11 @@ namespace FrutigerBadminton
             headCore.transform.SetParent(pose, true);
             var head = AddGlassPrimitive(PrimitiveType.Sphere, "Crystal head shell", pose.TransformPoint(new Vector3(0f, 1.7f, 0f)), Vector3.one * .61f, PlayerCrystalMaterial(suit));
             head.transform.SetParent(pose, true);
-            Transform leftLeg = ArticulatedLeg(pose, "Left leg", new Vector3(-.2f, .65f, 0f), new Vector3(-.34f, .14f, 0f), .34f, suit, out Transform leftKnee);
-            Transform rightLeg = ArticulatedLeg(pose, "Right leg", new Vector3(.2f, .65f, 0f), new Vector3(.34f, .14f, 0f), .34f, suit, out Transform rightKnee);
-            Transform leftArm = ArticulatedArm(pose, "Left arm", new Vector3(-.32f, 1.22f, 0f), new Vector3(-.49f, .92f, .02f), new Vector3(-.66f, .56f, .04f), .31f, .29f, suit, out Transform leftElbow);
-            Transform rightArm = ArticulatedArm(pose, "Right arm", new Vector3(.32f, 1.22f, 0f), new Vector3(.47f, 1.08f, .02f), new Vector3(.6f, .92f, .04f), .31f, .29f, suit, out Transform rightElbow);
+            Transform leftLeg = ArticulatedLeg(pose, "Left leg", new Vector3(-.2f, .65f, 0f), new Vector3(-.34f, .14f, 0f), out Transform leftKnee);
+            Transform rightLeg = ArticulatedLeg(pose, "Right leg", new Vector3(.2f, .65f, 0f), new Vector3(.34f, .14f, 0f), out Transform rightKnee);
+            Transform leftArm = ArticulatedArm(pose, "Left arm", new Vector3(-.32f, 1.22f, 0f), new Vector3(-.49f, .92f, .02f), new Vector3(-.66f, .56f, .04f), out Transform leftElbow);
+            Transform rightArm = ArticulatedArm(pose, "Right arm", new Vector3(.32f, 1.22f, 0f), new Vector3(.47f, 1.08f, .02f), new Vector3(.6f, .92f, .04f), out Transform rightElbow);
+            CreatePlayerLimbs(pose, suit, leftArm, rightArm, leftLeg, rightLeg, leftElbow, rightElbow, leftKnee, rightKnee);
             Transform racket = CreateRacket(rightElbow, new Vector3(.6f, .92f, .04f) - new Vector3(.47f, 1.08f, .02f), suit);
             Renderer shadow = CreatePlayerShadow(root.transform);
             root.AddComponent<AeroPlayerAnimation>().Initialize(pose, leftArm, rightArm, leftLeg, rightLeg, leftKnee, rightKnee, leftElbow, rightElbow, racket, shadow);
@@ -1056,47 +1059,183 @@ namespace FrutigerBadminton
             ringRenderer.receiveShadows = false;
         }
 
-        Transform ArticulatedLeg(Transform parent, string name, Vector3 from, Vector3 to, float radius, Color color, out Transform knee)
+        Transform ArticulatedLeg(Transform parent, string name, Vector3 from, Vector3 to, out Transform knee)
         {
             Vector3 midpoint = Vector3.Lerp(from, to, .52f);
-            Transform hip = Limb(parent, name + " upper", from, midpoint, radius, color);
-            knee = Limb(hip, name + " lower", midpoint - from, to - from, radius * .92f, color);
+            Transform hip = PlayerJoint(parent, name + " hip", from);
+            knee = PlayerJoint(hip, name + " knee", midpoint - from);
             return hip;
         }
 
-        Transform ArticulatedArm(Transform parent, string name, Vector3 shoulder, Vector3 elbow, Vector3 hand,
-            float upperWidth, float forearmWidth, Color color, out Transform elbowPivot)
+        Transform ArticulatedArm(Transform parent, string name, Vector3 shoulder, Vector3 elbow, Vector3 hand, out Transform elbowPivot)
         {
-            Transform shoulderPivot = Limb(parent, name + " upper", shoulder, elbow, upperWidth, color);
-            elbowPivot = Limb(shoulderPivot, name + " forearm", elbow - shoulder, hand - shoulder, forearmWidth, color);
+            Transform shoulderPivot = PlayerJoint(parent, name + " shoulder", shoulder);
+            elbowPivot = PlayerJoint(shoulderPivot, name + " elbow", elbow - shoulder);
             return shoulderPivot;
         }
 
-        Transform Limb(Transform parent, string name, Vector3 from, Vector3 to, float radius, Color color)
+        static Transform PlayerJoint(Transform parent, string name, Vector3 position)
         {
-            Vector3 delta = to - from;
             var joint = new GameObject(name + " pivot").transform;
             joint.SetParent(parent, false);
-            joint.localPosition = from;
-
-            var limb = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            limb.name = "Crystal " + name.ToLowerInvariant();
-            limb.GetComponent<Collider>().enabled = false;
-            var shellRenderer = limb.GetComponent<Renderer>();
-            shellRenderer.sharedMaterial = PlayerCrystalMaterial(color);
-            shellRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            shellRenderer.receiveShadows = false;
-            limb.transform.SetParent(joint, false);
-            limb.transform.localScale = new Vector3(radius, (delta.magnitude + radius * .8f) * .5f, radius);
-            limb.transform.localPosition = delta * .5f;
-            limb.transform.localRotation = Quaternion.FromToRotation(Vector3.up, delta.normalized);
-            var core = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            core.name = "Crystal limb core";
-            core.GetComponent<Collider>().enabled = false;
-            core.GetComponent<Renderer>().sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", PlayerCoreColor(color), .96f, .025f);
-            core.transform.SetParent(limb.transform, false);
-            core.transform.localScale = new Vector3(.84f, .94f, .84f);
+            joint.localPosition = position;
             return joint;
+        }
+
+        void CreatePlayerLimbs(Transform pose, Color suit, Transform leftArm, Transform rightArm,
+            Transform leftLeg, Transform rightLeg, Transform leftElbow, Transform rightElbow,
+            Transform leftKnee, Transform rightKnee)
+        {
+            Transform[] bones = { leftArm, rightArm, leftLeg, rightLeg, leftElbow, rightElbow, leftKnee, rightKnee };
+            if (!playerLimbShellMesh)
+            {
+                playerLimbShellMesh = BuildPlayerLimbMesh(pose, bones, 1f);
+                playerLimbCoreMesh = BuildPlayerLimbMesh(pose, bones, .8f);
+                ownedMeshes.Add(playerLimbShellMesh);
+                ownedMeshes.Add(playerLimbCoreMesh);
+            }
+
+            var body = new GameObject("Continuous crystal limbs");
+            body.transform.SetParent(pose, false);
+            var shell = body.AddComponent<SkinnedMeshRenderer>();
+            shell.sharedMesh = playerLimbShellMesh;
+            shell.bones = bones;
+            shell.rootBone = pose;
+            shell.sharedMaterial = PlayerCrystalMaterial(suit);
+            shell.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            shell.receiveShadows = false;
+            shell.updateWhenOffscreen = true;
+            shell.localBounds = playerLimbShellMesh.bounds;
+            shell.localBounds.Expand(new Vector3(.45f, .45f, .3f));
+
+            var core = new GameObject("Soft coloured limb interior");
+            core.transform.SetParent(pose, false);
+            var inner = core.AddComponent<SkinnedMeshRenderer>();
+            inner.sharedMesh = playerLimbCoreMesh;
+            inner.bones = bones;
+            inner.rootBone = pose;
+            inner.sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", PlayerCoreColor(suit), .98f, .055f);
+            inner.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            inner.receiveShadows = false;
+            inner.updateWhenOffscreen = true;
+            inner.localBounds = playerLimbCoreMesh.bounds;
+            inner.localBounds.Expand(new Vector3(.45f, .45f, .3f));
+        }
+
+        static Mesh BuildPlayerLimbMesh(Transform pose, Transform[] bones, float radiusScale)
+        {
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>();
+            var weights = new List<BoneWeight>();
+            AddSkinnedLimb(vertices, triangles, weights, new Vector3(-.32f, 1.22f, 0f), new Vector3(-.49f, .92f, .02f), new Vector3(-.66f, .56f, .04f), 0, 4, .18f * radiusScale, .145f * radiusScale);
+            AddSkinnedLimb(vertices, triangles, weights, new Vector3(.32f, 1.22f, 0f), new Vector3(.47f, 1.08f, .02f), new Vector3(.6f, .92f, .04f), 1, 5, .18f * radiusScale, .145f * radiusScale);
+            Vector3 leftHip = new Vector3(-.2f, .65f, 0f), leftAnkle = new Vector3(-.34f, .14f, 0f);
+            Vector3 rightHip = new Vector3(.2f, .65f, 0f), rightAnkle = new Vector3(.34f, .14f, 0f);
+            AddSkinnedLimb(vertices, triangles, weights, leftHip, Vector3.Lerp(leftHip, leftAnkle, .52f), leftAnkle, 2, 6, .19f * radiusScale, .15f * radiusScale);
+            AddSkinnedLimb(vertices, triangles, weights, rightHip, Vector3.Lerp(rightHip, rightAnkle, .52f), rightAnkle, 3, 7, .19f * radiusScale, .15f * radiusScale);
+
+            var mesh = new Mesh { name = "Generated seamless crystal limbs" };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
+            mesh.boneWeights = weights.ToArray();
+            var bindPoses = new Matrix4x4[bones.Length];
+            for (int i = 0; i < bones.Length; i++) bindPoses[i] = bones[i].worldToLocalMatrix * pose.localToWorldMatrix;
+            mesh.bindposes = bindPoses;
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        static void AddSkinnedLimb(List<Vector3> vertices, List<int> triangles, List<BoneWeight> weights,
+            Vector3 start, Vector3 elbow, Vector3 end, int upperBone, int lowerBone, float upperRadius, float lowerRadius)
+        {
+            const int ringsPerSegment = 12;
+            const int sides = 18;
+            Vector3 p0 = start + (start - elbow);
+            Vector3 p3 = end + (end - elbow);
+            float jointWeight = Vector3.Distance(start, elbow) / (Vector3.Distance(start, elbow) + Vector3.Distance(elbow, end));
+            int firstVertex = vertices.Count;
+            for (int ring = 0; ring <= ringsPerSegment * 2; ring++)
+            {
+                float t = ring / (float)(ringsPerSegment * 2);
+                Vector3 center = t <= .5f
+                    ? CatmullRom(p0, start, elbow, end, t * 2f)
+                    : CatmullRom(start, elbow, end, p3, (t - .5f) * 2f);
+                float sampleA = Mathf.Max(0f, t - .01f);
+                float sampleB = Mathf.Min(1f, t + .01f);
+                Vector3 tangent = (LimbPathPoint(p0, start, elbow, end, p3, sampleB) - LimbPathPoint(p0, start, elbow, end, p3, sampleA)).normalized;
+                Vector3 side = new Vector3(tangent.y, -tangent.x, 0f).normalized;
+                if (side.sqrMagnitude < .01f) side = Vector3.right;
+                float fullness = 1f + .05f * Mathf.Exp(-Mathf.Pow((t - jointWeight) * 8f, 2f));
+                float radius = Mathf.Lerp(upperRadius, lowerRadius, t) * fullness;
+                float lowerWeight = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(jointWeight - .12f, jointWeight + .12f, t));
+                for (int sideIndex = 0; sideIndex < sides; sideIndex++)
+                {
+                    float angle = sideIndex / (float)sides * Mathf.PI * 2f;
+                    Vector3 radial = side * Mathf.Cos(angle) + Vector3.forward * Mathf.Sin(angle);
+                    vertices.Add(center + radial * radius);
+                    weights.Add(new BoneWeight
+                    {
+                        boneIndex0 = upperBone,
+                        weight0 = 1f - lowerWeight,
+                        boneIndex1 = lowerBone,
+                        weight1 = lowerWeight
+                    });
+                    if (ring > 0)
+                    {
+                        int a = firstVertex + (ring - 1) * sides + sideIndex;
+                        int b = firstVertex + ring * sides + sideIndex;
+                        int c = firstVertex + (ring - 1) * sides + (sideIndex + 1) % sides;
+                        int d = firstVertex + ring * sides + (sideIndex + 1) % sides;
+                        triangles.Add(a); triangles.Add(b); triangles.Add(c);
+                        triangles.Add(b); triangles.Add(d); triangles.Add(c);
+                    }
+                }
+            }
+
+            Vector3 finalTangent = (end - elbow).normalized;
+            Vector3 finalSide = new Vector3(finalTangent.y, -finalTangent.x, 0f).normalized;
+            if (finalSide.sqrMagnitude < .01f) finalSide = Vector3.right;
+            float capRadius = lowerRadius;
+            int previousRing = firstVertex + ringsPerSegment * 2 * sides;
+            for (int cap = 1; cap <= 3; cap++)
+            {
+                float angle = cap / 4f * Mathf.PI * .5f;
+                Vector3 center = end + finalTangent * capRadius * Mathf.Sin(angle);
+                float radius = capRadius * Mathf.Cos(angle);
+                int currentRing = vertices.Count;
+                for (int sideIndex = 0; sideIndex < sides; sideIndex++)
+                {
+                    float around = sideIndex / (float)sides * Mathf.PI * 2f;
+                    Vector3 radial = finalSide * Mathf.Cos(around) + Vector3.forward * Mathf.Sin(around);
+                    vertices.Add(center + radial * radius);
+                    weights.Add(new BoneWeight { boneIndex0 = lowerBone, weight0 = 1f });
+                    int next = (sideIndex + 1) % sides;
+                    triangles.Add(previousRing + sideIndex); triangles.Add(currentRing + sideIndex); triangles.Add(previousRing + next);
+                    triangles.Add(currentRing + sideIndex); triangles.Add(currentRing + next); triangles.Add(previousRing + next);
+                }
+                previousRing = currentRing;
+            }
+            int tip = vertices.Count;
+            vertices.Add(end + finalTangent * capRadius);
+            weights.Add(new BoneWeight { boneIndex0 = lowerBone, weight0 = 1f });
+            for (int sideIndex = 0; sideIndex < sides; sideIndex++)
+            {
+                triangles.Add(previousRing + sideIndex);
+                triangles.Add(tip);
+                triangles.Add(previousRing + (sideIndex + 1) % sides);
+            }
+        }
+
+        static Vector3 LimbPathPoint(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, Vector3 p4, float t)
+        {
+            return t <= .5f ? CatmullRom(p0, p1, p2, p3, t * 2f) : CatmullRom(p1, p2, p3, p4, (t - .5f) * 2f);
+        }
+
+        static Vector3 CatmullRom(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
+        {
+            float t2 = t * t, t3 = t2 * t;
+            return .5f * ((2f * p1) + (-p0 + p2) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 + (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
         }
 
         GameObject Line(string name, Vector3 center, Vector3 scale, Color color) => Cube(name, center, scale, color, .1f, .05f);

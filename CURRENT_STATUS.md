@@ -12,7 +12,7 @@
 - The pavilion has a generated illuminated scoreboard mirroring the HUD score. A Linux capture showed both displays updating to 0–2; Windows gameplay verification remains.
 - Translucent, softly tinted bubbles orbit the arena in place of bright solid orbs; a Linux capture confirmed their appearance.
 - A generated right-side glass gallery closes the court-level arena and hides in overview mode. Linux captures confirmed both views and showed the floor remains clear of heavy gallery shadows.
-- Players use fuller, overlapping glass limbs, larger faceless crystal heads and a wider softly tapered torso. New elbow pivots, squash-and-stretch landings and a liquid team-coloured racket are awaiting a fresh capture.
+- Players now use continuous procedurally skinned glass limbs with animated elbows and knees, larger faceless crystal heads, and a wider tapered torso. Stronger squash-and-stretch and a liquid team-coloured racket are awaiting a fresh capture.
 - Generated leafy vines hang at the pavilion canopy corners. Linux captures confirmed they stay above play and hide with the canopy in overview mode.
 - The controls panel can be compacted with F1 or gamepad Select and restored the same way; the compact view retains serve and dash status. Linux capture confirmed the F1 toggle and layout; controller and pointer-boundary checks remain.
 - A single generated double-sided net mesh replaces the coarser individual threads, with finer spacing and fewer renderers. Linux captures confirmed visibility in both camera views.
