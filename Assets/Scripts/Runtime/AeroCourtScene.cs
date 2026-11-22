@@ -780,8 +780,8 @@ namespace FrutigerBadminton
             headCore.transform.SetParent(pose, true);
             var head = AddGlassPrimitive(PrimitiveType.Sphere, "Crystal head shell", pose.TransformPoint(new Vector3(0f, 1.7f, 0f)), Vector3.one * .61f, PlayerCrystalMaterial(suit));
             head.transform.SetParent(pose, true);
-            Transform leftLeg = ArticulatedLeg(pose, "Left leg", new Vector3(-.2f, .65f, 0f), new Vector3(-.34f, .07f, 0f), .34f, suit, out Transform leftKnee);
-            Transform rightLeg = ArticulatedLeg(pose, "Right leg", new Vector3(.2f, .65f, 0f), new Vector3(.34f, .07f, 0f), .34f, suit, out Transform rightKnee);
+            Transform leftLeg = ArticulatedLeg(pose, "Left leg", new Vector3(-.2f, .65f, 0f), new Vector3(-.34f, .14f, 0f), .34f, suit, out Transform leftKnee);
+            Transform rightLeg = ArticulatedLeg(pose, "Right leg", new Vector3(.2f, .65f, 0f), new Vector3(.34f, .14f, 0f), .34f, suit, out Transform rightKnee);
             Transform leftArm = ArticulatedArm(pose, "Left arm", new Vector3(-.32f, 1.22f, 0f), new Vector3(-.49f, .92f, .02f), new Vector3(-.66f, .56f, .04f), .31f, .29f, suit, out Transform leftElbow);
             Transform rightArm = ArticulatedArm(pose, "Right arm", new Vector3(.32f, 1.22f, 0f), new Vector3(.47f, 1.08f, .02f), new Vector3(.6f, .92f, .04f), .31f, .29f, suit, out Transform rightElbow);
             Transform racket = CreateRacket(rightElbow, new Vector3(.6f, .92f, .04f) - new Vector3(.47f, 1.08f, .02f), suit);
@@ -921,7 +921,7 @@ namespace FrutigerBadminton
 
             var ring = new GameObject("Rounded liquid racket frame");
             var mf = ring.AddComponent<MeshFilter>(); var mr = ring.AddComponent<MeshRenderer>();
-            var ringMesh = BuildRacketHoop(.235f, .305f, .027f, 64, 10);
+            var ringMesh = BuildRacketHoop(.235f, .305f, .035f, 64, 10);
             ownedMeshes.Add(ringMesh);
             mf.sharedMesh = ringMesh; mr.sharedMaterial = PlayerCrystalMaterial(color, .38f, .22f);
             ring.transform.SetParent(racket, false);
@@ -929,15 +929,15 @@ namespace FrutigerBadminton
 
             var stringBed = new GameObject("Translucent team colour strings");
             var stringFilter = stringBed.AddComponent<MeshFilter>();
-            var stringMesh = BuildRacketStringBed(.196f, .265f, 13, 11, .0045f, .009f);
+            var stringMesh = BuildRacketStringBed(.196f, .265f, 13, 11, .008f, .009f);
             ownedMeshes.Add(stringMesh);
             stringFilter.sharedMesh = stringMesh;
             var stringRenderer = stringBed.AddComponent<MeshRenderer>();
-            stringRenderer.sharedMaterial = PlayerCrystalMaterial(Color.Lerp(color, Color.white, .3f), .42f, .12f);
+            stringRenderer.sharedMaterial = PlayerCrystalMaterial(Color.Lerp(color, Color.white, .15f), .58f, .18f);
             stringRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             stringRenderer.receiveShadows = false;
             stringBed.transform.SetParent(racket, false);
-            stringBed.transform.localPosition = new Vector3(0f, .66f, .057f);
+            stringBed.transform.localPosition = new Vector3(0f, .66f, .075f);
 
             var shaft = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             shaft.name = "Soft glass racket throat and shaft";
@@ -1087,7 +1087,7 @@ namespace FrutigerBadminton
             shellRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             shellRenderer.receiveShadows = false;
             limb.transform.SetParent(joint, false);
-            limb.transform.localScale = new Vector3(radius, delta.magnitude * .5f, radius);
+            limb.transform.localScale = new Vector3(radius, (delta.magnitude + radius * .8f) * .5f, radius);
             limb.transform.localPosition = delta * .5f;
             limb.transform.localRotation = Quaternion.FromToRotation(Vector3.up, delta.normalized);
             var core = GameObject.CreatePrimitive(PrimitiveType.Capsule);
@@ -1095,7 +1095,7 @@ namespace FrutigerBadminton
             core.GetComponent<Collider>().enabled = false;
             core.GetComponent<Renderer>().sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", PlayerCoreColor(color), .96f, .025f);
             core.transform.SetParent(limb.transform, false);
-            core.transform.localScale = new Vector3(.72f, .82f, .72f);
+            core.transform.localScale = new Vector3(.84f, .94f, .84f);
             return joint;
         }
 
