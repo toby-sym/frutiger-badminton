@@ -178,21 +178,23 @@ namespace FrutigerBadminton
             var material = new Material(shader) { name = "Procedural horizon colours" };
             ownedMaterials.Add(material);
 
-            for (int layer = 0; layer < 2; layer++)
+            for (int layer = 0; layer < 3; layer++)
             {
-                const int segments = 64;
-                float depth = layer == 0 ? 70f : 80f;
-                float topOffset = layer == 0 ? -2f : -.4f;
+                const int segments = 128;
+                float depth = 68f + layer * 11f;
+                float topOffset = -4.2f + layer * 2.1f;
                 var vertices = new List<Vector3>((segments + 1) * 3);
                 var colors = new List<Color>((segments + 1) * 3);
                 var triangles = new List<int>(segments * 12);
-                Color ridge = layer == 0 ? new Color(.36f, .72f, .25f, .82f) : new Color(.49f, .77f, .36f, .64f);
-                Color mid = layer == 0 ? new Color(.18f, .57f, .42f, .55f) : new Color(.28f, .63f, .48f, .42f);
+                Color ridge = Color.Lerp(new Color(.31f, .70f, .33f, .78f), new Color(.58f, .79f, .52f, .58f), layer / 2f);
+                Color mid = Color.Lerp(new Color(.22f, .60f, .48f, .48f), new Color(.50f, .74f, .62f, .32f), layer / 2f);
                 Color mist = new Color(.58f, .86f, .86f, 0f);
                 for (int i = 0; i <= segments; i++)
                 {
                     float x = Mathf.Lerp(-85f, 85f, i / (float)segments);
-                    float crest = topOffset + Mathf.Sin(x * .052f + layer * 1.4f) * 1.1f + Mathf.Sin(x * .11f + .7f) * .35f;
+                    float crest = topOffset + Mathf.Sin(x * .042f + layer * 1.6f) * 2.4f
+                        + Mathf.Sin(x * .095f + layer * 2.3f + .7f) * .75f
+                        + Mathf.Sin(x * .16f - layer) * .2f;
                     vertices.Add(new Vector3(x, -13f, depth)); colors.Add(mist);
                     vertices.Add(new Vector3(x, Mathf.Lerp(-13f, crest, .6f), depth)); colors.Add(mid);
                     vertices.Add(new Vector3(x, crest, depth)); colors.Add(ridge);
