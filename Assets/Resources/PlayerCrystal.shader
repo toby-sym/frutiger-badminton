@@ -6,14 +6,15 @@ Shader "Frutiger/Player Crystal"
         _Opacity ("Inner tint", Range(0, 1)) = 0.12
         _RimOpacity ("Glass rim", Range(0, 1)) = 0.5
         _Reflectivity ("Window reflections", Range(0, 1)) = 0.5
+        _ZWrite ("Depth write", Float) = 1
     }
     SubShader
     {
         Tags { "RenderType"="Transparent" "Queue"="Transparent" "RenderPipeline"="UniversalPipeline" }
         Blend SrcAlpha OneMinusSrcAlpha
-        // Character shells and their inner gel layer both need to blend. Writing
-        // depth here made the near shell hide the tinted core and racket strings.
-        ZWrite Off
+        // Outer shells and racket details depth-test against each other. Inner gel
+        // layers disable depth writes so their color can blend through the shell.
+        ZWrite [_ZWrite]
         Cull Back
         Pass
         {
