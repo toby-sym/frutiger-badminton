@@ -578,7 +578,57 @@ namespace FrutigerBadminton
                 strip.transform.SetParent(canopy.transform, true);
                 strip.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
+            CreateCanopyGreenery(canopy.transform);
             canopy.AddComponent<AeroCourtLevelVisibility>();
+        }
+
+        void CreateCanopyGreenery(Transform canopy)
+        {
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>();
+            for (int side = -1; side <= 1; side += 2)
+            for (int vine = 0; vine < 4; vine++)
+            {
+                float x = side * (5.65f + vine * .30f);
+                float z = 3.5f + vine * 1.35f;
+                float length = 1f + (vine % 3) * .22f;
+                Vector3 previous = new Vector3(x, 5.66f, z);
+                for (int segment = 1; segment <= 6; segment++)
+                {
+                    float t = segment / 6f;
+                    Vector3 current = new Vector3(x + Mathf.Sin(t * 4f + vine) * .09f, 5.66f - length * t, z + Mathf.Sin(t * 3f + vine) * .06f);
+                    AddGreeneryQuad(vertices, triangles, previous + Vector3.left * .018f, previous + Vector3.right * .018f,
+                        current + Vector3.right * .018f, current + Vector3.left * .018f);
+                    int leafSide = (segment + vine) % 2 == 0 ? 1 : -1;
+                    Vector3 tip = current + new Vector3(leafSide * (.24f + .05f * (segment % 2)), -.08f, .015f);
+                    Vector3 middle = (current + tip) * .5f;
+                    AddGreeneryQuad(vertices, triangles, current, middle + Vector3.up * .095f, tip, middle + Vector3.down * .07f);
+                    previous = current;
+                }
+            }
+            var mesh = new Mesh { name = "Generated hanging greenery" };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            ownedMeshes.Add(mesh);
+            var greenery = new GameObject("Hanging canopy greenery");
+            greenery.transform.SetParent(canopy, false);
+            greenery.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = greenery.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", new Color(.12f, .48f, .20f), .38f, .025f);
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        static void AddGreeneryQuad(List<Vector3> vertices, List<int> triangles, Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+        {
+            int index = vertices.Count;
+            vertices.Add(a); vertices.Add(b); vertices.Add(c); vertices.Add(d);
+            vertices.Add(a); vertices.Add(b); vertices.Add(c); vertices.Add(d);
+            triangles.Add(index); triangles.Add(index + 1); triangles.Add(index + 2);
+            triangles.Add(index); triangles.Add(index + 2); triangles.Add(index + 3);
+            triangles.Add(index + 6); triangles.Add(index + 5); triangles.Add(index + 4);
+            triangles.Add(index + 7); triangles.Add(index + 6); triangles.Add(index + 4);
         }
 
         void CreateArenaScoreboard()
