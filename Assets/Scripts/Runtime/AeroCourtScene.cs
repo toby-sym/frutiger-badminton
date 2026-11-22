@@ -754,13 +754,13 @@ namespace FrutigerBadminton
             for (int ring = 0; ring <= rings; ring++)
             {
                 float height = ring / (float)rings * 2f - 1f;
-                float radius = Mathf.Sqrt(Mathf.Max(0f, 1f - Mathf.Pow(Mathf.Abs(height), 4f)));
+                float radius = Mathf.Sqrt(Mathf.Max(0f, 1f - Mathf.Pow(Mathf.Abs(height), 2.5f)));
                 float shoulderTaper = Mathf.Lerp(.86f, 1f, (height + 1f) * .5f);
                 for (int segment = 0; segment <= segments; segment++)
                 {
                     float angle = segment / (float)segments * Mathf.PI * 2f;
-                    vertices.Add(new Vector3(Mathf.Cos(angle) * .30f * radius * shoulderTaper,
-                        height * .41f, Mathf.Sin(angle) * .19f * radius * shoulderTaper));
+                    vertices.Add(new Vector3(Mathf.Cos(angle) * .28f * radius * shoulderTaper,
+                        height * .45f, Mathf.Sin(angle) * .19f * radius * shoulderTaper));
                 }
             }
             for (int ring = 0; ring < rings; ring++)
