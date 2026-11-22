@@ -489,6 +489,7 @@ namespace FrutigerBadminton
             ownedMaterials.Add(glass);
             AddGlassPrimitive(PrimitiveType.Cube, "Rear glass", new Vector3(0f, 2.5f, back + .06f), new Vector3(14.45f, 6.3f, .02f), glass);
             AddGlassPrimitive(PrimitiveType.Cube, "Side glass", new Vector3(left - .06f, 2.5f, .05f), new Vector3(.02f, 6.3f, 18f), glass);
+            CreatePavilionCanopy(glass);
 
             var bubbleMaterial = new Material(glassShader) { name = "Floating pearl bubbles" };
             bubbleMaterial.SetColor("_Tint", new Color(.65f, .91f, 1f));
@@ -503,6 +504,39 @@ namespace FrutigerBadminton
                 var bubble = AddGlassPrimitive(PrimitiveType.Sphere, "Drifting glass bubble", position, Vector3.one * size, bubbleMaterial);
                 bubbleDrifts.Add(new CloudDrift(bubble.transform, position, i * 1.1f, .35f + i * .015f));
             }
+        }
+
+        void CreatePavilionCanopy(Material glass)
+        {
+            // A delicate overhead grid frames the low camera; the overview hides it
+            // so its beams cannot cover players seen from above.
+            var canopy = new GameObject("Glass arena canopy");
+            Color frame = new Color(.16f, .36f, .51f);
+            Color light = new Color(.72f, .96f, 1f);
+            var roof = AddGlassPrimitive(PrimitiveType.Cube, "Canopy glass", new Vector3(0f, 5.78f, .05f), new Vector3(14.45f, .025f, 18f), glass);
+            roof.transform.SetParent(canopy.transform, true);
+            for (int i = 0; i <= 6; i++)
+            {
+                float x = Mathf.Lerp(-7.2f, 7.2f, i / 6f);
+                var beam = Cube("Canopy lengthwise beam", new Vector3(x, 5.7f, .05f), new Vector3(.075f, .1f, 18f), frame, .8f, .025f);
+                beam.transform.SetParent(canopy.transform, true);
+                beam.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            for (int i = 0; i <= 8; i++)
+            {
+                float z = Mathf.Lerp(-8.95f, 9.05f, i / 8f);
+                var beam = Cube("Canopy cross beam", new Vector3(0f, 5.7f, z), new Vector3(14.4f, .1f, .075f), frame, .8f, .025f);
+                beam.transform.SetParent(canopy.transform, true);
+                beam.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            for (int row = 0; row < 3; row++)
+            for (int col = -1; col <= 1; col++)
+            {
+                var strip = Cube("Canopy light", new Vector3(col * 4.5f, 5.62f, -5.5f + row * 5.4f), new Vector3(.16f, .04f, 1.6f), light, .6f, .6f);
+                strip.transform.SetParent(canopy.transform, true);
+                strip.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            canopy.AddComponent<AeroCanopyVisibility>();
         }
 
         GameObject AddGlassPrimitive(PrimitiveType type, string objectName, Vector3 position, Vector3 scale, Material material)
