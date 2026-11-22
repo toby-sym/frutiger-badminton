@@ -12,7 +12,7 @@
 - The court now has a texture-free HLSL sheen overlay with animated wave bands and view-angle glints; artifact validation is pending.
 - The floating court now sits on a generated chamfered crystal-mesa island with a bright aqua waist and layered blue underside facets.
 - The camera backdrop now uses a full-sphere pastel-to-azure vertex gradient and a generated sun halo, filling the previously gray below-horizon view.
-- The sky shader now layers a slowly drifting procedural cloud field over the gradient, with a denser cloud sea below the horizon and lighter high clouds. This uses no image textures and needs visual inspection in the Windows artifact.
+- The sky shader layers a slowly drifting procedural cloud field over the gradient, with a brighter cloud sea and more defined high clouds. This uses no image textures; capture and Windows visual checks are pending.
 - Three generated, mist-faded meadow ridges add a rolling silhouette and soft procedural colour variation beyond the pavilion; inspect their composition in both camera views.
 - Softer tinted cloud banks and reduced emission help preserve colour and contrast.
 - The court now has a saturated blue lacquer finish with procedural grain, broad light patches, and suggested window-frame reflections. An open glass pavilion and drifting translucent bubbles frame the court, while player suits use a glossier, less emissive finish. These effects use generated geometry and shaders; visual inspection in the Windows artifact is pending.

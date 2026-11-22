@@ -52,11 +52,12 @@ Shader "Frutiger/Vertex Color"
                 float2 p = cloudSpace * 4.3 + drift;
                 float cloudField = Noise(p) * .57 + Noise(p * 2.05 + 13.7) * .28
                     + Noise(p * 4.1 + 29.3) * .15;
-                float cloudShape = smoothstep(.42, .7, cloudField);
+                // Distinct sunlit high clouds and a softer, bright cloud sea below the horizon.
+                float cloudShape = smoothstep(.46, .62, cloudField);
                 float lowerSky = 1 - smoothstep(-.14, -.025, direction.y);
                 float upperSky = smoothstep(.04, .16, direction.y) * (1 - smoothstep(.45, .7, direction.y));
-                float opacity = saturate(lowerSky * (.25 + cloudShape * .45) + upperSky * cloudShape * .34);
-                float3 cloudColor = lerp(float3(.62, .79, .93), float3(.98, 1, 1), cloudShape);
+                float opacity = saturate(lowerSky * (.48 + cloudShape * .34) + upperSky * cloudShape * .58);
+                float3 cloudColor = lerp(float3(.73, .86, .96), float3(.98, 1, 1), cloudShape);
                 return half4(lerp(input.color.rgb, cloudColor, opacity), input.color.a);
             }
             ENDHLSL
