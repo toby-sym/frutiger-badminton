@@ -781,13 +781,16 @@ namespace FrutigerBadminton
             CreatePlayerTorsoCore(pose, suit);
             CreatePlayerGlaze(pose, suit);
             CreatePlayerNeck(pose, suit);
+            var headPivot = new GameObject("Springy gel head pivot").transform;
+            headPivot.SetParent(pose, false);
+            headPivot.localPosition = new Vector3(0f, 1.7f, 0f);
             var headCore = AddGlassPrimitive(PrimitiveType.Sphere, "Tinted jelly head interior",
-                pose.TransformPoint(new Vector3(0f, 1.7f, 0f)), Vector3.one * .585f,
+                headPivot.position, Vector3.one * .585f,
                 PlayerCrystalMaterial(PlayerCoreColor(suit), .88f, .06f, false));
-            headCore.transform.SetParent(pose, true);
+            headCore.transform.SetParent(headPivot, true);
             headCore.GetComponent<Renderer>().sortingOrder = 0;
-            var head = AddGlassPrimitive(PrimitiveType.Sphere, "Crystal head shell", pose.TransformPoint(new Vector3(0f, 1.7f, 0f)), Vector3.one * .61f, PlayerCrystalMaterial(suit));
-            head.transform.SetParent(pose, true);
+            var head = AddGlassPrimitive(PrimitiveType.Sphere, "Crystal head shell", headPivot.position, Vector3.one * .61f, PlayerCrystalMaterial(suit));
+            head.transform.SetParent(headPivot, true);
             head.GetComponent<Renderer>().sortingOrder = 1;
             Transform leftLeg = ArticulatedLeg(pose, "Left leg", new Vector3(-.2f, .65f, 0f), new Vector3(-.34f, .14f, 0f), out Transform leftKnee);
             Transform rightLeg = ArticulatedLeg(pose, "Right leg", new Vector3(.2f, .65f, 0f), new Vector3(.34f, .14f, 0f), out Transform rightKnee);
@@ -800,7 +803,7 @@ namespace FrutigerBadminton
             CreatePlayerLimbs(pose, suit, rival, leftArm, rightArm, leftLeg, rightLeg, leftElbow, rightElbow, leftKnee, rightKnee);
             Transform racket = CreateRacket(rightElbow, rightHandPosition - rightElbowPosition, suit, rival);
             Renderer shadow = CreatePlayerShadow(root.transform);
-            root.AddComponent<AeroPlayerAnimation>().Initialize(pose, leftArm, rightArm, leftLeg, rightLeg, leftKnee, rightKnee, leftElbow, rightElbow, racket, shadow);
+            root.AddComponent<AeroPlayerAnimation>().Initialize(pose, headPivot, leftArm, rightArm, leftLeg, rightLeg, leftKnee, rightKnee, leftElbow, rightElbow, racket, shadow);
             return root.transform;
         }
 
