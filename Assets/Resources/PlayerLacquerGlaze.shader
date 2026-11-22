@@ -42,7 +42,8 @@ Shader "Frutiger/Player Lacquer Glaze"
                 float3 view = normalize(GetWorldSpaceViewDir(input.positionWS));
                 float rim = pow(1 - saturate(dot(normal, view)), 2.4);
                 float highlight = pow(saturate(dot(normal, normalize(view + float3(-.4, .8, -.35)))), 36);
-                float stripe = exp(-pow((localNormal.x + .32) * 7, 2))
+                float stripePosition = (localNormal.x + .32) * 7;
+                float stripe = exp(-stripePosition * stripePosition)
                     * smoothstep(.1, .65, abs(localNormal.z)) * (1 - smoothstep(.6, .95, abs(localNormal.y)));
                 float alpha = saturate(_Opacity + rim * _RimOpacity + highlight * .42 + stripe * .28);
                 return half4(lerp(_Tint.rgb, 1, saturate(highlight + stripe * .55 + rim * .45)), alpha);
