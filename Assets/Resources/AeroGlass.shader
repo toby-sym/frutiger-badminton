@@ -45,9 +45,13 @@ Shader "Frutiger/Aero Glass"
                 float highlight = pow(saturate(dot(normal, normalize(view + float3(-.4, .8, -.35)))), 80);
                 // A faint diagonal reflection makes large panes legible while
                 // leaving bubbles unchanged when the strength is zero.
-                float paneAxis = lerp(input.positionWS.x, input.positionWS.z, abs(normal.x));
-                float bandPosition = frac((input.positionWS.y + paneAxis * .28) * .18) - .5;
-                float band = exp(-bandPosition * bandPosition * 52) * _SheenStrength * saturate(dot(normal, view));
+                float band = 0;
+                if (_SheenStrength > .001)
+                {
+                    float paneAxis = lerp(input.positionWS.x, input.positionWS.z, abs(normal.x));
+                    float bandPosition = frac((input.positionWS.y + paneAxis * .28) * .18) - .5;
+                    band = exp(-bandPosition * bandPosition * 52) * _SheenStrength * saturate(dot(normal, view));
+                }
                 float alpha = saturate(_Opacity + rim * _RimOpacity + highlight * .55 + band);
                 return half4(lerp(_Tint.rgb, 1, saturate(highlight + rim * .55 + band)), alpha);
             }

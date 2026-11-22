@@ -494,7 +494,7 @@ namespace FrutigerBadminton
             glass.SetColor("_Tint", new Color(.55f, .83f, .94f));
             glass.SetFloat("_Opacity", .035f);
             glass.SetFloat("_RimOpacity", .12f);
-            glass.SetFloat("_SheenStrength", .14f);
+            glass.SetFloat("_SheenStrength", .28f);
             ownedMaterials.Add(glass);
             AddGlassPrimitive(PrimitiveType.Cube, "Rear glass", new Vector3(0f, 2.5f, back + .06f), new Vector3(14.45f, 6.3f, .02f), glass);
             AddGlassPrimitive(PrimitiveType.Cube, "Side glass", new Vector3(left - .06f, 2.5f, .05f), new Vector3(.02f, 6.3f, 18f), glass);
