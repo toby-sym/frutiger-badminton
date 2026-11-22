@@ -5,6 +5,7 @@ Shader "Frutiger/Aero Glass"
         _Tint ("Glass tint", Color) = (0.52, 0.87, 1, 1)
         _Opacity ("Center opacity", Range(0, 1)) = 0.04
         _RimOpacity ("Edge opacity", Range(0, 1)) = 0.5
+        _SheenStrength ("Pane reflection", Range(0, 1)) = 0
     }
     SubShader
     {
@@ -23,6 +24,7 @@ Shader "Frutiger/Aero Glass"
                 float4 _Tint;
                 float _Opacity;
                 float _RimOpacity;
+                float _SheenStrength;
             CBUFFER_END
             struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; };
             struct Varyings { float4 positionCS : SV_POSITION; float3 positionWS : TEXCOORD0; float3 normalWS : TEXCOORD1; };
@@ -41,8 +43,13 @@ Shader "Frutiger/Aero Glass"
                 float3 view = normalize(GetWorldSpaceViewDir(input.positionWS));
                 float rim = pow(1 - saturate(dot(normal, view)), 2.4);
                 float highlight = pow(saturate(dot(normal, normalize(view + float3(-.4, .8, -.35)))), 80);
-                float alpha = saturate(_Opacity + rim * _RimOpacity + highlight * .55);
-                return half4(lerp(_Tint.rgb, 1, saturate(highlight + rim * .55)), alpha);
+                // A faint diagonal reflection makes large panes legible while
+                // leaving bubbles unchanged when the strength is zero.
+                float paneAxis = lerp(input.positionWS.x, input.positionWS.z, abs(normal.x));
+                float bandPosition = frac((input.positionWS.y + paneAxis * .28) * .18) - .5;
+                float band = exp(-bandPosition * bandPosition * 52) * _SheenStrength * saturate(dot(normal, view));
+                float alpha = saturate(_Opacity + rim * _RimOpacity + highlight * .55 + band);
+                return half4(lerp(_Tint.rgb, 1, saturate(highlight + rim * .55 + band)), alpha);
             }
             ENDHLSL
         }
