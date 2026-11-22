@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace FrutigerBadminton
@@ -18,6 +19,9 @@ namespace FrutigerBadminton
         Transform racket;
         Renderer shadowRenderer;
         MaterialPropertyBlock shadowProperties;
+        readonly List<Renderer> gelShellRenderers = new List<Renderer>(4);
+        readonly List<float> gelShellWobbleBases = new List<float>(4);
+        MaterialPropertyBlock gelShellProperties;
 
         Vector3 poseRestPosition;
         Vector3 poseRestScale;
@@ -70,6 +74,15 @@ namespace FrutigerBadminton
             racket = racketAssembly;
             shadowRenderer = contactShadow;
             if (shadowRenderer) shadowProperties = new MaterialPropertyBlock();
+            foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
+            {
+                Material material = renderer.sharedMaterial;
+                if (!material || !material.HasProperty("_Weave") || !material.HasProperty("_GelWobble")
+                    || material.GetFloat("_Weave") < .1f) continue;
+                gelShellRenderers.Add(renderer);
+                gelShellWobbleBases.Add(material.GetFloat("_GelWobble"));
+            }
+            if (gelShellRenderers.Count > 0) gelShellProperties = new MaterialPropertyBlock();
 
             poseRestPosition = pose.localPosition;
             poseRestScale = pose.localScale;
@@ -113,6 +126,7 @@ namespace FrutigerBadminton
             dashBlend = 0f;
             dashBlendVelocity = 0f;
             landingPulse = 0f;
+            SetGelShellWobble(0f);
             swingRemaining = 0f;
             racketFlexAngle = 0f;
             racketFlexVelocity = 0f;
@@ -172,6 +186,7 @@ namespace FrutigerBadminton
             if (wasAirborne && !airborne) landingPulse = .42f;
             wasAirborne = airborne;
             landingPulse = Mathf.MoveTowards(landingPulse, 0f, deltaTime * 2.1f);
+            SetGelShellWobble(landingPulse * .022f + dashBlend * .004f);
 
             float idleWeight = (1f - stride) * (1f - airBlend);
             float breathing = Mathf.Sin(Time.time * 1.65f + idlePhase) * idleWeight;
@@ -239,6 +254,20 @@ namespace FrutigerBadminton
             racket.localScale = Vector3.Scale(racketRestScale,
                 new Vector3(1f - racketStretch * .018f, 1f + racketStretch * .045f, 1f - racketStretch * .018f));
             rightArm.localRotation = rightArmPose;
+        }
+
+        void SetGelShellWobble(float extraWobble)
+        {
+            if (gelShellProperties == null) return;
+            for (int i = 0; i < gelShellRenderers.Count; i++)
+            {
+                Renderer renderer = gelShellRenderers[i];
+                if (!renderer) continue;
+                gelShellProperties.Clear();
+                renderer.GetPropertyBlock(gelShellProperties);
+                gelShellProperties.SetFloat("_GelWobble", gelShellWobbleBases[i] + extraWobble);
+                renderer.SetPropertyBlock(gelShellProperties);
+            }
         }
     }
 }
