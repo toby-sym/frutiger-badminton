@@ -9,6 +9,13 @@ namespace FrutigerBadminton
         [SerializeField] Shader vertexColorShader;
         const float CourtWidth = 6.1f;
         const float CourtLength = 13.4f;
+        const float StadiumFront = -15.5f;
+        const float StadiumBack = 9.1f;
+        const float StadiumCenterZ = (StadiumFront + StadiumBack) * .5f;
+        const float StadiumLength = StadiumBack - StadiumFront;
+        const float StadiumRoofY = 7.3f;
+        const float StadiumWallHeight = 8f;
+        const float StadiumWallCenterY = 3.3f;
         readonly List<Material> ownedMaterials = new List<Material>();
         readonly List<Mesh> ownedMeshes = new List<Mesh>();
         readonly List<CloudDrift> cloudDrifts = new List<CloudDrift>();
@@ -234,7 +241,7 @@ namespace FrutigerBadminton
         void CreateFloatingIsland()
         {
             var island = new GameObject("Beveled floating court island");
-            island.transform.position = new Vector3(0f, -1.1f, 0f);
+            island.transform.position = new Vector3(0f, -1.1f, StadiumCenterZ);
             Mesh islandMesh = BuildFloatingIslandMesh();
             ownedMeshes.Add(islandMesh);
             island.AddComponent<MeshFilter>().sharedMesh = islandMesh;
@@ -249,7 +256,7 @@ namespace FrutigerBadminton
             for (int i = 0; i < 9; i++)
             {
                 float x = -6.3f + i * 1.58f;
-                float z = (i % 2 == 0 ? -8f : 8f);
+                float z = (i % 2 == 0 ? -14.5f : 8f);
                 // Keep the angled supports below the island top instead of protruding through the court surround.
                 var support = Cylinder("Crystal island support", new Vector3(x, -3.5f, z), new Vector3(.35f, 2.2f, .35f), new Color(.24f, .72f, .9f), .7f, .3f);
                 support.transform.rotation = Quaternion.Euler(0f, 0f, (i % 2 == 0 ? -1f : 1f) * 11f);
@@ -264,15 +271,15 @@ namespace FrutigerBadminton
             // Follow the chamfered island edge, just above its top and below the playing court.
             Vector2[] outline =
             {
-                new Vector2(-.36f, -.5f), new Vector2(.36f, -.5f),
-                new Vector2(.5f, -.36f), new Vector2(.5f, .36f),
-                new Vector2(.36f, .5f), new Vector2(-.36f, .5f),
-                new Vector2(-.5f, .36f), new Vector2(-.5f, -.36f)
+                new Vector2(-.47f, -.5f), new Vector2(.47f, -.5f),
+                new Vector2(.5f, -.47f), new Vector2(.5f, .47f),
+                new Vector2(.47f, .5f), new Vector2(-.47f, .5f),
+                new Vector2(-.5f, .47f), new Vector2(-.5f, -.47f)
             };
             var vertices = new Vector3[9];
-            vertices[0] = new Vector3(0f, -.744f, 0f);
+            vertices[0] = new Vector3(0f, -.744f, StadiumCenterZ);
             for (int i = 0; i < outline.Length; i++)
-                vertices[i + 1] = new Vector3(outline[i].x * 15.1f, -.744f, outline[i].y * 20.1f);
+                vertices[i + 1] = new Vector3(outline[i].x * 15.1f, -.744f, outline[i].y * 26.5f + StadiumCenterZ);
             var triangles = new int[outline.Length * 3];
             for (int i = 0; i < outline.Length; i++)
             {
@@ -311,12 +318,12 @@ namespace FrutigerBadminton
 
             // The chamfered rings keep the court's large, level top while giving the island a clear crystal-mesa silhouette.
             float[] widths = { 15.1f, 15.5f, 15.5f, 15.5f, 15.1f, 15.1f, 14.7f, 13.8f, 11.8f, 8.6f };
-            float[] lengths = { 20.1f, 20.5f, 20.5f, 20.5f, 20.1f, 20.1f, 19.7f, 18.8f, 16.7f, 13.8f };
+            float[] lengths = { 26.5f, 26.9f, 26.9f, 26.9f, 26.5f, 26.5f, 26.1f, 25.2f, 23.1f, 20.2f };
             float[] heights = { .35f, .1f, -.28f, -.4f, -.52f, -.62f, -1.08f, -1.78f, -2.4f, -2.78f };
             float[,] corners =
             {
-                { -.36f, -.5f }, { .36f, -.5f }, { .5f, -.36f }, { .5f, .36f },
-                { .36f, .5f }, { -.36f, .5f }, { -.5f, .36f }, { -.5f, -.36f }
+                { -.47f, -.5f }, { .47f, -.5f }, { .5f, -.47f }, { .5f, .47f },
+                { .47f, .5f }, { -.47f, .5f }, { -.5f, .47f }, { -.5f, -.47f }
             };
 
             Vector3 Point(int ring, int corner) => new Vector3(
@@ -433,59 +440,49 @@ namespace FrutigerBadminton
 
         void CreatePavilion()
         {
-            // An open-sided pavilion frames the view without putting geometry between the camera and play.
+            // The camera sits inside a complete glass arena. The near wall and
+            // roof hide in overview so they cannot cover play from above.
             Color frame = new Color(.20f, .42f, .56f);
             Color trim = new Color(.63f, .88f, .94f);
-            const float back = 9.1f;
+            Color gallery = new Color(.09f, .28f, .42f);
+            Color light = new Color(.73f, .96f, 1f);
             const float left = -7.25f;
-            const float height = 6.4f;
             for (int i = 0; i <= 8; i++)
             {
                 float x = Mathf.Lerp(-7.25f, 7.25f, i / 8f);
-                Cube("Pavilion rear mullion", new Vector3(x, 2.5f, back), new Vector3(.07f, height, .11f), frame, .8f, .025f);
+                Cube("Pavilion rear mullion", new Vector3(x, StadiumWallCenterY, StadiumBack), new Vector3(.07f, StadiumWallHeight, .11f), frame, .8f, .025f);
             }
-            for (int i = 0; i <= 6; i++)
+            for (int i = 0; i <= 9; i++)
             {
-                float z = Mathf.Lerp(-9f, back, i / 6f);
-                Cube("Pavilion side mullion", new Vector3(left, 2.5f, z), new Vector3(.11f, height, .07f), frame, .8f, .025f);
+                float z = Mathf.Lerp(StadiumFront, StadiumBack, i / 9f);
+                Cube("Pavilion side mullion", new Vector3(left, StadiumWallCenterY, z), new Vector3(.11f, StadiumWallHeight, .07f), frame, .8f, .025f);
+                Cube("Side gallery support", new Vector3(-6.45f, 2.69f, z), new Vector3(.045f, .76f, .045f), trim, .78f, .04f);
             }
             for (int i = 0; i < 3; i++)
             {
-                float y = .25f + i * 2.25f;
-                Cube("Pavilion rear rail", new Vector3(0f, y, back), new Vector3(14.5f, .055f, .09f), trim, .8f, .025f);
-                Cube("Pavilion side rail", new Vector3(left, y, .05f), new Vector3(.09f, .055f, 18.1f), trim, .8f, .025f);
+                float y = .25f + i * 3f;
+                Cube("Pavilion rear rail", new Vector3(0f, y, StadiumBack), new Vector3(14.5f, .055f, .09f), trim, .8f, .025f);
+                Cube("Pavilion side rail", new Vector3(left, y, StadiumCenterZ), new Vector3(.09f, .055f, StadiumLength), trim, .8f, .025f);
             }
-            Cube("Pavilion rear crown", new Vector3(0f, 5.7f, back), new Vector3(14.6f, .18f, .22f), frame, .88f, .04f);
-            Cube("Pavilion side crown", new Vector3(left, 5.7f, .05f), new Vector3(.22f, .18f, 18.2f), frame, .88f, .04f);
-
-            // Shallow galleries and light strips add depth without crossing the camera's court view.
-            Color gallery = new Color(.09f, .28f, .42f);
-            Color light = new Color(.73f, .96f, 1f);
+            Cube("Pavilion rear crown", new Vector3(0f, StadiumRoofY, StadiumBack), new Vector3(14.6f, .18f, .22f), frame, .88f, .04f);
+            Cube("Pavilion side crown", new Vector3(left, StadiumRoofY, StadiumCenterZ), new Vector3(.22f, .18f, StadiumLength + .1f), frame, .88f, .04f);
             Cube("Rear gallery ledge", new Vector3(0f, 2.3f, 8.7f), new Vector3(14.35f, .14f, .8f), gallery, .86f, .025f);
-            Cube("Side gallery ledge", new Vector3(-6.85f, 2.3f, .05f), new Vector3(.8f, .14f, 18f), gallery, .86f, .025f);
+            Cube("Side gallery ledge", new Vector3(-6.85f, 2.3f, StadiumCenterZ), new Vector3(.8f, .14f, StadiumLength), gallery, .86f, .025f);
             Cube("Rear gallery handrail", new Vector3(0f, 3.05f, 8.3f), new Vector3(14.25f, .055f, .055f), trim, .82f, .08f);
-            Cube("Side gallery handrail", new Vector3(-6.45f, 3.05f, .05f), new Vector3(.055f, .055f, 17.9f), trim, .82f, .08f);
+            Cube("Side gallery handrail", new Vector3(-6.45f, 3.05f, StadiumCenterZ), new Vector3(.055f, .055f, StadiumLength), trim, .82f, .08f);
             for (int i = 0; i <= 8; i++)
             {
                 float x = Mathf.Lerp(-7.1f, 7.1f, i / 8f);
                 Cube("Rear gallery support", new Vector3(x, 2.69f, 8.3f), new Vector3(.045f, .76f, .045f), trim, .78f, .04f);
             }
-            for (int i = 0; i <= 6; i++)
-            {
-                float z = Mathf.Lerp(-8.9f, 8.95f, i / 6f);
-                Cube("Side gallery support", new Vector3(-6.45f, 2.69f, z), new Vector3(.045f, .76f, .045f), trim, .78f, .04f);
-            }
             for (int i = 0; i < 5; i++)
             {
                 float x = Mathf.Lerp(-5.6f, 5.6f, i / 4f);
-                var strip = Cube("Pavilion overhead light", new Vector3(x, 5.57f, 8.55f), new Vector3(1.12f, .045f, .18f), light, .65f, .55f);
+                var strip = Cube("Pavilion overhead light", new Vector3(x, StadiumRoofY - .13f, 8.55f), new Vector3(1.12f, .045f, .18f), light, .65f, .55f);
                 strip.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            }
-            for (int i = 0; i < 4; i++)
-            {
-                float z = Mathf.Lerp(-7.5f, 6.5f, i / 3f);
-                var strip = Cube("Pavilion side light", new Vector3(-6.7f, 5.57f, z), new Vector3(.18f, .045f, 1.12f), light, .65f, .55f);
-                strip.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                float z = Mathf.Lerp(StadiumFront + 1.5f, StadiumBack - 1.5f, i / 4f);
+                var sideStrip = Cube("Pavilion side light", new Vector3(-6.7f, StadiumRoofY - .13f, z), new Vector3(.18f, .045f, 1.12f), light, .65f, .55f);
+                sideStrip.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
 
             Shader glassShader = Resources.Load<Shader>("AeroGlass");
@@ -495,9 +492,10 @@ namespace FrutigerBadminton
             glass.SetFloat("_Opacity", .035f);
             glass.SetFloat("_RimOpacity", .12f);
             ownedMaterials.Add(glass);
-            AddGlassPrimitive(PrimitiveType.Cube, "Rear glass", new Vector3(0f, 2.5f, back + .06f), new Vector3(14.45f, 6.3f, .02f), glass);
-            AddGlassPrimitive(PrimitiveType.Cube, "Side glass", new Vector3(left - .06f, 2.5f, .05f), new Vector3(.02f, 6.3f, 18f), glass);
+            AddGlassPrimitive(PrimitiveType.Cube, "Rear glass", new Vector3(0f, StadiumWallCenterY, StadiumBack + .06f), new Vector3(14.45f, StadiumWallHeight, .02f), glass);
+            AddGlassPrimitive(PrimitiveType.Cube, "Side glass", new Vector3(left - .06f, StadiumWallCenterY, StadiumCenterZ), new Vector3(.02f, StadiumWallHeight, StadiumLength), glass);
             CreateRightGallery(glass);
+            CreateFrontWall(glass);
             CreatePavilionCanopy(glass);
 
             var bubbleMaterial = new Material(glassShader) { name = "Floating pearl bubbles" };
@@ -522,60 +520,87 @@ namespace FrutigerBadminton
             Color trim = new Color(.63f, .88f, .94f);
             Color ledgeColor = new Color(.09f, .28f, .42f);
             const float right = 7.25f;
-            for (int i = 0; i <= 6; i++)
+            for (int i = 0; i <= 9; i++)
             {
-                float z = Mathf.Lerp(-9f, 9.1f, i / 6f);
-                var mullion = Cube("Right pavilion mullion", new Vector3(right, 2.5f, z), new Vector3(.11f, 6.4f, .07f), frame, .8f, .025f);
+                float z = Mathf.Lerp(StadiumFront, StadiumBack, i / 9f);
+                var mullion = Cube("Right pavilion mullion", new Vector3(right, StadiumWallCenterY, z), new Vector3(.11f, StadiumWallHeight, .07f), frame, .8f, .025f);
                 mullion.transform.SetParent(gallery.transform, true);
                 var support = Cube("Right gallery support", new Vector3(6.45f, 2.69f, z), new Vector3(.045f, .76f, .045f), trim, .78f, .04f);
                 support.transform.SetParent(gallery.transform, true);
             }
             for (int i = 0; i < 3; i++)
             {
-                var rail = Cube("Right pavilion rail", new Vector3(right, .25f + i * 2.25f, .05f), new Vector3(.09f, .055f, 18.1f), trim, .8f, .025f);
+                var rail = Cube("Right pavilion rail", new Vector3(right, .25f + i * 3f, StadiumCenterZ), new Vector3(.09f, .055f, StadiumLength), trim, .8f, .025f);
                 rail.transform.SetParent(gallery.transform, true);
             }
-            var crown = Cube("Right pavilion crown", new Vector3(right, 5.7f, .05f), new Vector3(.22f, .18f, 18.2f), frame, .88f, .04f);
+            var crown = Cube("Right pavilion crown", new Vector3(right, StadiumRoofY, StadiumCenterZ), new Vector3(.22f, .18f, StadiumLength + .1f), frame, .88f, .04f);
             crown.transform.SetParent(gallery.transform, true);
-            var ledge = Cube("Right gallery ledge", new Vector3(6.85f, 2.3f, .05f), new Vector3(.8f, .14f, 18f), ledgeColor, .86f, .025f);
+            var ledge = Cube("Right gallery ledge", new Vector3(6.85f, 2.3f, StadiumCenterZ), new Vector3(.8f, .14f, StadiumLength), ledgeColor, .86f, .025f);
             ledge.transform.SetParent(gallery.transform, true);
-            var handrail = Cube("Right gallery handrail", new Vector3(6.45f, 3.05f, .05f), new Vector3(.055f, .055f, 17.9f), trim, .82f, .08f);
+            var handrail = Cube("Right gallery handrail", new Vector3(6.45f, 3.05f, StadiumCenterZ), new Vector3(.055f, .055f, StadiumLength), trim, .82f, .08f);
             handrail.transform.SetParent(gallery.transform, true);
-            var panel = AddGlassPrimitive(PrimitiveType.Cube, "Right glass", new Vector3(right + .06f, 2.5f, .05f), new Vector3(.02f, 6.3f, 18f), glass);
+            var panel = AddGlassPrimitive(PrimitiveType.Cube, "Right glass", new Vector3(right + .06f, StadiumWallCenterY, StadiumCenterZ), new Vector3(.02f, StadiumWallHeight, StadiumLength), glass);
             panel.transform.SetParent(gallery.transform, true);
-            // Keep the thin glass structure from casting a heavy grid over the playing floor.
             foreach (Renderer part in gallery.GetComponentsInChildren<Renderer>())
                 part.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             gallery.AddComponent<AeroCourtLevelVisibility>();
         }
 
+        void CreateFrontWall(Material glass)
+        {
+            var wall = new GameObject("Front glass wall");
+            Color frame = new Color(.20f, .42f, .56f);
+            Color trim = new Color(.63f, .88f, .94f);
+            for (int i = 0; i <= 8; i++)
+            {
+                float x = Mathf.Lerp(-7.25f, 7.25f, i / 8f);
+                var mullion = Cube("Front pavilion mullion", new Vector3(x, StadiumWallCenterY, StadiumFront), new Vector3(.07f, StadiumWallHeight, .11f), frame, .8f, .025f);
+                mullion.transform.SetParent(wall.transform, true);
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                var rail = Cube("Front pavilion rail", new Vector3(0f, .25f + i * 3f, StadiumFront), new Vector3(14.5f, .055f, .09f), trim, .8f, .025f);
+                rail.transform.SetParent(wall.transform, true);
+            }
+            var crown = Cube("Front pavilion crown", new Vector3(0f, StadiumRoofY, StadiumFront), new Vector3(14.6f, .18f, .22f), frame, .88f, .04f);
+            crown.transform.SetParent(wall.transform, true);
+            var panel = AddGlassPrimitive(PrimitiveType.Cube, "Front glass", new Vector3(0f, StadiumWallCenterY, StadiumFront - .06f), new Vector3(14.45f, StadiumWallHeight, .02f), glass);
+            panel.transform.SetParent(wall.transform, true);
+            foreach (Renderer part in wall.GetComponentsInChildren<Renderer>())
+                part.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            wall.AddComponent<AeroCourtLevelVisibility>();
+        }
+
         void CreatePavilionCanopy(Material glass)
         {
-            // A delicate overhead grid frames the low camera; the overview hides it
-            // so its beams cannot cover players seen from above.
             var canopy = new GameObject("Glass arena canopy");
             Color frame = new Color(.16f, .36f, .51f);
             Color light = new Color(.72f, .96f, 1f);
-            var roof = AddGlassPrimitive(PrimitiveType.Cube, "Canopy glass", new Vector3(0f, 5.78f, .05f), new Vector3(14.45f, .025f, 18f), glass);
+            var roofGlass = new Material(glass) { name = "Blue canopy glass" };
+            roofGlass.SetColor("_Tint", new Color(.22f, .48f, .68f));
+            roofGlass.SetFloat("_Opacity", .18f);
+            ownedMaterials.Add(roofGlass);
+            var roof = AddGlassPrimitive(PrimitiveType.Cube, "Canopy glass", new Vector3(0f, StadiumRoofY + .08f, StadiumCenterZ), new Vector3(14.45f, .025f, StadiumLength), roofGlass);
             roof.transform.SetParent(canopy.transform, true);
             for (int i = 0; i <= 6; i++)
             {
                 float x = Mathf.Lerp(-7.2f, 7.2f, i / 6f);
-                var beam = Cube("Canopy lengthwise beam", new Vector3(x, 5.7f, .05f), new Vector3(.075f, .1f, 18f), frame, .8f, .025f);
+                var beam = Cube("Canopy lengthwise beam", new Vector3(x, StadiumRoofY, StadiumCenterZ), new Vector3(.075f, .1f, StadiumLength), frame, .8f, .025f);
                 beam.transform.SetParent(canopy.transform, true);
                 beam.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
-            for (int i = 0; i <= 8; i++)
+            for (int i = 0; i <= 11; i++)
             {
-                float z = Mathf.Lerp(-8.95f, 9.05f, i / 8f);
-                var beam = Cube("Canopy cross beam", new Vector3(0f, 5.7f, z), new Vector3(14.4f, .1f, .075f), frame, .8f, .025f);
+                float z = Mathf.Lerp(StadiumFront, StadiumBack, i / 11f);
+                var beam = Cube("Canopy cross beam", new Vector3(0f, StadiumRoofY, z), new Vector3(14.4f, .1f, .075f), frame, .8f, .025f);
                 beam.transform.SetParent(canopy.transform, true);
                 beam.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
-            for (int row = 0; row < 3; row++)
+            for (int row = 0; row < 5; row++)
             for (int col = -1; col <= 1; col++)
             {
-                var strip = Cube("Canopy light", new Vector3(col * 4.5f, 5.62f, -5.5f + row * 5.4f), new Vector3(.16f, .04f, 1.6f), light, .6f, .6f);
+                float z = Mathf.Lerp(StadiumFront + 2f, StadiumBack - 2f, row / 4f);
+                var strip = Cube("Canopy light", new Vector3(col * 4.5f, StadiumRoofY - .08f, z), new Vector3(.16f, .04f, 1.6f), light, .6f, .6f);
                 strip.transform.SetParent(canopy.transform, true);
                 strip.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
@@ -593,11 +618,11 @@ namespace FrutigerBadminton
                 float x = side * (5.65f + vine * .30f);
                 float z = 3.5f + vine * 1.35f;
                 float length = 1f + (vine % 3) * .22f;
-                Vector3 previous = new Vector3(x, 5.66f, z);
+                Vector3 previous = new Vector3(x, StadiumRoofY - .04f, z);
                 for (int segment = 1; segment <= 6; segment++)
                 {
                     float t = segment / 6f;
-                    Vector3 current = new Vector3(x + Mathf.Sin(t * 4f + vine) * .09f, 5.66f - length * t, z + Mathf.Sin(t * 3f + vine) * .06f);
+                    Vector3 current = new Vector3(x + Mathf.Sin(t * 4f + vine) * .09f, StadiumRoofY - .04f - length * t, z + Mathf.Sin(t * 3f + vine) * .06f);
                     AddDoubleSidedQuad(vertices, triangles, previous + Vector3.left * .018f, previous + Vector3.right * .018f,
                         current + Vector3.right * .018f, current + Vector3.left * .018f);
                     int leafSide = (segment + vine) % 2 == 0 ? 1 : -1;
@@ -635,9 +660,9 @@ namespace FrutigerBadminton
         void CreateArenaScoreboard()
         {
             var scoreboard = new GameObject("Arena scoreboard");
-            var frame = Cube("Scoreboard frame", new Vector3(0f, 4.65f, 8.97f), new Vector3(3.55f, 1.08f, .16f), new Color(.10f, .36f, .47f), .8f, .04f);
+            var frame = Cube("Scoreboard frame", new Vector3(0f, 5.65f, 8.97f), new Vector3(3.55f, 1.08f, .16f), new Color(.10f, .36f, .47f), .8f, .04f);
             frame.transform.SetParent(scoreboard.transform, true);
-            var face = Cube("Scoreboard face", new Vector3(0f, 4.65f, 8.87f), new Vector3(3.42f, .95f, .05f), new Color(.015f, .075f, .16f), .72f, .025f);
+            var face = Cube("Scoreboard face", new Vector3(0f, 5.65f, 8.87f), new Vector3(3.42f, .95f, .05f), new Color(.015f, .075f, .16f), .72f, .025f);
             face.transform.SetParent(scoreboard.transform, true);
             var digits = new Renderer[28];
             float[] centers = { -1.08f, -.57f, .57f, 1.08f };
@@ -651,14 +676,14 @@ namespace FrutigerBadminton
             {
                 bool horizontal = segment == 0 || segment == 3 || segment == 6;
                 Vector2 offset = offsets[segment];
-                var stroke = Cube("Score display segment", new Vector3(centers[digit] + offset.x, 4.65f + offset.y, 8.82f),
+                var stroke = Cube("Score display segment", new Vector3(centers[digit] + offset.x, 5.65f + offset.y, 8.82f),
                     horizontal ? new Vector3(.25f, .045f, .025f) : new Vector3(.045f, .25f, .025f),
                     new Color(.42f, .96f, .94f), .4f, .85f);
                 stroke.transform.SetParent(scoreboard.transform, true);
                 digits[digit * 7 + segment] = stroke.GetComponent<Renderer>();
                 digits[digit * 7 + segment].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
-            var separator = Cube("Score separator", new Vector3(0f, 4.65f, 8.82f), new Vector3(.22f, .045f, .025f), new Color(.42f, .96f, .94f), .4f, .85f);
+            var separator = Cube("Score separator", new Vector3(0f, 5.65f, 8.82f), new Vector3(.22f, .045f, .025f), new Color(.42f, .96f, .94f), .4f, .85f);
             separator.transform.SetParent(scoreboard.transform, true);
             separator.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             frame.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
