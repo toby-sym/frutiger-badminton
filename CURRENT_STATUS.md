@@ -20,6 +20,7 @@
 - Players use a shared generated, tapered jacket mesh and matching lacquer shell. Linux captures showed the rounded silhouette in the court and after movement inputs; Windows motion checks remain.
 - The procedural sky gradient has a clearer, more saturated blue while retaining the bright cloud layer; visual comparison is pending.
 - Player suit colours use distinct Aqua and Coral team palettes with varied shades; Linux captures showed both teams clearly. Colour-vision accessibility and Windows checks remain.
+- Generated player legs now have knee pivots, with stride, airborne and landing bends; animation, foot placement and Windows feel need capture checks.
 - The floating court now sits on a generated chamfered crystal-mesa island with a bright aqua waist and layered blue underside facets.
 - The camera backdrop now uses a full-sphere pastel-to-azure vertex gradient and a generated sun halo, filling the previously gray below-horizon view.
 - The sky shader layers a slowly drifting procedural cloud field over the gradient, with a brighter cloud sea and more defined high clouds. A Linux capture confirmed the appearance; Windows checks remain.

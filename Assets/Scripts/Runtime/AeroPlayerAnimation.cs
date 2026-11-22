@@ -10,6 +10,8 @@ namespace FrutigerBadminton
         Transform rightArm;
         Transform leftLeg;
         Transform rightLeg;
+        Transform leftKnee;
+        Transform rightKnee;
         Transform racket;
         Renderer shadowRenderer;
         MaterialPropertyBlock shadowProperties;
@@ -22,6 +24,8 @@ namespace FrutigerBadminton
         Quaternion rightArmRestRotation;
         Quaternion leftLegRestRotation;
         Quaternion rightLegRestRotation;
+        Quaternion leftKneeRestRotation;
+        Quaternion rightKneeRestRotation;
         Quaternion racketRestRotation;
         float groundHeight;
         float gaitPhase;
@@ -37,13 +41,16 @@ namespace FrutigerBadminton
         bool wasAirborne;
 
         public void Initialize(Transform bodyPose, Transform leftArmJoint, Transform rightArmJoint,
-            Transform leftLegJoint, Transform rightLegJoint, Transform racketAssembly, Renderer contactShadow)
+            Transform leftLegJoint, Transform rightLegJoint, Transform leftKneeJoint, Transform rightKneeJoint,
+            Transform racketAssembly, Renderer contactShadow)
         {
             pose = bodyPose;
             leftArm = leftArmJoint;
             rightArm = rightArmJoint;
             leftLeg = leftLegJoint;
             rightLeg = rightLegJoint;
+            leftKnee = leftKneeJoint;
+            rightKnee = rightKneeJoint;
             racket = racketAssembly;
             shadowRenderer = contactShadow;
             if (shadowRenderer) shadowProperties = new MaterialPropertyBlock();
@@ -55,6 +62,8 @@ namespace FrutigerBadminton
             rightArmRestRotation = rightArm.localRotation;
             leftLegRestRotation = leftLeg.localRotation;
             rightLegRestRotation = rightLeg.localRotation;
+            leftKneeRestRotation = leftKnee.localRotation;
+            rightKneeRestRotation = rightKnee.localRotation;
             racketRestRotation = racket.localRotation;
             previousRootPosition = transform.position;
             groundHeight = transform.position.y;
@@ -89,12 +98,14 @@ namespace FrutigerBadminton
             rightArm.localRotation = rightArmRestRotation;
             leftLeg.localRotation = leftLegRestRotation;
             rightLeg.localRotation = rightLegRestRotation;
+            leftKnee.localRotation = leftKneeRestRotation;
+            rightKnee.localRotation = rightKneeRestRotation;
             racket.localRotation = racketRestRotation;
         }
 
         void LateUpdate()
         {
-            if (!pose || !leftArm || !rightArm || !leftLeg || !rightLeg || !racket) return;
+            if (!pose || !leftArm || !rightArm || !leftLeg || !rightLeg || !leftKnee || !rightKnee || !racket) return;
             float deltaTime = Time.deltaTime;
             if (deltaTime <= 0f) return;
 
@@ -147,6 +158,10 @@ namespace FrutigerBadminton
             leftArm.localRotation = leftArmRestRotation * Quaternion.Euler(-step * 18f + raisedArms, 0f, -Mathf.Abs(step) * 5f);
             leftLeg.localRotation = leftLegRestRotation * Quaternion.Euler(step * 24f + airBlend * 18f, 0f, airBlend * 8f);
             rightLeg.localRotation = rightLegRestRotation * Quaternion.Euler(-step * 24f + airBlend * 6f, 0f, -airBlend * 8f);
+            float leftKneeBend = Mathf.Max(0f, -step) * 42f + airBlend * 30f + landingPulse * 50f;
+            float rightKneeBend = Mathf.Max(0f, step) * 42f + airBlend * 42f + landingPulse * 50f;
+            leftKnee.localRotation = leftKneeRestRotation * Quaternion.Euler(leftKneeBend, 0f, 0f);
+            rightKnee.localRotation = rightKneeRestRotation * Quaternion.Euler(rightKneeBend, 0f, 0f);
 
             Quaternion rightArmPose = rightArmRestRotation * Quaternion.Euler(step * 12f + raisedArms * .5f, 0f, step * 6f);
             if (swingRemaining > 0f)
