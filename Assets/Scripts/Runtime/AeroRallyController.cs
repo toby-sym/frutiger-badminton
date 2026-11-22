@@ -1461,6 +1461,11 @@ namespace FrutigerBadminton
             var root = new GameObject("Generated shuttlecock");
             ownedObjects.Add(root);
             shuttle = root.transform;
+            var body = new GameObject("Scaled shuttle body").transform;
+            body.SetParent(shuttle, false);
+            // Keep the shuttle readable at the close following-camera distance
+            // without letting its broad feather skirt obscure the player.
+            body.localScale = Vector3.one * .28f;
             Mesh featherMesh = BuildFeathers();
             ownedObjects.Add(featherMesh);
             Shader featherShader = Resources.Load<Shader>("ShuttleFeather");
@@ -1469,7 +1474,7 @@ namespace FrutigerBadminton
             bandMaterial = CreateMaterial("Universal Render Pipeline/Lit", new Color(.1f, .79f, .89f), .5f, .75f);
 
             var skirt = new GameObject("Generated feather skirt");
-            skirt.transform.SetParent(shuttle, false);
+            skirt.transform.SetParent(body, false);
             skirt.AddComponent<MeshFilter>().sharedMesh = featherMesh;
             var skirtRenderer = skirt.AddComponent<MeshRenderer>();
             skirtRenderer.sharedMaterial = shuttleMaterial;
@@ -1478,7 +1483,7 @@ namespace FrutigerBadminton
             var cork = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             cork.name = "Generated shuttle cork";
             Destroy(cork.GetComponent<Collider>());
-            cork.transform.SetParent(shuttle, false);
+            cork.transform.SetParent(body, false);
             cork.transform.localPosition = Vector3.zero;
             cork.transform.localScale = new Vector3(.13f, .17f, .13f);
             cork.GetComponent<Renderer>().sharedMaterial = corkMaterial;
@@ -1486,7 +1491,7 @@ namespace FrutigerBadminton
             var band = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             band.name = "Aqua cork band";
             Destroy(band.GetComponent<Collider>());
-            band.transform.SetParent(shuttle, false);
+            band.transform.SetParent(body, false);
             band.transform.localPosition = new Vector3(0f, -.105f, 0f);
             band.transform.localScale = new Vector3(.072f, .025f, .072f);
             band.GetComponent<Renderer>().sharedMaterial = bandMaterial;
