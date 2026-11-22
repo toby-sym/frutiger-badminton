@@ -429,9 +429,11 @@ namespace FrutigerBadminton
         void ApplyCameraView()
         {
             if (!courtCamera) return;
-            cameraBasePosition = courtLevelView ? new Vector3(0f, 4.5f, -14.5f) : new Vector3(12f, 10f, -19f);
+            cameraBasePosition = courtLevelView ? new Vector3(0f, 3.85f, -13f) : new Vector3(12f, 10f, -19f);
             courtCamera.position = cameraBasePosition;
-            courtCamera.LookAt(courtLevelView ? new Vector3(0f, .45f, 0f) : new Vector3(0f, .3f, 0f));
+            courtCamera.LookAt(courtLevelView ? new Vector3(0f, .7f, 0f) : new Vector3(0f, .3f, 0f));
+            Camera camera = courtCamera.GetComponent<Camera>();
+            if (camera) camera.fieldOfView = courtLevelView ? 50f : 44f;
             cameraRestPosition = cameraBasePosition;
             cameraFollowVelocity = Vector3.zero;
             lastMovementDirection = CameraForwardOnCourt();
@@ -1124,9 +1126,9 @@ namespace FrutigerBadminton
                 {
                     Vector3 travel = player.position - new Vector3(0f, GroundY, -4.6f);
                     float viewScale = courtLevelView ? 1f : .45f;
-                    target += new Vector3(Mathf.Clamp(travel.x * .42f, -1.2f, 1.2f) * viewScale,
-                        Mathf.Clamp(travel.y * .12f, 0f, .22f) * viewScale,
-                        Mathf.Clamp(travel.z * .20f, -.4f, .85f) * viewScale);
+                    target += new Vector3(Mathf.Clamp(travel.x * .55f, -1.5f, 1.5f) * viewScale,
+                        Mathf.Clamp(travel.y * .08f, 0f, .12f) * viewScale,
+                        Mathf.Clamp(travel.z * .15f, -.3f, .4f) * viewScale);
                 }
                 cameraRestPosition = Vector3.SmoothDamp(cameraRestPosition, target, ref cameraFollowVelocity,
                     .24f, 8f, deltaTime);
