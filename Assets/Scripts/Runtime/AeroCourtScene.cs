@@ -17,6 +17,7 @@ namespace FrutigerBadminton
         readonly Dictionary<string, Material> materialCache = new Dictionary<string, Material>();
         Material playerShadowMaterial;
         Material playerGlazeMaterial;
+        Material playerHeadgearMaterial;
         Mesh playerJacketMesh;
 
         struct CloudDrift
@@ -756,6 +757,7 @@ namespace FrutigerBadminton
             Transform leftArm = Limb(pose, "Left arm", new Vector3(-.3f, 1.08f, 0f), new Vector3(-.48f, .52f, .05f), .12f, suit);
             Transform rightArm = Limb(pose, "Right arm", new Vector3(.3f, 1.08f, 0f), new Vector3(.52f, 1.38f, 0f), .12f, suit);
             CreatePlayerKit(pose, leftKnee, rightKnee, name, suit);
+            CreatePlayerHeadgear(pose);
             bool rival = name == "Rival" || name == "Rival Partner" || name == "Rival Wing";
             Color racketColor = rival ? new Color(1f, .88f, .77f) : new Color(.8f, 1f, .98f);
             Transform racket = CreateRacket(rightArm, pose.TransformPoint(new Vector3(.62f, 1.14f, 0f)), racketColor);
@@ -844,6 +846,23 @@ namespace FrutigerBadminton
             renderer.sharedMaterial = playerGlazeMaterial;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
+        }
+
+        void CreatePlayerHeadgear(Transform pose)
+        {
+            if (!playerHeadgearMaterial)
+            {
+                Shader shader = Resources.Load<Shader>("AeroGlass");
+                if (!shader) return;
+                playerHeadgearMaterial = new Material(shader) { name = "Pearl player headgear" };
+                playerHeadgearMaterial.SetColor("_Tint", new Color(.68f, .90f, 1f));
+                playerHeadgearMaterial.SetFloat("_Opacity", .025f);
+                playerHeadgearMaterial.SetFloat("_RimOpacity", .36f);
+                ownedMaterials.Add(playerHeadgearMaterial);
+            }
+            var headgear = AddGlassPrimitive(PrimitiveType.Sphere, "Glass player headgear",
+                pose.TransformPoint(new Vector3(0f, 1.70f, 0f)), new Vector3(.47f, .49f, .46f), playerHeadgearMaterial);
+            headgear.transform.SetParent(pose, true);
         }
 
         Renderer CreatePlayerShadow(Transform playerRoot)
