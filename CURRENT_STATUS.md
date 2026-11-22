@@ -12,14 +12,14 @@
 - The pavilion has a generated illuminated scoreboard mirroring the HUD score. A Linux capture showed both displays updating to 0–2; Windows gameplay verification remains.
 - Translucent, softly tinted bubbles orbit the arena in place of bright solid orbs; a Linux capture confirmed their appearance.
 - A generated right-side glass gallery closes the court-level arena and hides in overview mode. Linux captures confirmed both views and showed the floor remains clear of heavy gallery shadows.
-- Player jackets use a procedural lacquer glaze with broad specular and soft vertical highlights; a Linux capture showed the new sheen while preserving the team colours.
+- Players now use continuous procedurally skinned glass limbs with animated elbows and knees, larger faceless crystal heads, and a wider tapered torso. Stronger squash-and-stretch and a liquid team-coloured racket are awaiting a fresh capture.
 - Generated leafy vines hang at the pavilion canopy corners. Linux captures confirmed they stay above play and hide with the canopy in overview mode.
 - The controls panel can be compacted with F1 or gamepad Select and restored the same way; the compact view retains serve and dash status. Linux capture confirmed the F1 toggle and layout; controller and pointer-boundary checks remain.
 - A single generated double-sided net mesh replaces the coarser individual threads, with finer spacing and fewer renderers. Linux captures confirmed visibility in both camera views.
 - The court and surround use a texture-free HLSL lacquer overlay with an elongated window reflection, soft motion and view-angle glints. Linux captures showed the brighter court while retaining readable markings; Windows checks remain.
-- Players use a shared generated, tapered jacket mesh and matching lacquer shell. Linux captures showed the rounded silhouette in the court and after movement inputs; Windows motion checks remain.
+- Players use a shared generated, tapered torso mesh for their translucent coloured cores and shells, with window-grid and moving liquid highlights; inspect the current version in a fresh capture.
 - The procedural sky gradient has a clearer, more saturated blue while retaining the bright cloud layer; visual comparison is pending.
-- Player suit colours use distinct Aqua and Coral team palettes with varied shades; Linux captures showed both teams clearly. Colour-vision accessibility and Windows checks remain.
+- Player crystal colours use distinct Aqua and Coral team palettes with varied shades; Linux captures showed both teams clearly. Colour-vision accessibility and Windows checks remain.
 - Generated player legs have knee pivots for stride, airborne and landing bends. Linux stills and a motion clip showed the feet remain attached and the airborne bend is visible; Windows motion and feel remain to be checked.
 - Running uses a fuller stride and blends into a distinct dash pose. A Linux movement clip showed the transition without obvious joint separation; Windows frame pacing and play feel remain to be checked.
 - The closer court-level camera smoothly follows player movement, with gentler follow in overview. Linux captures show the court stays framed through movement, and the Windows development build passed; aiming and play feel still need hands-on checks.
@@ -29,7 +29,7 @@
 - The sky shader layers a slowly drifting procedural cloud field over the gradient, with a brighter cloud sea and more defined high clouds. A Linux capture confirmed the appearance; Windows checks remain.
 - Three generated, mist-faded meadow ridges add a rolling silhouette and procedural colour variation beyond the pavilion. Wider geometry and faded ends removed the rectangular edges in Linux captures of both cameras.
 - Softer tinted cloud banks and reduced emission help preserve colour and contrast.
-- The court now has a saturated blue lacquer finish with procedural grain, broad light patches, and suggested window-frame reflections. An open glass pavilion and drifting translucent bubbles frame the court, while player suits use a glossier, less emissive finish. These effects use generated geometry and shaders; visual inspection in the Windows artifact is pending.
+- The court now has a saturated blue lacquer finish with procedural grain, broad light patches, and suggested window-frame reflections. An open glass pavilion and drifting translucent bubbles frame the court, while player forms use tinted crystal shells. These effects use generated geometry and shaders; visual inspection in the Windows artifact is pending.
 - The pavilion has shallow upper galleries, handrails, and luminous fixtures generated around the rear and side edges of the court; composition and brightness need an artifact check.
 - A long unattended Linux capture reached rally 19 at 0–0. Rivals now sometimes aim at the controlled player, teammates yield when that player is positioned at the landing spot, and opponents have a brief reaction delay and slower coverage. A subsequent unattended Linux capture reached 0–2 and the physical scoreboard matched the HUD. Human-play balance and Windows gameplay checks remain.
 - The full and compact HUDs distinguish the player’s return, a partner moving to cover, and the shuttle travelling to the rivals. Linux capture confirmed the outbound and partner cues; the player-return cue and human gameplay remain to be checked.
@@ -42,8 +42,8 @@
 - Procedural body pivots, responsive run/jump/dash/racket-swing animation, and generated shock rings and sparks at racket contact are implemented.
 - Impact ring retraction and the central flash now use the intended time intervals and settle before the effect is removed; visual verification is pending.
 - Completed impact effects are retained in a small pool and reset for reuse, avoiding repeated mesh, material and primitive creation during consecutive rallies. Visual behaviour and performance need player verification.
-- Racket hoops now render double-sided and use generated crossed string-bed meshes; the artifact visual check is pending.
-- Player silhouettes now have generated shorts, headbands, hair locks, pearl court shoes, bright traction soles, and team-colored side flashes; visual check is pending.
+- Generated racket frames now use a rounded glass tube, team-coloured strings and a handle that anchors at the wrist; inspect their visibility during swings in a fresh capture.
+- Player silhouettes use generated glass-like heads, torsos and articulated limbs with coloured inner forms; visual checks are pending.
 - A generated green-kit doubles partner covers the near court when positioned closer to an incoming landing; the player keeps priority when in racket range, and the partner returns automatically when the player cannot reach.
 - The opponent is now a generated doubles pair too. Both opponents reposition toward their shared landing target, and the closer player returns the shuttle.
 - The local match now has a full 3v3 roster: the player and two AI partners against three generated opponents. Each AI side assigns the closest teammate to its predicted return.
@@ -77,10 +77,10 @@
 - A brief higher-deceleration recovery returns dash momentum toward the requested movement speed, limiting post-dash sliding. Dash feel and upgrade interactions need player verification.
 - Rally shot presses are buffered briefly while the incoming shuttle approaches reach, preserving the chosen shot type while the player can continue aiming. The buffer clears at the end of the point or run; timing still needs play verification.
 - Mouse and controller aim now hand off on input, the right-stick target stays in place when released, and mouse aim holds its last court position while the pointer is over the control panel. Verify mixed-device aiming in the artifact.
-- Player limbs use rounded generated shapes, and shoes follow the leg pivots. Landing compresses the body, torso lean eases between poses, racket swings settle back to rest, and restarting a run resets motion state; visual verification is pending.
+- Player limbs use rounded generated shapes with articulated knees. Landing compresses the body, torso lean eases between poses, racket swings settle back to rest, and restarting a run resets motion state; visual verification is pending.
 - Running blends into a tucked airborne pose instead of continuing the full leg cycle in a jump, while the torso turns gently with lateral movement. Motion verification is pending.
 - Players have subtle, individually phased idle breathing and sway, with varied gait phases, to avoid synchronized stillness between exchanges. Visual verification is pending.
-- Player jackets have a generated translucent pearl highlight shell over the team colours for a glossier rim and specular accents; artifact visual verification is pending.
+- Player crystal shells use generated rim, highlight and window-like reflection cues; artifact visual verification is pending.
 - Players now have a soft procedural court shadow that spreads and fades with jump height, helping separate airborne motion from the floor; artifact visual verification is pending.
 - The rally control panel now uses short, non-wrapping labels and keeps the serve/return instruction, dash meter, and run-build chips within the panel.
 - Shot controls now occupy two short rows, and the return instruction describes tapping a shot; the dash and run-build elements have been repositioned within the same panel. Visual verification is pending.

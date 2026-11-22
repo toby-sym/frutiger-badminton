@@ -12,6 +12,8 @@ namespace FrutigerBadminton
         Transform rightLeg;
         Transform leftKnee;
         Transform rightKnee;
+        Transform leftElbow;
+        Transform rightElbow;
         Transform racket;
         Renderer shadowRenderer;
         MaterialPropertyBlock shadowProperties;
@@ -26,6 +28,8 @@ namespace FrutigerBadminton
         Quaternion rightLegRestRotation;
         Quaternion leftKneeRestRotation;
         Quaternion rightKneeRestRotation;
+        Quaternion leftElbowRestRotation;
+        Quaternion rightElbowRestRotation;
         Quaternion racketRestRotation;
         float groundHeight;
         float gaitPhase;
@@ -44,7 +48,7 @@ namespace FrutigerBadminton
 
         public void Initialize(Transform bodyPose, Transform leftArmJoint, Transform rightArmJoint,
             Transform leftLegJoint, Transform rightLegJoint, Transform leftKneeJoint, Transform rightKneeJoint,
-            Transform racketAssembly, Renderer contactShadow)
+            Transform leftElbowJoint, Transform rightElbowJoint, Transform racketAssembly, Renderer contactShadow)
         {
             pose = bodyPose;
             leftArm = leftArmJoint;
@@ -53,6 +57,8 @@ namespace FrutigerBadminton
             rightLeg = rightLegJoint;
             leftKnee = leftKneeJoint;
             rightKnee = rightKneeJoint;
+            leftElbow = leftElbowJoint;
+            rightElbow = rightElbowJoint;
             racket = racketAssembly;
             shadowRenderer = contactShadow;
             if (shadowRenderer) shadowProperties = new MaterialPropertyBlock();
@@ -66,6 +72,8 @@ namespace FrutigerBadminton
             rightLegRestRotation = rightLeg.localRotation;
             leftKneeRestRotation = leftKnee.localRotation;
             rightKneeRestRotation = rightKnee.localRotation;
+            leftElbowRestRotation = leftElbow.localRotation;
+            rightElbowRestRotation = rightElbow.localRotation;
             racketRestRotation = racket.localRotation;
             previousRootPosition = transform.position;
             groundHeight = transform.position.y;
@@ -104,12 +112,14 @@ namespace FrutigerBadminton
             rightLeg.localRotation = rightLegRestRotation;
             leftKnee.localRotation = leftKneeRestRotation;
             rightKnee.localRotation = rightKneeRestRotation;
+            leftElbow.localRotation = leftElbowRestRotation;
+            rightElbow.localRotation = rightElbowRestRotation;
             racket.localRotation = racketRestRotation;
         }
 
         void LateUpdate()
         {
-            if (!pose || !leftArm || !rightArm || !leftLeg || !rightLeg || !leftKnee || !rightKnee || !racket) return;
+            if (!pose || !leftArm || !rightArm || !leftLeg || !rightLeg || !leftKnee || !rightKnee || !leftElbow || !rightElbow || !racket) return;
             float deltaTime = Time.deltaTime;
             if (deltaTime <= 0f) return;
 
@@ -138,21 +148,21 @@ namespace FrutigerBadminton
                 shadowProperties.SetFloat("_Opacity", .28f / (1f + height * 1.1f));
                 shadowRenderer.SetPropertyBlock(shadowProperties);
             }
-            if (wasAirborne && !airborne) landingPulse = .24f;
+            if (wasAirborne && !airborne) landingPulse = .42f;
             wasAirborne = airborne;
-            landingPulse = Mathf.MoveTowards(landingPulse, 0f, deltaTime * 1.45f);
+            landingPulse = Mathf.MoveTowards(landingPulse, 0f, deltaTime * 2.1f);
 
             float idleWeight = (1f - stride) * (1f - airBlend);
             float breathing = Mathf.Sin(Time.time * 1.65f + idlePhase) * idleWeight;
-            float bounce = Mathf.Abs(Mathf.Sin(gaitPhase * 2f)) * .045f * stride * (1f - airBlend)
-                + .035f * airBlend + breathing * .012f;
+            float bounce = Mathf.Abs(Mathf.Sin(gaitPhase * 2f)) * .075f * stride * (1f - airBlend)
+                + .055f * airBlend + breathing * .025f;
             pose.localPosition = poseRestPosition + Vector3.up * bounce;
             float airStretch = airborne ? Mathf.Clamp01((transform.position.y - groundHeight) * .22f) * .07f : 0f;
             float squash = landingPulse;
             pose.localScale = new Vector3(
-                poseRestScale.x * (1f + squash * .2f - airStretch * .25f),
-                poseRestScale.y * (1f - squash * .3f + airStretch + breathing * .012f),
-                poseRestScale.z * (1f + squash * .2f - airStretch * .25f));
+                poseRestScale.x * (1f + squash * .34f - airStretch * .28f),
+                poseRestScale.y * (1f - squash * .48f + airStretch + breathing * .02f),
+                poseRestScale.z * (1f + squash * .34f - airStretch * .28f));
 
             float pitch = Mathf.Clamp(localMovement.z * 2.3f, -14f, 14f) + 12f * dashBlend - 5f * airBlend;
             float yaw = Mathf.Clamp(localMovement.x * 2.4f, -18f, 18f);
@@ -168,6 +178,9 @@ namespace FrutigerBadminton
             float rightKneeBend = Mathf.Max(0f, step) * 50f + airBlend * 42f + dashGroundBlend * 42f + landingPulse * 50f;
             leftKnee.localRotation = leftKneeRestRotation * Quaternion.Euler(leftKneeBend, 0f, 0f);
             rightKnee.localRotation = rightKneeRestRotation * Quaternion.Euler(rightKneeBend, 0f, 0f);
+            float elbowCurl = 7f + stride * 12f + airBlend * 22f + dashGroundBlend * 18f;
+            leftElbow.localRotation = leftElbowRestRotation * Quaternion.Euler(-step * 7f + airBlend * 8f, 0f, elbowCurl);
+            rightElbow.localRotation = rightElbowRestRotation * Quaternion.Euler(step * 8f - airBlend * 10f, 0f, -elbowCurl);
 
             Quaternion rightArmPose = rightArmRestRotation * Quaternion.Euler(step * 18f + raisedArms * .5f, 0f, step * 6f);
             if (swingRemaining > 0f)
