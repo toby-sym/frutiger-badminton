@@ -597,12 +597,12 @@ namespace FrutigerBadminton
                 {
                     float t = segment / 6f;
                     Vector3 current = new Vector3(x + Mathf.Sin(t * 4f + vine) * .09f, 5.66f - length * t, z + Mathf.Sin(t * 3f + vine) * .06f);
-                    AddGreeneryQuad(vertices, triangles, previous + Vector3.left * .018f, previous + Vector3.right * .018f,
+                    AddDoubleSidedQuad(vertices, triangles, previous + Vector3.left * .018f, previous + Vector3.right * .018f,
                         current + Vector3.right * .018f, current + Vector3.left * .018f);
                     int leafSide = (segment + vine) % 2 == 0 ? 1 : -1;
                     Vector3 tip = current + new Vector3(leafSide * (.24f + .05f * (segment % 2)), -.08f, .015f);
                     Vector3 middle = (current + tip) * .5f;
-                    AddGreeneryQuad(vertices, triangles, current, middle + Vector3.up * .095f, tip, middle + Vector3.down * .07f);
+                    AddDoubleSidedQuad(vertices, triangles, current, middle + Vector3.up * .095f, tip, middle + Vector3.down * .07f);
                     previous = current;
                 }
             }
@@ -620,7 +620,7 @@ namespace FrutigerBadminton
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
-        static void AddGreeneryQuad(List<Vector3> vertices, List<int> triangles, Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+        static void AddDoubleSidedQuad(List<Vector3> vertices, List<int> triangles, Vector3 a, Vector3 b, Vector3 c, Vector3 d)
         {
             int index = vertices.Count;
             vertices.Add(a); vertices.Add(b); vertices.Add(c); vertices.Add(d);
@@ -701,10 +701,42 @@ namespace FrutigerBadminton
             Cylinder("Net post left", new Vector3(-3.18f, y + .78f, 0f), new Vector3(.09f, .78f, .09f), new Color(.83f, 1f, 1f), .65f, .35f);
             Cylinder("Net post right", new Vector3(3.18f, y + .78f, 0f), new Vector3(.09f, .78f, .09f), new Color(.83f, 1f, 1f), .65f, .35f);
             Cube("Net top tape", new Vector3(0f, y + 1.56f, 0f), new Vector3(6.35f, .11f, .1f), new Color(.92f, 1f, 1f), .25f, .6f);
-            for (int i = -14; i <= 14; i++)
-                Cube("Net mesh vertical", new Vector3(i * .21f, y + .81f, -.026f), new Vector3(.012f, 1.46f, .012f), new Color(.77f, 1f, 1f), .1f, .1f);
-            for (int i = 0; i <= 7; i++)
-                Cube("Net mesh horizontal", new Vector3(0f, y + .11f + i * .2f, -.026f), new Vector3(6.08f, .012f, .012f), new Color(.77f, 1f, 1f), .1f, .1f);
+            var net = new GameObject("Fine woven net");
+            net.transform.position = new Vector3(0f, y + .08f, -.026f);
+            var mesh = BuildNetMesh();
+            ownedMeshes.Add(mesh);
+            net.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = net.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", new Color(.82f, 1f, 1f), .1f, .18f);
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        static Mesh BuildNetMesh()
+        {
+            const float width = 6.08f, height = 1.46f, halfThread = .0045f;
+            const int columns = 48, rows = 12;
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>();
+            for (int column = 0; column <= columns; column++)
+            {
+                float x = Mathf.Lerp(-width * .5f, width * .5f, column / (float)columns);
+                AddDoubleSidedQuad(vertices, triangles,
+                    new Vector3(x - halfThread, 0f, 0f), new Vector3(x + halfThread, 0f, 0f),
+                    new Vector3(x + halfThread, height, 0f), new Vector3(x - halfThread, height, 0f));
+            }
+            for (int row = 0; row <= rows; row++)
+            {
+                float y = Mathf.Lerp(0f, height, row / (float)rows);
+                AddDoubleSidedQuad(vertices, triangles,
+                    new Vector3(-width * .5f, y - halfThread, 0f), new Vector3(width * .5f, y - halfThread, 0f),
+                    new Vector3(width * .5f, y + halfThread, 0f), new Vector3(-width * .5f, y + halfThread, 0f));
+            }
+            var mesh = new Mesh { name = "Generated woven badminton net" };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
         }
 
         Transform CreatePlayer(string name, Vector3 basePosition, Color suit)
