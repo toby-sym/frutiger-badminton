@@ -166,7 +166,7 @@ namespace FrutigerBadminton
             var material = new Material(shader) { name = "Procedural impact glow" };
             if (material.HasProperty(BaseColorId)) material.SetColor(BaseColorId, color); else material.color = color;
             if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 1f);
-            if (material.HasProperty("_Blend")) material.SetFloat("_Blend", (float)BlendMode.Alpha);
+            if (material.HasProperty("_Blend")) material.SetFloat("_Blend", 0f);
             if (material.HasProperty("_SrcBlend")) material.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha);
             if (material.HasProperty("_DstBlend")) material.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
             if (material.HasProperty("_ZWrite")) material.SetInt("_ZWrite", 0);
