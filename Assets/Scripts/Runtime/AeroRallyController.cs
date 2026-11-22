@@ -109,6 +109,7 @@ namespace FrutigerBadminton
         Vector3 cameraBasePosition;
         Vector3 cameraRestPosition;
         Vector3 cameraFollowVelocity;
+        Vector3 courtCameraFollowOffset;
         Vector3 lastMouseAim;
         Vector2 lastStickAim;
         float flightDuration;
@@ -430,13 +431,36 @@ namespace FrutigerBadminton
         {
             if (!courtCamera) return;
             cameraBasePosition = courtLevelView ? new Vector3(0f, 3.85f, -13f) : new Vector3(12f, 10f, -19f);
-            courtCamera.position = cameraBasePosition;
-            courtCamera.LookAt(courtLevelView ? new Vector3(0f, .7f, 0f) : new Vector3(0f, .3f, 0f));
+            courtCameraFollowOffset = new Vector3(-1.4f, 3.2f, -5.8f);
+            cameraRestPosition = CameraTargetPosition();
+            courtCamera.position = cameraRestPosition;
+            courtCamera.LookAt(CameraLookTarget());
             Camera camera = courtCamera.GetComponent<Camera>();
-            if (camera) camera.fieldOfView = courtLevelView ? 50f : 44f;
-            cameraRestPosition = cameraBasePosition;
+            if (camera) camera.fieldOfView = courtLevelView ? 55f : 44f;
             cameraFollowVelocity = Vector3.zero;
             lastMovementDirection = CameraForwardOnCourt();
+        }
+
+        Vector3 CameraTargetPosition()
+        {
+            if (!player || titleScreenActive) return cameraBasePosition;
+            if (courtLevelView) return player.position + courtCameraFollowOffset;
+
+            Vector3 travel = player.position - new Vector3(0f, GroundY, -4.6f);
+            return cameraBasePosition + new Vector3(
+                Mathf.Clamp(travel.x * .55f, -1.5f, 1.5f) * .45f,
+                Mathf.Clamp(travel.y * .08f, 0f, .12f) * .45f,
+                Mathf.Clamp(travel.z * .15f, -.3f, .4f) * .45f);
+        }
+
+        Vector3 CameraLookTarget()
+        {
+            if (!courtLevelView || titleScreenActive || !player)
+                return courtLevelView ? new Vector3(0f, .7f, 0f) : new Vector3(0f, .3f, 0f);
+
+            Vector3 focus = player.position + new Vector3(-1.4f, 1.35f, 5f);
+            if (flightActive && shuttle) focus = Vector3.Lerp(focus, shuttle.position, .12f);
+            return focus;
         }
 
         void CreateAudioFeedback()
@@ -1121,17 +1145,10 @@ namespace FrutigerBadminton
             if (!courtCamera) return;
             if (!isPaused && deltaTime > 0f)
             {
-                Vector3 target = cameraBasePosition;
-                if (!titleScreenActive && player)
-                {
-                    Vector3 travel = player.position - new Vector3(0f, GroundY, -4.6f);
-                    float viewScale = courtLevelView ? 1f : .45f;
-                    target += new Vector3(Mathf.Clamp(travel.x * .55f, -1.5f, 1.5f) * viewScale,
-                        Mathf.Clamp(travel.y * .08f, 0f, .12f) * viewScale,
-                        Mathf.Clamp(travel.z * .15f, -.3f, .4f) * viewScale);
-                }
-                cameraRestPosition = Vector3.SmoothDamp(cameraRestPosition, target, ref cameraFollowVelocity,
+                cameraRestPosition = Vector3.SmoothDamp(cameraRestPosition, CameraTargetPosition(), ref cameraFollowVelocity,
                     .24f, 8f, deltaTime);
+                courtCamera.position = cameraRestPosition;
+                courtCamera.LookAt(CameraLookTarget());
             }
             if (cameraShakeRemaining <= 0f)
             {
@@ -1207,9 +1224,6 @@ namespace FrutigerBadminton
             playerServeReady = false;
             cameraShakeRemaining = 0f;
             cameraShakeStrength = 0f;
-            cameraRestPosition = cameraBasePosition;
-            cameraFollowVelocity = Vector3.zero;
-            if (courtCamera) courtCamera.position = cameraRestPosition;
             upgradeDraftActive = false;
             servePending = false;
             flightActive = false;
@@ -1233,6 +1247,13 @@ namespace FrutigerBadminton
             rival.position = new Vector3(0f, GroundY, 4.6f);
             rivalPartner.position = new Vector3(1.65f, GroundY, 4.8f);
             rivalWing.position = new Vector3(-1.65f, GroundY, 4.2f);
+            cameraFollowVelocity = Vector3.zero;
+            cameraRestPosition = CameraTargetPosition();
+            if (courtCamera)
+            {
+                courtCamera.position = cameraRestPosition;
+                courtCamera.LookAt(CameraLookTarget());
+            }
             if (playerAnimation) playerAnimation.ResetMotion();
             if (partnerAnimation) partnerAnimation.ResetMotion();
             if (partnerTwoAnimation) partnerTwoAnimation.ResetMotion();
