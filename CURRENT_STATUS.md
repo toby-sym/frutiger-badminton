@@ -14,7 +14,7 @@
 - A generated right-side glass gallery closes the court-level arena and hides in overview mode. Linux captures confirmed both views and showed the floor remains clear of heavy gallery shadows.
 - Player jackets use a procedural lacquer glaze with broad specular and soft vertical highlights; a Linux capture showed the new sheen while preserving the team colours.
 - Generated leafy vines hang at the pavilion canopy corners. Linux captures confirmed they stay above play and hide with the canopy in overview mode.
-- The court now has a texture-free HLSL sheen overlay with animated wave bands and view-angle glints; artifact validation is pending.
+- The court and surround use a texture-free HLSL lacquer overlay with an elongated window reflection, soft motion and view-angle glints; the brighter reflection needs capture and Windows checks.
 - The floating court now sits on a generated chamfered crystal-mesa island with a bright aqua waist and layered blue underside facets.
 - The camera backdrop now uses a full-sphere pastel-to-azure vertex gradient and a generated sun halo, filling the previously gray below-horizon view.
 - The sky shader layers a slowly drifting procedural cloud field over the gradient, with a brighter cloud sea and more defined high clouds. A Linux capture confirmed the appearance; Windows checks remain.
