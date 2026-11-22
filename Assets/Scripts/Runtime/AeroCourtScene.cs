@@ -780,10 +780,9 @@ namespace FrutigerBadminton
 
             CreatePlayerTorsoCore(pose, suit);
             CreatePlayerGlaze(pose, suit);
-            CreatePlayerNeck(pose, suit);
             var headPivot = new GameObject("Springy gel head pivot").transform;
             headPivot.SetParent(pose, false);
-            headPivot.localPosition = new Vector3(0f, 1.7f, 0f);
+            headPivot.localPosition = new Vector3(0f, 1.62f, 0f);
             var headCore = AddGlassPrimitive(PrimitiveType.Sphere, "Tinted jelly head interior",
                 headPivot.position, Vector3.one * .585f,
                 PlayerCrystalMaterial(PlayerCoreColor(suit), .88f, .06f, false));
@@ -871,10 +870,10 @@ namespace FrutigerBadminton
 
         static Color PlayerCoreColor(Color suit) => Color.Lerp(suit, Color.white, .035f);
 
-        Material PlayerCrystalMaterial(Color suit, float opacity = .38f, float rimOpacity = .42f, bool depthWrite = true)
+        Material PlayerCrystalMaterial(Color suit, float opacity = .38f, float rimOpacity = .42f, bool depthWrite = true, float weave = 0f)
         {
             string key = ColorUtility.ToHtmlStringRGBA(suit) + "-" + Mathf.RoundToInt(opacity * 100f) + "-"
-                + Mathf.RoundToInt(rimOpacity * 100f) + "-D" + (depthWrite ? "1" : "0");
+                + Mathf.RoundToInt(rimOpacity * 100f) + "-D" + (depthWrite ? "1" : "0") + "-W" + Mathf.RoundToInt(weave * 100f);
             if (playerCrystalMaterials.TryGetValue(key, out Material cached)) return cached;
             Shader shader = Resources.Load<Shader>("PlayerCrystal");
             if (!shader)
@@ -887,6 +886,7 @@ namespace FrutigerBadminton
             material.SetColor("_Tint", suit);
             material.SetFloat("_Opacity", opacity);
             material.SetFloat("_RimOpacity", rimOpacity);
+            if (material.HasProperty("_Weave")) material.SetFloat("_Weave", weave);
             if (material.HasProperty("_Reflectivity")) material.SetFloat("_Reflectivity", .24f);
             if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", depthWrite ? 1f : 0f);
             playerCrystalMaterials.Add(key, material);
@@ -896,7 +896,7 @@ namespace FrutigerBadminton
 
         void CreatePlayerGlaze(Transform pose, Color suit)
         {
-            Material material = PlayerCrystalMaterial(suit);
+            Material material = PlayerCrystalMaterial(suit, .38f, .42f, true, .72f);
             if (!material) return;
             var glaze = new GameObject("Crystal torso shell");
             glaze.transform.SetParent(pose, false);
@@ -910,20 +910,6 @@ namespace FrutigerBadminton
             renderer.sortingOrder = 1;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
-        }
-
-        void CreatePlayerNeck(Transform pose, Color suit)
-        {
-            Vector3 neckPosition = pose.TransformPoint(new Vector3(0f, 1.43f, 0f));
-            var core = AddGlassPrimitive(PrimitiveType.Capsule, "Soft gel neck interior", neckPosition,
-                new Vector3(.16f, .19f, .16f), PlayerCrystalMaterial(PlayerCoreColor(suit), .88f, .06f, false));
-            core.transform.SetParent(pose, true);
-            core.GetComponent<Renderer>().sortingOrder = 0;
-
-            var shell = AddGlassPrimitive(PrimitiveType.Capsule, "Rounded crystal neck shell", neckPosition,
-                new Vector3(.22f, .22f, .22f), PlayerCrystalMaterial(suit));
-            shell.transform.SetParent(pose, true);
-            shell.GetComponent<Renderer>().sortingOrder = 1;
         }
 
         Renderer CreatePlayerShadow(Transform playerRoot)
@@ -1187,7 +1173,7 @@ namespace FrutigerBadminton
             shell.sharedMesh = shellMesh;
             shell.bones = bones;
             shell.rootBone = pose;
-            shell.sharedMaterial = PlayerCrystalMaterial(suit);
+            shell.sharedMaterial = PlayerCrystalMaterial(suit, .38f, .42f, true, .72f);
             shell.sortingOrder = 1;
             shell.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             shell.receiveShadows = false;
