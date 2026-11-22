@@ -2,6 +2,11 @@ name: Visual capture
 
 on:
   workflow_dispatch:
+    inputs:
+      extended_rally:
+        description: Capture a longer rally to inspect score changes
+        type: boolean
+        default: false
   push:
     branches:
       - capability/automated-visual-capture
@@ -43,6 +48,8 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends xvfb xauth xdotool imagemagick libgl1-mesa-dri libglx-mesa0
       - name: Capture title and court
+        env:
+          CAPTURE_EXTENDED_RALLY: ${{ inputs.extended_rally && '1' || '0' }}
         run: bash scripts/capture-linux.sh
       - name: Upload views and player log
         if: always()

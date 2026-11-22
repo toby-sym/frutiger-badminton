@@ -47,6 +47,10 @@ xvfb-run -a -s '-screen 0 1920x1080x24 +extension GLX' bash -c '
   import -window root "$capture_dir/rally-middle.png"
   sleep 4
   import -window root "$capture_dir/rally-late.png"
+  if [[ "${CAPTURE_EXTENDED_RALLY:-0}" == 1 ]]; then
+    sleep 35
+    import -window root "$capture_dir/rally-extended.png"
+  fi
 
   # Capture frames after movement inputs; timing on software rendering varies.
   xdotool keydown d
