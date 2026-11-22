@@ -106,7 +106,9 @@ namespace FrutigerBadminton
         Vector3 dashDirection;
         Vector3 playerVelocity;
         Vector3 lastMovementDirection = Vector3.forward;
+        Vector3 cameraBasePosition;
         Vector3 cameraRestPosition;
+        Vector3 cameraFollowVelocity;
         Vector3 lastMouseAim;
         Vector2 lastStickAim;
         float flightDuration;
@@ -427,9 +429,13 @@ namespace FrutigerBadminton
         void ApplyCameraView()
         {
             if (!courtCamera) return;
-            courtCamera.position = courtLevelView ? new Vector3(0f, 5f, -17f) : new Vector3(12f, 10f, -19f);
-            courtCamera.LookAt(courtLevelView ? new Vector3(0f, .8f, 0f) : new Vector3(0f, .3f, 0f));
-            cameraRestPosition = courtCamera.position;
+            cameraBasePosition = courtLevelView ? new Vector3(0f, 3.85f, -13f) : new Vector3(12f, 10f, -19f);
+            courtCamera.position = cameraBasePosition;
+            courtCamera.LookAt(courtLevelView ? new Vector3(0f, .7f, 0f) : new Vector3(0f, .3f, 0f));
+            Camera camera = courtCamera.GetComponent<Camera>();
+            if (camera) camera.fieldOfView = courtLevelView ? 50f : 44f;
+            cameraRestPosition = cameraBasePosition;
+            cameraFollowVelocity = Vector3.zero;
             lastMovementDirection = CameraForwardOnCourt();
         }
 
@@ -1113,6 +1119,20 @@ namespace FrutigerBadminton
         void UpdateCameraFeedback(float deltaTime)
         {
             if (!courtCamera) return;
+            if (!isPaused && deltaTime > 0f)
+            {
+                Vector3 target = cameraBasePosition;
+                if (!titleScreenActive && player)
+                {
+                    Vector3 travel = player.position - new Vector3(0f, GroundY, -4.6f);
+                    float viewScale = courtLevelView ? 1f : .45f;
+                    target += new Vector3(Mathf.Clamp(travel.x * .55f, -1.5f, 1.5f) * viewScale,
+                        Mathf.Clamp(travel.y * .08f, 0f, .12f) * viewScale,
+                        Mathf.Clamp(travel.z * .15f, -.3f, .4f) * viewScale);
+                }
+                cameraRestPosition = Vector3.SmoothDamp(cameraRestPosition, target, ref cameraFollowVelocity,
+                    .24f, 8f, deltaTime);
+            }
             if (cameraShakeRemaining <= 0f)
             {
                 courtCamera.position = cameraRestPosition;
@@ -1187,6 +1207,8 @@ namespace FrutigerBadminton
             playerServeReady = false;
             cameraShakeRemaining = 0f;
             cameraShakeStrength = 0f;
+            cameraRestPosition = cameraBasePosition;
+            cameraFollowVelocity = Vector3.zero;
             if (courtCamera) courtCamera.position = cameraRestPosition;
             upgradeDraftActive = false;
             servePending = false;
