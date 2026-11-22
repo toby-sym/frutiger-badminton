@@ -870,10 +870,12 @@ namespace FrutigerBadminton
 
         static Color PlayerCoreColor(Color suit) => Color.Lerp(suit, Color.white, .035f);
 
-        Material PlayerCrystalMaterial(Color suit, float opacity = .38f, float rimOpacity = .42f, bool depthWrite = true, float weave = 0f)
+        Material PlayerCrystalMaterial(Color suit, float opacity = .38f, float rimOpacity = .42f, bool depthWrite = true,
+            float weave = 0f, float gelWobble = 0f)
         {
             string key = ColorUtility.ToHtmlStringRGBA(suit) + "-" + Mathf.RoundToInt(opacity * 100f) + "-"
-                + Mathf.RoundToInt(rimOpacity * 100f) + "-D" + (depthWrite ? "1" : "0") + "-W" + Mathf.RoundToInt(weave * 100f);
+                + Mathf.RoundToInt(rimOpacity * 100f) + "-D" + (depthWrite ? "1" : "0") + "-W" + Mathf.RoundToInt(weave * 100f)
+                + "-G" + Mathf.RoundToInt(gelWobble * 10000f);
             if (playerCrystalMaterials.TryGetValue(key, out Material cached)) return cached;
             Shader shader = Resources.Load<Shader>("PlayerCrystal");
             if (!shader)
@@ -887,6 +889,7 @@ namespace FrutigerBadminton
             material.SetFloat("_Opacity", opacity);
             material.SetFloat("_RimOpacity", rimOpacity);
             if (material.HasProperty("_Weave")) material.SetFloat("_Weave", weave);
+            if (material.HasProperty("_GelWobble")) material.SetFloat("_GelWobble", gelWobble);
             if (material.HasProperty("_Reflectivity")) material.SetFloat("_Reflectivity", .24f);
             if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", depthWrite ? 1f : 0f);
             playerCrystalMaterials.Add(key, material);
@@ -896,7 +899,7 @@ namespace FrutigerBadminton
 
         void CreatePlayerGlaze(Transform pose, Color suit)
         {
-            Material material = PlayerCrystalMaterial(suit, .38f, .42f, true, .72f);
+            Material material = PlayerCrystalMaterial(suit, .38f, .42f, true, .72f, .012f);
             if (!material) return;
             var glaze = new GameObject("Crystal torso shell");
             glaze.transform.SetParent(pose, false);
@@ -1173,7 +1176,7 @@ namespace FrutigerBadminton
             shell.sharedMesh = shellMesh;
             shell.bones = bones;
             shell.rootBone = pose;
-            shell.sharedMaterial = PlayerCrystalMaterial(suit, .38f, .42f, true, .72f);
+            shell.sharedMaterial = PlayerCrystalMaterial(suit, .38f, .42f, true, .72f, .012f);
             shell.sortingOrder = 1;
             shell.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             shell.receiveShadows = false;

@@ -7,6 +7,7 @@ Shader "Frutiger/Player Crystal"
         _RimOpacity ("Glass rim", Range(0, 1)) = 0.42
         _Reflectivity ("Window reflections", Range(0, 1)) = 0.24
         _Weave ("Soft gel lattice", Range(0, 1)) = 0
+        _GelWobble ("Soft gel surface wobble", Range(0, 0.04)) = 0
         _ZWrite ("Depth write", Float) = 1
     }
     SubShader
@@ -30,14 +31,18 @@ Shader "Frutiger/Player Crystal"
                 float _RimOpacity;
                 float _Reflectivity;
                 float _Weave;
+                float _GelWobble;
             CBUFFER_END
             struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; };
             struct Varyings { float4 positionCS : SV_POSITION; float3 positionWS : TEXCOORD0; float3 normalWS : TEXCOORD1; float3 normalOS : TEXCOORD2; float3 positionOS : TEXCOORD3; };
             Varyings Vert(Attributes input)
             {
                 Varyings output;
-                output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
-                output.positionWS = TransformObjectToWorld(input.positionOS.xyz);
+                float ripple = sin(input.positionOS.y * 8 + input.positionOS.x * 6 + _Time.y * 2.4) * .62
+                    + sin(input.positionOS.z * 10 - input.positionOS.y * 5 - _Time.y * 1.7) * .38;
+                float3 positionOS = input.positionOS.xyz + input.normalOS * (ripple * _GelWobble);
+                output.positionCS = TransformObjectToHClip(positionOS);
+                output.positionWS = TransformObjectToWorld(positionOS);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 output.normalOS = input.normalOS;
                 output.positionOS = input.positionOS.xyz;
