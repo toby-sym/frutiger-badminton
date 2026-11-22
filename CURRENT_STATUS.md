@@ -11,6 +11,7 @@
 - The island surround has a deeper blue finish and a procedural glaze extending the reflective court treatment across the floor. A Linux capture confirmed clear court markings; Windows visual checks remain.
 - The pavilion has a generated illuminated scoreboard mirroring the HUD score. A Linux capture showed the initial score and placement; score changes need gameplay verification.
 - Translucent, softly tinted bubbles orbit the arena in place of bright solid orbs; a Linux capture confirmed their appearance.
+- Player jackets use a procedural lacquer glaze with broad specular and soft vertical highlights; its appearance needs a capture check.
 - The court now has a texture-free HLSL sheen overlay with animated wave bands and view-angle glints; artifact validation is pending.
 - The floating court now sits on a generated chamfered crystal-mesa island with a bright aqua waist and layered blue underside facets.
 - The camera backdrop now uses a full-sphere pastel-to-azure vertex gradient and a generated sun halo, filling the previously gray below-horizon view.
