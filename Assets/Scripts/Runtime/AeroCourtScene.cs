@@ -776,19 +776,17 @@ namespace FrutigerBadminton
 
             CreatePlayerTorsoCore(pose, suit);
             CreatePlayerGlaze(pose, suit);
-            var headCore = Sphere("Crystal head core", pose.TransformPoint(new Vector3(0f, 1.66f, 0f)), Vector3.one * .31f, PlayerCoreColor(suit), .96f, .025f);
+            var headCore = Sphere("Crystal head core", pose.TransformPoint(new Vector3(0f, 1.7f, 0f)), Vector3.one * .36f, PlayerCoreColor(suit), 1f, .08f);
             headCore.transform.SetParent(pose, true);
-            var head = AddGlassPrimitive(PrimitiveType.Sphere, "Crystal head shell", pose.TransformPoint(new Vector3(0f, 1.66f, 0f)), Vector3.one * .45f, PlayerCrystalMaterial(suit));
+            var head = AddGlassPrimitive(PrimitiveType.Sphere, "Crystal head shell", pose.TransformPoint(new Vector3(0f, 1.7f, 0f)), Vector3.one * .61f, PlayerCrystalMaterial(suit));
             head.transform.SetParent(pose, true);
-            Transform leftLeg = ArticulatedLeg(pose, "Left leg", new Vector3(-.18f, .58f, 0f), new Vector3(-.32f, .07f, 0f), .16f, suit, out Transform leftKnee);
-            Transform rightLeg = ArticulatedLeg(pose, "Right leg", new Vector3(.18f, .58f, 0f), new Vector3(.32f, .07f, 0f), .16f, suit, out Transform rightKnee);
-            Transform leftArm = Limb(pose, "Left arm", new Vector3(-.3f, 1.08f, 0f), new Vector3(-.48f, .52f, .05f), .12f, suit);
-            Transform rightArm = Limb(pose, "Right arm", new Vector3(.3f, 1.08f, 0f), new Vector3(.52f, 1.38f, 0f), .12f, suit);
-            bool rival = name == "Rival" || name == "Rival Partner" || name == "Rival Wing";
-            Color racketColor = rival ? new Color(1f, .88f, .77f) : new Color(.8f, 1f, .98f);
-            Transform racket = CreateRacket(rightArm, pose.TransformPoint(new Vector3(.62f, 1.14f, 0f)), racketColor);
+            Transform leftLeg = ArticulatedLeg(pose, "Left leg", new Vector3(-.2f, .65f, 0f), new Vector3(-.34f, .07f, 0f), .34f, suit, out Transform leftKnee);
+            Transform rightLeg = ArticulatedLeg(pose, "Right leg", new Vector3(.2f, .65f, 0f), new Vector3(.34f, .07f, 0f), .34f, suit, out Transform rightKnee);
+            Transform leftArm = ArticulatedArm(pose, "Left arm", new Vector3(-.32f, 1.22f, 0f), new Vector3(-.49f, .92f, .02f), new Vector3(-.66f, .56f, .04f), .31f, .29f, suit, out Transform leftElbow);
+            Transform rightArm = ArticulatedArm(pose, "Right arm", new Vector3(.32f, 1.22f, 0f), new Vector3(.47f, 1.08f, .02f), new Vector3(.6f, .92f, .04f), .31f, .29f, suit, out Transform rightElbow);
+            Transform racket = CreateRacket(rightElbow, new Vector3(.6f, .92f, .04f) - new Vector3(.47f, 1.08f, .02f), suit);
             Renderer shadow = CreatePlayerShadow(root.transform);
-            root.AddComponent<AeroPlayerAnimation>().Initialize(pose, leftArm, rightArm, leftLeg, rightLeg, leftKnee, rightKnee, racket, shadow);
+            root.AddComponent<AeroPlayerAnimation>().Initialize(pose, leftArm, rightArm, leftLeg, rightLeg, leftKnee, rightKnee, leftElbow, rightElbow, racket, shadow);
             return root.transform;
         }
 
@@ -802,26 +800,27 @@ namespace FrutigerBadminton
             var jacket = new GameObject("Crystal torso core");
             jacket.transform.SetParent(pose, false);
             jacket.transform.localPosition = new Vector3(0f, .92f, 0f);
-            jacket.transform.localScale = Vector3.one * .82f;
+            jacket.transform.localScale = Vector3.one * .72f;
             jacket.AddComponent<MeshFilter>().sharedMesh = playerTorsoMesh;
             jacket.AddComponent<MeshRenderer>().sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", PlayerCoreColor(suit), .96f, .025f);
         }
 
         static Mesh BuildPlayerTorsoMesh()
         {
-            const int rings = 20, segments = 32;
+            const int rings = 28, segments = 40;
             var vertices = new List<Vector3>((rings + 1) * (segments + 1));
             var triangles = new List<int>(rings * segments * 6);
             for (int ring = 0; ring <= rings; ring++)
             {
                 float height = ring / (float)rings * 2f - 1f;
-                float radius = Mathf.Sqrt(Mathf.Max(0f, 1f - Mathf.Pow(Mathf.Abs(height), 2.5f)));
-                float shoulderTaper = Mathf.Lerp(.86f, 1f, (height + 1f) * .5f);
+                float radius = Mathf.Pow(Mathf.Max(0f, 1f - height * height), .48f);
+                float shoulderTaper = Mathf.Lerp(.82f, 1.08f, Mathf.InverseLerp(-.55f, .72f, height));
+                float waist = 1f - .13f * Mathf.Exp(-height * height * 12f);
                 for (int segment = 0; segment <= segments; segment++)
                 {
                     float angle = segment / (float)segments * Mathf.PI * 2f;
-                    vertices.Add(new Vector3(Mathf.Cos(angle) * .28f * radius * shoulderTaper,
-                        height * .45f, Mathf.Sin(angle) * .19f * radius * shoulderTaper));
+                    vertices.Add(new Vector3(Mathf.Cos(angle) * .4f * radius * shoulderTaper * waist,
+                        height * .51f, Mathf.Sin(angle) * .27f * radius * Mathf.Lerp(.88f, 1.04f, shoulderTaper)));
                 }
             }
             for (int ring = 0; ring < rings; ring++)
@@ -851,11 +850,11 @@ namespace FrutigerBadminton
             return mesh;
         }
 
-        static Color PlayerCoreColor(Color suit) => Color.Lerp(suit, Color.black, .2f);
+        static Color PlayerCoreColor(Color suit) => Color.Lerp(suit, Color.white, .1f);
 
-        Material PlayerCrystalMaterial(Color suit)
+        Material PlayerCrystalMaterial(Color suit, float opacity = .12f, float rimOpacity = .52f)
         {
-            string key = ColorUtility.ToHtmlStringRGBA(suit);
+            string key = ColorUtility.ToHtmlStringRGBA(suit) + "-" + Mathf.RoundToInt(opacity * 100f) + "-" + Mathf.RoundToInt(rimOpacity * 100f);
             if (playerCrystalMaterials.TryGetValue(key, out Material cached)) return cached;
             Shader shader = Resources.Load<Shader>("PlayerCrystal");
             if (!shader)
@@ -866,8 +865,8 @@ namespace FrutigerBadminton
             if (!shader) return null;
             var material = new Material(shader) { name = "Crystal athlete " + key };
             material.SetColor("_Tint", suit);
-            material.SetFloat("_Opacity", .12f);
-            material.SetFloat("_RimOpacity", .52f);
+            material.SetFloat("_Opacity", opacity);
+            material.SetFloat("_RimOpacity", rimOpacity);
             if (material.HasProperty("_Reflectivity")) material.SetFloat("_Reflectivity", .55f);
             playerCrystalMaterials.Add(key, material);
             ownedMaterials.Add(material);
@@ -881,7 +880,7 @@ namespace FrutigerBadminton
             var glaze = new GameObject("Crystal torso shell");
             glaze.transform.SetParent(pose, false);
             glaze.transform.localPosition = new Vector3(0f, .92f, 0f);
-            glaze.transform.localScale = Vector3.one * 1.035f;
+            glaze.transform.localScale = Vector3.one * 1.045f;
             glaze.AddComponent<MeshFilter>().sharedMesh = playerTorsoMesh;
             var renderer = glaze.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = material;
@@ -913,35 +912,52 @@ namespace FrutigerBadminton
             return renderer;
         }
 
-        Transform CreateRacket(Transform arm, Vector3 center, Color color)
+        Transform CreateRacket(Transform handPivot, Vector3 handOffset, Color color)
         {
-            var racket = new GameObject("Racket swing assembly").transform;
-            racket.position = center;
-            racket.rotation = Quaternion.Euler(14f, 0f, 18f);
-            racket.SetParent(arm, true);
+            var racket = new GameObject("Crystal racket in hand").transform;
+            racket.SetParent(handPivot, false);
+            racket.localPosition = handOffset;
+            racket.localRotation = Quaternion.Euler(-3f, 0f, 8f);
 
-            var ring = new GameObject("Carbon racket oval");
+            var ring = new GameObject("Rounded liquid racket frame");
             var mf = ring.AddComponent<MeshFilter>(); var mr = ring.AddComponent<MeshRenderer>();
-            var ringMesh = BuildRing(.29f, .235f, .04f, 48);
+            var ringMesh = BuildRacketHoop(.235f, .305f, .027f, 64, 10);
             ownedMeshes.Add(ringMesh);
-            mf.sharedMesh = ringMesh; mr.sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", color, .68f, .65f);
+            mf.sharedMesh = ringMesh; mr.sharedMaterial = PlayerCrystalMaterial(color, .38f, .22f);
             ring.transform.SetParent(racket, false);
+            ring.transform.localPosition = new Vector3(0f, .66f, .035f);
 
-            var stringBed = new GameObject("Procedural aqua racket strings");
+            var stringBed = new GameObject("Translucent team colour strings");
             var stringFilter = stringBed.AddComponent<MeshFilter>();
-            var stringMesh = BuildRacketStringBed(.25f, .195f, 19, 15, .007f, .018f);
+            var stringMesh = BuildRacketStringBed(.196f, .265f, 13, 11, .0045f, .009f);
             ownedMeshes.Add(stringMesh);
             stringFilter.sharedMesh = stringMesh;
             var stringRenderer = stringBed.AddComponent<MeshRenderer>();
-            stringRenderer.sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", new Color(.83f, 1f, .99f), .78f, .32f);
+            stringRenderer.sharedMaterial = PlayerCrystalMaterial(Color.Lerp(color, Color.white, .3f), .42f, .12f);
             stringRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             stringRenderer.receiveShadows = false;
             stringBed.transform.SetParent(racket, false);
+            stringBed.transform.localPosition = new Vector3(0f, .66f, .057f);
 
-            var grip = Cylinder("Racket grip", Vector3.zero, new Vector3(.055f, .28f, .055f), new Color(.13f, .32f, .39f), .35f, .2f);
+            var shaft = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            shaft.name = "Soft glass racket throat and shaft";
+            shaft.GetComponent<Collider>().enabled = false;
+            var shaftRenderer = shaft.GetComponent<Renderer>();
+            shaftRenderer.sharedMaterial = PlayerCrystalMaterial(color, .3f, .18f);
+            shaftRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            shaft.transform.SetParent(racket, false);
+            shaft.transform.localPosition = new Vector3(0f, .19f, .005f);
+            shaft.transform.localScale = new Vector3(.1f, .19f, .1f);
+
+            var grip = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            grip.name = "Jelly racket handle";
+            grip.GetComponent<Collider>().enabled = false;
+            var gripRenderer = grip.GetComponent<Renderer>();
+            gripRenderer.sharedMaterial = PlayerCrystalMaterial(color, .48f, .12f);
+            gripRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             grip.transform.SetParent(racket, false);
-            grip.transform.localPosition = new Vector3(.26f, -.25f, 0f);
-            grip.transform.localRotation = Quaternion.Euler(0f, 0f, -18f);
+            grip.transform.localPosition = new Vector3(0f, .035f, .005f);
+            grip.transform.localScale = new Vector3(.13f, .105f, .13f);
             return racket;
         }
 
@@ -1048,6 +1064,14 @@ namespace FrutigerBadminton
             return hip;
         }
 
+        Transform ArticulatedArm(Transform parent, string name, Vector3 shoulder, Vector3 elbow, Vector3 hand,
+            float upperWidth, float forearmWidth, Color color, out Transform elbowPivot)
+        {
+            Transform shoulderPivot = Limb(parent, name + " upper", shoulder, elbow, upperWidth, color);
+            elbowPivot = Limb(shoulderPivot, name + " forearm", elbow - shoulder, hand - shoulder, forearmWidth, color);
+            return shoulderPivot;
+        }
+
         Transform Limb(Transform parent, string name, Vector3 from, Vector3 to, float radius, Color color)
         {
             Vector3 delta = to - from;
@@ -1135,6 +1159,42 @@ namespace FrutigerBadminton
                 triangles[j + 9] = steps * 2 + nextInner; triangles[j + 10] = steps * 2 + nextOuter; triangles[j + 11] = innerBack;
             }
             mesh.vertices = vertices; mesh.triangles = triangles; mesh.RecalculateNormals(); return mesh;
+        }
+
+        static Mesh BuildRacketHoop(float radiusX, float radiusY, float tubeRadius, int steps, int tubeSides)
+        {
+            var vertices = new List<Vector3>(steps * tubeSides);
+            var normals = new List<Vector3>(steps * tubeSides);
+            var triangles = new List<int>(steps * tubeSides * 6);
+            for (int ring = 0; ring < steps; ring++)
+            {
+                float angle = ring / (float)steps * Mathf.PI * 2f;
+                Vector3 radial = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f);
+                Vector3 center = new Vector3(radial.x * radiusX, radial.y * radiusY, 0f);
+                for (int side = 0; side < tubeSides; side++)
+                {
+                    float aroundTube = side / (float)tubeSides * Mathf.PI * 2f;
+                    Vector3 normal = (radial * Mathf.Cos(aroundTube) + Vector3.forward * Mathf.Sin(aroundTube)).normalized;
+                    vertices.Add(center + normal * tubeRadius);
+                    normals.Add(normal);
+
+                    int nextRing = (ring + 1) % steps;
+                    int nextSide = (side + 1) % tubeSides;
+                    int a = ring * tubeSides + side;
+                    int b = nextRing * tubeSides + side;
+                    int c = ring * tubeSides + nextSide;
+                    int d = nextRing * tubeSides + nextSide;
+                    triangles.Add(a); triangles.Add(b); triangles.Add(c);
+                    triangles.Add(b); triangles.Add(d); triangles.Add(c);
+                }
+            }
+
+            var mesh = new Mesh { name = "Generated rounded liquid racket hoop" };
+            mesh.SetVertices(vertices);
+            mesh.SetNormals(normals);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateBounds();
+            return mesh;
         }
 
         static Mesh BuildRacketStringBed(float innerX, float innerY, int verticalCount, int horizontalCount, float width, float depth)

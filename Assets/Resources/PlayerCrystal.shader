@@ -11,7 +11,7 @@ Shader "Frutiger/Player Crystal"
     {
         Tags { "RenderType"="Transparent" "Queue"="Transparent" "RenderPipeline"="UniversalPipeline" }
         Blend SrcAlpha OneMinusSrcAlpha
-        ZWrite Off
+        ZWrite On
         Cull Back
         Pass
         {
@@ -44,7 +44,9 @@ Shader "Frutiger/Player Crystal"
                 float3 view = normalize(GetWorldSpaceViewDir(input.positionWS));
                 float facing = saturate(dot(normal, view));
                 float rim = pow(1 - facing, 1.8);
-                float specular = pow(saturate(dot(normal, normalize(view + float3(-.38, .8, -.3)))), 38);
+                float3 reflectedKey = normalize(view + float3(-.38, .8, -.3));
+                float broadGloss = pow(saturate(dot(normal, reflectedKey)), 12);
+                float specular = pow(saturate(dot(normal, reflectedKey)), 58);
                 float stripePosition = (localNormal.x + .3) * 7;
                 float stripe = exp(-stripePosition * stripePosition)
                     * smoothstep(.12, .7, abs(localNormal.z)) * (1 - smoothstep(.6, .98, abs(localNormal.y)));
@@ -54,10 +56,14 @@ Shader "Frutiger/Player Crystal"
                 float2 filterWidth = max(fwidth(grid), float2(.01, .01));
                 float2 frameLine = smoothstep(float2(.48, .48) - filterWidth, float2(.48, .48) + filterWidth, grid);
                 float frame = max(frameLine.x, frameLine.y) * facing;
-                float shine = saturate(specular * .8 + stripe * .35 + rim * .25);
-                half3 color = lerp(_Tint.rgb * (.72 + .25 * facing), half3(1, 1, 1), shine);
+                float liquidRibbon = pow(saturate(.5 + .5 * sin(input.positionWS.y * 11 + input.positionWS.x * 7 - _Time.y * 1.8)), 18)
+                    * smoothstep(.15, .72, abs(localNormal.z));
+                float shine = saturate(broadGloss * .42 + specular * .8 + stripe * .35 + rim * .25 + liquidRibbon * .36);
+                half3 color = lerp(_Tint.rgb * (.7 + .28 * facing), half3(1, 1, 1), shine);
                 color *= 1 - frame * _Reflectivity * .38;
-                float alpha = saturate(_Opacity + rim * _RimOpacity + specular * .5 + stripe * .23 + frame * _Reflectivity * .14);
+                color = lerp(color, _Tint.rgb, liquidRibbon * .12);
+                float alpha = saturate(_Opacity + rim * _RimOpacity + specular * .42 + broadGloss * .08
+                    + stripe * .23 + frame * _Reflectivity * .14 + liquidRibbon * .08);
                 return half4(color, alpha);
             }
             ENDHLSL
