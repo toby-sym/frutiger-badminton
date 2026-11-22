@@ -48,6 +48,24 @@ xvfb-run -a -s '-screen 0 1920x1080x24 +extension GLX' bash -c '
   sleep 4
   import -window root "$capture_dir/rally-late.png"
 
+  # Capture representative movement poses; timing on software rendering varies.
+  xdotool keydown d
+  sleep 1
+  import -window root "$capture_dir/move.png"
+  xdotool keyup d
+  xdotool keydown space
+  sleep .25
+  import -window root "$capture_dir/jump.png"
+  xdotool keyup space
+  sleep 1
+  xdotool keydown d
+  xdotool keydown Shift_L
+  sleep .25
+  import -window root "$capture_dir/dash.png"
+  xdotool keyup Shift_L
+  xdotool keyup d
+  sleep 1
+
   # Return to the title, select the overview camera and capture that composition.
   # Spacing key presses gives the software-rendered player time to handle each one.
   for key in Escape m Down Right Return Down Down Return Escape Return; do
