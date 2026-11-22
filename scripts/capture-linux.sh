@@ -37,4 +37,23 @@ xvfb-run -a -s '-screen 0 1920x1080x24 +extension GLX' bash -c '
   xdotool key Return
   sleep 8
   import -window root "$capture_dir/court.png"
+  # Attempt a serve and record the ensuing frames for visual review. Timing can
+  # vary with software rendering, so these images are observations, not a test.
+  xdotool mousemove --window "$window" 960 420
+  xdotool click 1
+  sleep 2
+  import -window root "$capture_dir/rally-early.png"
+  sleep 3
+  import -window root "$capture_dir/rally-middle.png"
+  sleep 4
+  import -window root "$capture_dir/rally-late.png"
+
+  # Return to the title, select the overview camera and capture that composition.
+  # Spacing key presses gives the software-rendered player time to handle each one.
+  for key in Escape m Down Right Return Down Down Return Escape Return; do
+    xdotool key --clearmodifiers "$key"
+    sleep 1
+  done
+  sleep 6
+  import -window root "$capture_dir/overview.png"
 '

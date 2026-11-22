@@ -124,6 +124,7 @@ namespace FrutigerBadminton
             CreateSkyDome();
             CreateHorizonLandscape();
             CreateFloatingIsland();
+            CreateIslandFloorSheen();
             CreateCourt();
             CreatePavilion();
             CreateNet();
@@ -231,7 +232,7 @@ namespace FrutigerBadminton
             island.AddComponent<MeshFilter>().sharedMesh = islandMesh;
             island.AddComponent<MeshRenderer>().sharedMaterials = new[]
             {
-                MakeMaterial("Universal Render Pipeline/Lit", new Color(.13f, .47f, .6f), .78f, .04f),
+                MakeMaterial("Universal Render Pipeline/Lit", new Color(.025f, .23f, .48f), .9f, .025f),
                 MakeMaterial("Universal Render Pipeline/Lit", new Color(.045f, .25f, .4f), .82f, .08f),
                 MakeMaterial("Universal Render Pipeline/Lit", new Color(.2f, .8f, .96f), .5f, .68f),
                 MakeMaterial("Universal Render Pipeline/Lit", new Color(.04f, .2f, .42f), .76f, .12f),
@@ -245,6 +246,52 @@ namespace FrutigerBadminton
                 var support = Cylinder("Crystal island support", new Vector3(x, -3.5f, z), new Vector3(.35f, 2.2f, .35f), new Color(.24f, .72f, .9f), .7f, .3f);
                 support.transform.rotation = Quaternion.Euler(0f, 0f, (i % 2 == 0 ? -1f : 1f) * 11f);
             }
+        }
+
+        void CreateIslandFloorSheen()
+        {
+            Shader shader = Resources.Load<Shader>("ProceduralCourtSheen");
+            if (!shader) return;
+
+            // Follow the chamfered island edge, just above its top and below the playing court.
+            Vector2[] outline =
+            {
+                new Vector2(-.36f, -.5f), new Vector2(.36f, -.5f),
+                new Vector2(.5f, -.36f), new Vector2(.5f, .36f),
+                new Vector2(.36f, .5f), new Vector2(-.36f, .5f),
+                new Vector2(-.5f, .36f), new Vector2(-.5f, -.36f)
+            };
+            var vertices = new Vector3[9];
+            vertices[0] = new Vector3(0f, -.744f, 0f);
+            for (int i = 0; i < outline.Length; i++)
+                vertices[i + 1] = new Vector3(outline[i].x * 15.1f, -.744f, outline[i].y * 20.1f);
+            var triangles = new int[outline.Length * 3];
+            for (int i = 0; i < outline.Length; i++)
+            {
+                triangles[i * 3] = 0;
+                triangles[i * 3 + 1] = (i + 1) % outline.Length + 1;
+                triangles[i * 3 + 2] = i + 1;
+            }
+            var mesh = new Mesh { name = "Generated island floor glaze" };
+            mesh.vertices = vertices;
+            mesh.triangles = triangles;
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            ownedMeshes.Add(mesh);
+            var material = new Material(shader) { name = "Blue island floor glaze" };
+            material.SetColor("_BaseColor", new Color(.025f, .24f, .52f, 1f));
+            material.SetColor("_GlintColor", new Color(.40f, .78f, .97f, 1f));
+            material.SetFloat("_Opacity", .4f);
+            material.SetFloat("_WaveScale", 5f);
+            material.SetFloat("_FlowSpeed", .06f);
+            material.SetFloat("_FresnelStrength", .35f);
+            ownedMaterials.Add(material);
+            var floor = new GameObject("Reflective island floor");
+            floor.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = floor.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
         }
 
         static Mesh BuildFloatingIslandMesh()
