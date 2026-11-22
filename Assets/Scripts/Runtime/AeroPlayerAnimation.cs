@@ -35,12 +35,15 @@ namespace FrutigerBadminton
         Quaternion leftElbowRestRotation;
         Quaternion rightElbowRestRotation;
         Quaternion racketRestRotation;
+        Vector3 racketRestScale;
         float groundHeight;
         float gaitPhase;
         float idlePhase;
         float swingRemaining;
         float swingDuration;
         float swingPower;
+        float racketFlexAngle;
+        float racketFlexVelocity;
         float gaitBlend;
         float gaitBlendVelocity;
         float airBlend;
@@ -82,6 +85,7 @@ namespace FrutigerBadminton
             leftElbowRestRotation = leftElbow.localRotation;
             rightElbowRestRotation = rightElbow.localRotation;
             racketRestRotation = racket.localRotation;
+            racketRestScale = racket.localScale;
             previousRootPosition = transform.position;
             groundHeight = transform.position.y;
             int phaseSeed = 0;
@@ -95,6 +99,7 @@ namespace FrutigerBadminton
             swingDuration = smash ? .34f : .27f;
             swingRemaining = swingDuration;
             swingPower = smash ? 1.25f : 1f;
+            racketFlexVelocity += smash ? 560f : 460f;
         }
 
         public void ResetMotion()
@@ -109,6 +114,8 @@ namespace FrutigerBadminton
             dashBlendVelocity = 0f;
             landingPulse = 0f;
             swingRemaining = 0f;
+            racketFlexAngle = 0f;
+            racketFlexVelocity = 0f;
             wasAirborne = false;
             pose.localPosition = poseRestPosition;
             pose.localScale = poseRestScale;
@@ -125,6 +132,7 @@ namespace FrutigerBadminton
             leftElbow.localRotation = leftElbowRestRotation;
             rightElbow.localRotation = rightElbowRestRotation;
             racket.localRotation = racketRestRotation;
+            racket.localScale = racketRestScale;
         }
 
         void LateUpdate()
@@ -147,6 +155,9 @@ namespace FrutigerBadminton
             bool dashing = speed > 8f;
             dashBlend = Mathf.SmoothDamp(dashBlend, dashing ? 1f : 0f, ref dashBlendVelocity, .06f, Mathf.Infinity, deltaTime);
             float dashGroundBlend = dashBlend * (1f - airBlend);
+            racketFlexVelocity += -racketFlexAngle * 92f * deltaTime;
+            racketFlexVelocity *= Mathf.Exp(-10.5f * deltaTime);
+            racketFlexAngle = Mathf.Clamp(racketFlexAngle + racketFlexVelocity * deltaTime, -24f, 24f);
             float step = Mathf.Sin(gaitPhase) * stride * (1f - airBlend) * (1f - dashBlend);
             if (shadowRenderer)
             {
@@ -210,6 +221,7 @@ namespace FrutigerBadminton
             rightElbow.localRotation = rightElbowRestRotation * Quaternion.Euler(step * 8f - airBlend * 10f, 0f, -elbowCurl);
 
             Quaternion rightArmPose = rightArmRestRotation * Quaternion.Euler(step * 18f + raisedArms * .5f, 0f, step * 6f);
+            float racketStrikeAngle = 0f;
             if (swingRemaining > 0f)
             {
                 swingRemaining = Mathf.Max(0f, swingRemaining - deltaTime);
@@ -218,12 +230,16 @@ namespace FrutigerBadminton
                 float followThrough = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.22f, .85f, progress));
                 float pulse = anticipation * followThrough;
                 rightArmPose *= Quaternion.Euler(-56f * swingPower * pulse, 0f, 24f * swingPower * pulse);
-                racket.localRotation = racketRestRotation * Quaternion.Euler(0f, 0f, -70f * swingPower * pulse);
+                racketStrikeAngle = -70f * swingPower * pulse;
             }
-            else
-            {
-                racket.localRotation = racketRestRotation * Quaternion.Euler(0f, 0f, -step * 7f);
-            }
+            float relaxedWobble = Mathf.Sin(gaitPhase * 1.5f + idlePhase) * (stride * 1.8f + idleWeight * .8f);
+            Quaternion racketTarget = racketRestRotation * Quaternion.Euler(0f, 0f,
+                racketStrikeAngle - step * 7f + racketFlexAngle + relaxedWobble);
+            racket.localRotation = Quaternion.Slerp(racket.localRotation, racketTarget,
+                1f - Mathf.Exp(-22f * deltaTime));
+            float racketStretch = Mathf.Clamp01(Mathf.Abs(racketFlexAngle) / 24f);
+            racket.localScale = Vector3.Scale(racketRestScale,
+                new Vector3(1f - racketStretch * .018f, 1f + racketStretch * .045f, 1f - racketStretch * .018f));
             rightArm.localRotation = rightArmPose;
         }
     }
