@@ -6,6 +6,10 @@ player="$PWD/build/StandaloneLinux64/FrutigerBadminton.x86_64"
 mkdir -p "$capture_dir"
 if [[ ! -x "$player" ]]; then sudo chmod +x "$player"; fi
 
+# Give FMOD a silent ALSA device on runners without audio hardware. Unity may
+# initialise FMOD even when -noaudio is supplied, so that flag alone is not enough.
+printf 'pcm.!default { type null }\n' > "$capture_dir/asound.conf"
+export ALSA_CONFIG_PATH="$capture_dir/asound.conf"
 export capture_dir player
 xvfb-run -a -s '-screen 0 1920x1080x24 +extension GLX' bash -c '
   set -euo pipefail
