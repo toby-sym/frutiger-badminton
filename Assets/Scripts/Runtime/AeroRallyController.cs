@@ -431,12 +431,12 @@ namespace FrutigerBadminton
         {
             if (!courtCamera) return;
             cameraBasePosition = courtLevelView ? new Vector3(0f, 3.85f, -13f) : new Vector3(12f, 10f, -19f);
-            courtCameraFollowOffset = new Vector3(-1.4f, 3.2f, -5.8f);
+            courtCameraFollowOffset = new Vector3(-1.3f, 2.5f, -3.8f);
             cameraRestPosition = CameraTargetPosition();
             courtCamera.position = cameraRestPosition;
             courtCamera.LookAt(CameraLookTarget());
             Camera camera = courtCamera.GetComponent<Camera>();
-            if (camera) camera.fieldOfView = courtLevelView ? 55f : 44f;
+            if (camera) camera.fieldOfView = courtLevelView ? 66f : 44f;
             cameraFollowVelocity = Vector3.zero;
             lastMovementDirection = CameraForwardOnCourt();
         }
@@ -458,7 +458,7 @@ namespace FrutigerBadminton
             if (!courtLevelView || titleScreenActive || !player)
                 return courtLevelView ? new Vector3(0f, .7f, 0f) : new Vector3(0f, .3f, 0f);
 
-            Vector3 focus = player.position + new Vector3(-1.4f, 1.35f, 5f);
+            Vector3 focus = player.position + new Vector3(-1.3f, 3.2f, 7.5f);
             if (flightActive && shuttle) focus = Vector3.Lerp(focus, shuttle.position, .12f);
             return focus;
         }
