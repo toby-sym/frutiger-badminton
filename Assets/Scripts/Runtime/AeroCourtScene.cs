@@ -963,12 +963,15 @@ namespace FrutigerBadminton
             }
             if (racketTrailMaterial)
             {
-                var trail = ring.AddComponent<TrailRenderer>();
-                trail.time = .38f;
-                trail.minVertexDistance = .014f;
-                trail.startWidth = .11f;
-                trail.endWidth = .004f;
-                trail.startColor = new Color(color.r, color.g, color.b, .82f);
+                var trailTip = new GameObject("Gel racket tip trail").transform;
+                trailTip.SetParent(ring.transform, false);
+                trailTip.localPosition = new Vector3(0f, .305f, 0f);
+                var trail = trailTip.gameObject.AddComponent<TrailRenderer>();
+                trail.time = .34f;
+                trail.minVertexDistance = .012f;
+                trail.startWidth = .085f;
+                trail.endWidth = .003f;
+                trail.startColor = new Color(color.r, color.g, color.b, .74f);
                 trail.endColor = new Color(color.r, color.g, color.b, 0f);
                 trail.sharedMaterial = racketTrailMaterial;
                 trail.alignment = LineAlignment.View;
