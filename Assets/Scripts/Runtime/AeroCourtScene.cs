@@ -871,10 +871,10 @@ namespace FrutigerBadminton
 
         static Color PlayerCoreColor(Color suit) => Color.Lerp(suit, Color.white, .035f);
 
-        Material PlayerCrystalMaterial(Color suit, float opacity = .38f, float rimOpacity = .42f, bool depthWrite = true)
+        Material PlayerCrystalMaterial(Color suit, float opacity = .38f, float rimOpacity = .42f, bool depthWrite = true, float weave = 0f)
         {
             string key = ColorUtility.ToHtmlStringRGBA(suit) + "-" + Mathf.RoundToInt(opacity * 100f) + "-"
-                + Mathf.RoundToInt(rimOpacity * 100f) + "-D" + (depthWrite ? "1" : "0");
+                + Mathf.RoundToInt(rimOpacity * 100f) + "-D" + (depthWrite ? "1" : "0") + "-W" + Mathf.RoundToInt(weave * 100f);
             if (playerCrystalMaterials.TryGetValue(key, out Material cached)) return cached;
             Shader shader = Resources.Load<Shader>("PlayerCrystal");
             if (!shader)
@@ -887,6 +887,7 @@ namespace FrutigerBadminton
             material.SetColor("_Tint", suit);
             material.SetFloat("_Opacity", opacity);
             material.SetFloat("_RimOpacity", rimOpacity);
+            if (material.HasProperty("_Weave")) material.SetFloat("_Weave", weave);
             if (material.HasProperty("_Reflectivity")) material.SetFloat("_Reflectivity", .24f);
             if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", depthWrite ? 1f : 0f);
             playerCrystalMaterials.Add(key, material);
@@ -896,7 +897,7 @@ namespace FrutigerBadminton
 
         void CreatePlayerGlaze(Transform pose, Color suit)
         {
-            Material material = PlayerCrystalMaterial(suit);
+            Material material = PlayerCrystalMaterial(suit, .38f, .42f, true, .42f);
             if (!material) return;
             var glaze = new GameObject("Crystal torso shell");
             glaze.transform.SetParent(pose, false);
@@ -1187,7 +1188,7 @@ namespace FrutigerBadminton
             shell.sharedMesh = shellMesh;
             shell.bones = bones;
             shell.rootBone = pose;
-            shell.sharedMaterial = PlayerCrystalMaterial(suit);
+            shell.sharedMaterial = PlayerCrystalMaterial(suit, .38f, .42f, true, .42f);
             shell.sortingOrder = 1;
             shell.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             shell.receiveShadows = false;

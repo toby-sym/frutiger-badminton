@@ -6,6 +6,7 @@ Shader "Frutiger/Player Crystal"
         _Opacity ("Inner tint", Range(0, 1)) = 0.3
         _RimOpacity ("Glass rim", Range(0, 1)) = 0.42
         _Reflectivity ("Window reflections", Range(0, 1)) = 0.24
+        _Weave ("Soft gel lattice", Range(0, 1)) = 0
         _ZWrite ("Depth write", Float) = 1
     }
     SubShader
@@ -28,9 +29,10 @@ Shader "Frutiger/Player Crystal"
                 float _Opacity;
                 float _RimOpacity;
                 float _Reflectivity;
+                float _Weave;
             CBUFFER_END
             struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; };
-            struct Varyings { float4 positionCS : SV_POSITION; float3 positionWS : TEXCOORD0; float3 normalWS : TEXCOORD1; float3 normalOS : TEXCOORD2; };
+            struct Varyings { float4 positionCS : SV_POSITION; float3 positionWS : TEXCOORD0; float3 normalWS : TEXCOORD1; float3 normalOS : TEXCOORD2; float3 positionOS : TEXCOORD3; };
             Varyings Vert(Attributes input)
             {
                 Varyings output;
@@ -38,6 +40,7 @@ Shader "Frutiger/Player Crystal"
                 output.positionWS = TransformObjectToWorld(input.positionOS.xyz);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 output.normalOS = input.normalOS;
+                output.positionOS = input.positionOS.xyz;
                 return output;
             }
             half4 Frag(Varyings input) : SV_Target
@@ -61,12 +64,18 @@ Shader "Frutiger/Player Crystal"
                 float frame = max(frameLine.x, frameLine.y) * facing;
                 float liquidRibbon = pow(saturate(.5 + .5 * sin(input.positionWS.y * 11 + input.positionWS.x * 7 - _Time.y * 1.8)), 18)
                     * smoothstep(.15, .72, abs(localNormal.z));
-                float shine = saturate(broadGloss * .42 + specular * .8 + stripe * .35 + rim * .25 + liquidRibbon * .36);
+                float2 weavePosition = input.positionOS.xy * float2(9, 12);
+                float2 weaveCell = abs(frac(weavePosition));
+                weaveCell = min(weaveCell, 1 - weaveCell);
+                float weaveLine = 1 - smoothstep(.018, .052, min(weaveCell.x, weaveCell.y));
+                float weave = weaveLine * _Weave * facing;
+                float shine = saturate(broadGloss * .42 + specular * .8 + stripe * .35 + rim * .25 + liquidRibbon * .36 + weave * .1);
                 half3 color = lerp(_Tint.rgb * (.7 + .28 * facing), half3(1, 1, 1), shine);
                 color *= 1 - frame * _Reflectivity * .24;
                 color = lerp(color, _Tint.rgb, liquidRibbon * .12);
+                color = lerp(color, _Tint.rgb * .5, weave * .38);
                 float alpha = saturate(_Opacity + rim * _RimOpacity + specular * .42 + broadGloss * .08
-                    + stripe * .23 + frame * _Reflectivity * .1 + liquidRibbon * .08);
+                    + stripe * .23 + frame * _Reflectivity * .1 + liquidRibbon * .08 + weave * .045);
                 return half4(color, alpha);
             }
             ENDHLSL
