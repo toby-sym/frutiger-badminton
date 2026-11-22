@@ -109,6 +109,8 @@ namespace FrutigerBadminton
         Vector3 cameraBasePosition;
         Vector3 cameraRestPosition;
         Vector3 cameraFollowVelocity;
+        Vector3 cameraLookRestPosition;
+        Vector3 cameraLookFollowVelocity;
         Vector3 courtCameraFollowOffset;
         Vector3 lastMouseAim;
         Vector2 lastStickAim;
@@ -431,13 +433,15 @@ namespace FrutigerBadminton
         {
             if (!courtCamera) return;
             cameraBasePosition = courtLevelView ? new Vector3(0f, 3.85f, -13f) : new Vector3(12f, 10f, -19f);
-            courtCameraFollowOffset = new Vector3(-1.3f, 2.5f, -3.8f);
+            courtCameraFollowOffset = new Vector3(-1.3f, 1.3f, -2.3f);
             cameraRestPosition = CameraTargetPosition();
+            cameraLookRestPosition = CameraLookTarget();
             courtCamera.position = cameraRestPosition;
-            courtCamera.LookAt(CameraLookTarget());
+            courtCamera.LookAt(cameraLookRestPosition);
             Camera camera = courtCamera.GetComponent<Camera>();
-            if (camera) camera.fieldOfView = courtLevelView ? 66f : 44f;
+            if (camera) camera.fieldOfView = courtLevelView ? 55f : 44f;
             cameraFollowVelocity = Vector3.zero;
+            cameraLookFollowVelocity = Vector3.zero;
             lastMovementDirection = CameraForwardOnCourt();
         }
 
@@ -458,7 +462,7 @@ namespace FrutigerBadminton
             if (!courtLevelView || titleScreenActive || !player)
                 return courtLevelView ? new Vector3(0f, .7f, 0f) : new Vector3(0f, .3f, 0f);
 
-            Vector3 focus = player.position + new Vector3(-1.3f, 3.2f, 7.5f);
+            Vector3 focus = player.position + new Vector3(-1.3f, 3f, 7.5f);
             if (flightActive && shuttle) focus = Vector3.Lerp(focus, shuttle.position, .12f);
             return focus;
         }
@@ -1143,12 +1147,20 @@ namespace FrutigerBadminton
         void UpdateCameraFeedback(float deltaTime)
         {
             if (!courtCamera) return;
+            Camera camera = courtCamera.GetComponent<Camera>();
+            if (camera)
+            {
+                float targetFieldOfView = courtLevelView ? (titleScreenActive ? 55f : 76f) : 44f;
+                camera.fieldOfView = Mathf.MoveTowards(camera.fieldOfView, targetFieldOfView, deltaTime * 90f);
+            }
             if (!isPaused && deltaTime > 0f)
             {
                 cameraRestPosition = Vector3.SmoothDamp(cameraRestPosition, CameraTargetPosition(), ref cameraFollowVelocity,
-                    .24f, 8f, deltaTime);
+                    .2f, 10f, deltaTime);
+                cameraLookRestPosition = Vector3.SmoothDamp(cameraLookRestPosition, CameraLookTarget(),
+                    ref cameraLookFollowVelocity, .15f, 80f, deltaTime);
                 courtCamera.position = cameraRestPosition;
-                courtCamera.LookAt(CameraLookTarget());
+                courtCamera.LookAt(cameraLookRestPosition);
             }
             if (cameraShakeRemaining <= 0f)
             {
@@ -1249,10 +1261,12 @@ namespace FrutigerBadminton
             rivalWing.position = new Vector3(-1.65f, GroundY, 4.2f);
             cameraFollowVelocity = Vector3.zero;
             cameraRestPosition = CameraTargetPosition();
+            cameraLookFollowVelocity = Vector3.zero;
+            cameraLookRestPosition = CameraLookTarget();
             if (courtCamera)
             {
                 courtCamera.position = cameraRestPosition;
-                courtCamera.LookAt(CameraLookTarget());
+                courtCamera.LookAt(cameraLookRestPosition);
             }
             if (playerAnimation) playerAnimation.ResetMotion();
             if (partnerAnimation) partnerAnimation.ResetMotion();
