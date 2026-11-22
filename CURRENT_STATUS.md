@@ -3,13 +3,14 @@
 - Project version is Unity 6000.0.64f1 with URP 17.0.4.
 - The generated court pipeline enables 4x MSAA, HDR and soft-shadow support for smoother geometry and lighting. Image quality and performance need Windows artifact verification.
 - The editor bootstrap generates the Aero Court scene and URP assets from C# using procedural meshes, primitives, and materials.
-- Cloud banks drift with gentle parallax while floating glass lanterns bob, twinkle, and orbit around the court; all motion is generated at runtime.
+- Cloud banks drift with gentle parallax while glass bubbles bob and orbit around the court; all motion is generated at runtime.
 - The island supports now sit below its top surface rather than protruding as posts through the court surround; a Linux capture confirmed the posts no longer appear above the floor.
 - Rally messages use a wider, text-sized panel that wraps on narrow screens; a Linux capture showed the serve prompt fitting on one line. Narrow-screen and Windows checks remain.
 - Cloud banks use overlapping, softly faded procedural mist instead of hard, opaque lobes. A Linux capture confirmed their softer appearance; Windows and motion checks remain.
 - A generated glass canopy, ceiling grid and light strips frame the court-level view; Linux captures showed the court remains visible and the elevated camera hides the canopy.
 - The island surround has a deeper blue finish and a procedural glaze extending the reflective court treatment across the floor. A Linux capture confirmed clear court markings; Windows visual checks remain.
 - The pavilion has a generated illuminated scoreboard mirroring the HUD score. A Linux capture showed the initial score and placement; score changes need gameplay verification.
+- Translucent, softly tinted bubbles orbit the arena in place of bright solid orbs; a Linux capture confirmed their appearance.
 - The court now has a texture-free HLSL sheen overlay with animated wave bands and view-angle glints; artifact validation is pending.
 - The floating court now sits on a generated chamfered crystal-mesa island with a bright aqua waist and layered blue underside facets.
 - The camera backdrop now uses a full-sphere pastel-to-azure vertex gradient and a generated sun halo, filling the previously gray below-horizon view.

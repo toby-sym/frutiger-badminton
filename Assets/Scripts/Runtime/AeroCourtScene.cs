@@ -42,8 +42,9 @@ namespace FrutigerBadminton
             public float angle;
             public float phase;
             public float speed;
+            public float size;
 
-            public LanternOrbit(Transform lantern, float radius, float baseHeight, float angle, float phase, float speed)
+            public LanternOrbit(Transform lantern, float radius, float baseHeight, float angle, float phase, float speed, float size)
             {
                 this.lantern = lantern;
                 this.radius = radius;
@@ -51,6 +52,7 @@ namespace FrutigerBadminton
                 this.angle = angle;
                 this.phase = phase;
                 this.speed = speed;
+                this.size = size;
             }
         }
 
@@ -77,7 +79,7 @@ namespace FrutigerBadminton
                 float bob = (Mathf.Sin(time * 1.35f + orbit.phase) - Mathf.Sin(orbit.phase)) * .13f;
                 float twinkle = (Mathf.Sin(time * 2.1f + orbit.phase) - Mathf.Sin(orbit.phase)) * .035f;
                 orbit.lantern.position = new Vector3(Mathf.Cos(angle) * orbit.radius, orbit.baseHeight + bob, Mathf.Sin(angle) * orbit.radius);
-                orbit.lantern.localScale = Vector3.one * (.22f * (1f + twinkle));
+                orbit.lantern.localScale = Vector3.one * (orbit.size * (1f + twinkle));
             }
 
             for (int i = 0; i < bubbleDrifts.Count; i++)
@@ -772,13 +774,27 @@ namespace FrutigerBadminton
 
         void CreateSpectatorOrbs()
         {
+            Shader shader = Resources.Load<Shader>("AeroGlass");
+            if (!shader) return;
+            var aqua = new Material(shader) { name = "Aqua arena bubbles" };
+            aqua.SetColor("_Tint", new Color(.62f, .9f, 1f));
+            aqua.SetFloat("_Opacity", .018f);
+            aqua.SetFloat("_RimOpacity", .38f);
+            ownedMaterials.Add(aqua);
+            var pearl = new Material(shader) { name = "Pearl arena bubbles" };
+            pearl.SetColor("_Tint", new Color(.82f, .79f, 1f));
+            pearl.SetFloat("_Opacity", .018f);
+            pearl.SetFloat("_RimOpacity", .38f);
+            ownedMaterials.Add(pearl);
             for (int i = 0; i < 12; i++)
             {
                 float angle = i / 12f * Mathf.PI * 2f;
                 float height = 1.4f + (i % 3) * .55f;
-                var orb = Sphere("Floating glass lantern", new Vector3(Mathf.Cos(angle) * 10.3f, height, Mathf.Sin(angle) * 10.3f), Vector3.one * .28f, Color.Lerp(new Color(.24f, .84f, .98f), new Color(.78f, .63f, .92f), i / 12f), .88f, .78f);
-                orb.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                lanternOrbits.Add(new LanternOrbit(orb.transform, 10.3f, height, angle, angle, .014f + (i % 3) * .002f));
+                float size = .28f + (i % 4) * .08f;
+                var orb = AddGlassPrimitive(PrimitiveType.Sphere, "Floating arena bubble",
+                    new Vector3(Mathf.Cos(angle) * 10.3f, height, Mathf.Sin(angle) * 10.3f),
+                    Vector3.one * size, i % 3 == 0 ? pearl : aqua);
+                lanternOrbits.Add(new LanternOrbit(orb.transform, 10.3f, height, angle, angle, .014f + (i % 3) * .002f, size));
             }
         }
 
