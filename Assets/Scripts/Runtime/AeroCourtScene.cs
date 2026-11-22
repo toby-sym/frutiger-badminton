@@ -25,8 +25,10 @@ namespace FrutigerBadminton
         Material playerShadowMaterial;
         readonly Dictionary<string, Material> playerCrystalMaterials = new Dictionary<string, Material>();
         Mesh playerTorsoMesh;
-        Mesh playerLimbShellMesh;
-        Mesh playerLimbCoreMesh;
+        Mesh playerLimbShellNearMesh;
+        Mesh playerLimbCoreNearMesh;
+        Mesh playerLimbShellFarMesh;
+        Mesh playerLimbCoreFarMesh;
 
         struct CloudDrift
         {
@@ -784,10 +786,14 @@ namespace FrutigerBadminton
             head.transform.SetParent(pose, true);
             Transform leftLeg = ArticulatedLeg(pose, "Left leg", new Vector3(-.2f, .65f, 0f), new Vector3(-.34f, .14f, 0f), out Transform leftKnee);
             Transform rightLeg = ArticulatedLeg(pose, "Right leg", new Vector3(.2f, .65f, 0f), new Vector3(.34f, .14f, 0f), out Transform rightKnee);
+            bool rival = name == "Rival" || name == "Rival Partner" || name == "Rival Wing";
+            float racketDepth = rival ? .2f : -.2f;
+            Vector3 rightElbowPosition = new Vector3(.47f, 1.08f, racketDepth * .4f);
+            Vector3 rightHandPosition = new Vector3(.6f, .92f, racketDepth);
             Transform leftArm = ArticulatedArm(pose, "Left arm", new Vector3(-.32f, 1.22f, 0f), new Vector3(-.49f, .92f, .02f), new Vector3(-.66f, .56f, .04f), out Transform leftElbow);
-            Transform rightArm = ArticulatedArm(pose, "Right arm", new Vector3(.32f, 1.22f, 0f), new Vector3(.47f, 1.08f, .02f), new Vector3(.6f, .92f, .04f), out Transform rightElbow);
-            CreatePlayerLimbs(pose, suit, leftArm, rightArm, leftLeg, rightLeg, leftElbow, rightElbow, leftKnee, rightKnee);
-            Transform racket = CreateRacket(rightElbow, new Vector3(.6f, .92f, .04f) - new Vector3(.47f, 1.08f, .02f), suit);
+            Transform rightArm = ArticulatedArm(pose, "Right arm", new Vector3(.32f, 1.22f, 0f), rightElbowPosition, rightHandPosition, out Transform rightElbow);
+            CreatePlayerLimbs(pose, suit, rival, leftArm, rightArm, leftLeg, rightLeg, leftElbow, rightElbow, leftKnee, rightKnee);
+            Transform racket = CreateRacket(rightElbow, rightHandPosition - rightElbowPosition, suit);
             Renderer shadow = CreatePlayerShadow(root.transform);
             root.AddComponent<AeroPlayerAnimation>().Initialize(pose, leftArm, rightArm, leftLeg, rightLeg, leftKnee, rightKnee, leftElbow, rightElbow, racket, shadow);
             return root.transform;
@@ -1082,53 +1088,73 @@ namespace FrutigerBadminton
             return joint;
         }
 
-        void CreatePlayerLimbs(Transform pose, Color suit, Transform leftArm, Transform rightArm,
+        void CreatePlayerLimbs(Transform pose, Color suit, bool rival, Transform leftArm, Transform rightArm,
             Transform leftLeg, Transform rightLeg, Transform leftElbow, Transform rightElbow,
             Transform leftKnee, Transform rightKnee)
         {
             Transform[] bones = { leftArm, rightArm, leftLeg, rightLeg, leftElbow, rightElbow, leftKnee, rightKnee };
-            if (!playerLimbShellMesh)
+            float racketDepth = rival ? .2f : -.2f;
+            Mesh shellMesh;
+            Mesh coreMesh;
+            if (rival)
             {
-                playerLimbShellMesh = BuildPlayerLimbMesh(pose, bones, 1f);
-                playerLimbCoreMesh = BuildPlayerLimbMesh(pose, bones, .8f);
-                ownedMeshes.Add(playerLimbShellMesh);
-                ownedMeshes.Add(playerLimbCoreMesh);
+                if (!playerLimbShellFarMesh)
+                {
+                    playerLimbShellFarMesh = BuildPlayerLimbMesh(pose, bones, 1f, racketDepth);
+                    playerLimbCoreFarMesh = BuildPlayerLimbMesh(pose, bones, .8f, racketDepth);
+                    ownedMeshes.Add(playerLimbShellFarMesh);
+                    ownedMeshes.Add(playerLimbCoreFarMesh);
+                }
+                shellMesh = playerLimbShellFarMesh;
+                coreMesh = playerLimbCoreFarMesh;
+            }
+            else
+            {
+                if (!playerLimbShellNearMesh)
+                {
+                    playerLimbShellNearMesh = BuildPlayerLimbMesh(pose, bones, 1f, racketDepth);
+                    playerLimbCoreNearMesh = BuildPlayerLimbMesh(pose, bones, .8f, racketDepth);
+                    ownedMeshes.Add(playerLimbShellNearMesh);
+                    ownedMeshes.Add(playerLimbCoreNearMesh);
+                }
+                shellMesh = playerLimbShellNearMesh;
+                coreMesh = playerLimbCoreNearMesh;
             }
 
             var body = new GameObject("Continuous crystal limbs");
             body.transform.SetParent(pose, false);
             var shell = body.AddComponent<SkinnedMeshRenderer>();
-            shell.sharedMesh = playerLimbShellMesh;
+            shell.sharedMesh = shellMesh;
             shell.bones = bones;
             shell.rootBone = pose;
             shell.sharedMaterial = PlayerCrystalMaterial(suit);
             shell.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             shell.receiveShadows = false;
             shell.updateWhenOffscreen = true;
-            shell.localBounds = playerLimbShellMesh.bounds;
+            shell.localBounds = shellMesh.bounds;
             shell.localBounds.Expand(new Vector3(.45f, .45f, .3f));
 
             var core = new GameObject("Soft coloured limb interior");
             core.transform.SetParent(pose, false);
             var inner = core.AddComponent<SkinnedMeshRenderer>();
-            inner.sharedMesh = playerLimbCoreMesh;
+            inner.sharedMesh = coreMesh;
             inner.bones = bones;
             inner.rootBone = pose;
             inner.sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", PlayerCoreColor(suit), .98f, .055f);
             inner.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             inner.receiveShadows = false;
             inner.updateWhenOffscreen = true;
-            inner.localBounds = playerLimbCoreMesh.bounds;
+            inner.localBounds = coreMesh.bounds;
             inner.localBounds.Expand(new Vector3(.45f, .45f, .3f));
         }
 
-        static Mesh BuildPlayerLimbMesh(Transform pose, Transform[] bones, float radiusScale)
+        static Mesh BuildPlayerLimbMesh(Transform pose, Transform[] bones, float radiusScale, float racketDepth)
         {
             var vertices = new List<Vector3>();
             var triangles = new List<int>();
             var weights = new List<BoneWeight>();
             AddSkinnedLimb(vertices, triangles, weights, new Vector3(-.32f, 1.22f, 0f), new Vector3(-.49f, .92f, .02f), new Vector3(-.66f, .56f, .04f), 0, 4, .18f * radiusScale, .145f * radiusScale);
-            AddSkinnedLimb(vertices, triangles, weights, new Vector3(.32f, 1.22f, 0f), new Vector3(.47f, 1.08f, .02f), new Vector3(.6f, .92f, .04f), 1, 5, .18f * radiusScale, .145f * radiusScale);
+            AddSkinnedLimb(vertices, triangles, weights, new Vector3(.32f, 1.22f, 0f), new Vector3(.47f, 1.08f, racketDepth * .4f), new Vector3(.6f, .92f, racketDepth), 1, 5, .18f * radiusScale, .145f * radiusScale);
             Vector3 leftHip = new Vector3(-.2f, .65f, 0f), leftAnkle = new Vector3(-.34f, .14f, 0f);
             Vector3 rightHip = new Vector3(.2f, .65f, 0f), rightAnkle = new Vector3(.34f, .14f, 0f);
             AddSkinnedLimb(vertices, triangles, weights, leftHip, Vector3.Lerp(leftHip, leftAnkle, .52f), leftAnkle, 2, 6, .19f * radiusScale, .15f * radiusScale);
