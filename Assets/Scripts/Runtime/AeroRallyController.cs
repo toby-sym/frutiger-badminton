@@ -109,6 +109,8 @@ namespace FrutigerBadminton
         Vector3 cameraBasePosition;
         Vector3 cameraRestPosition;
         Vector3 cameraFollowVelocity;
+        Vector3 cameraLookRestPosition;
+        Vector3 cameraLookFollowVelocity;
         Vector3 courtCameraFollowOffset;
         Vector3 lastMouseAim;
         Vector2 lastStickAim;
@@ -218,8 +220,8 @@ namespace FrutigerBadminton
             }
             CreateAudioFeedback();
             player.position = new Vector3(0f, GroundY, -4.6f);
-            partner.position = new Vector3(-1.65f, GroundY, -4.8f);
-            partnerTwo.position = new Vector3(1.65f, GroundY, -4.2f);
+            partner.position = new Vector3(-1.65f, GroundY, -2.1f);
+            partnerTwo.position = new Vector3(1.65f, GroundY, -2.9f);
             rival.position = new Vector3(0f, GroundY, 4.6f);
             rivalPartner.position = new Vector3(1.65f, GroundY, 4.8f);
             rivalWing.position = new Vector3(-1.65f, GroundY, 4.2f);
@@ -431,13 +433,15 @@ namespace FrutigerBadminton
         {
             if (!courtCamera) return;
             cameraBasePosition = courtLevelView ? new Vector3(0f, 3.85f, -13f) : new Vector3(12f, 10f, -19f);
-            courtCameraFollowOffset = new Vector3(-1.4f, 3.2f, -5.8f);
+            courtCameraFollowOffset = new Vector3(-1.3f, 1.3f, -2.3f);
             cameraRestPosition = CameraTargetPosition();
+            cameraLookRestPosition = CameraLookTarget();
             courtCamera.position = cameraRestPosition;
-            courtCamera.LookAt(CameraLookTarget());
+            courtCamera.LookAt(cameraLookRestPosition);
             Camera camera = courtCamera.GetComponent<Camera>();
             if (camera) camera.fieldOfView = courtLevelView ? 55f : 44f;
             cameraFollowVelocity = Vector3.zero;
+            cameraLookFollowVelocity = Vector3.zero;
             lastMovementDirection = CameraForwardOnCourt();
         }
 
@@ -458,7 +462,7 @@ namespace FrutigerBadminton
             if (!courtLevelView || titleScreenActive || !player)
                 return courtLevelView ? new Vector3(0f, .7f, 0f) : new Vector3(0f, .3f, 0f);
 
-            Vector3 focus = player.position + new Vector3(-1.4f, 1.35f, 5f);
+            Vector3 focus = player.position + new Vector3(-1.3f, 3f, 7.5f);
             if (flightActive && shuttle) focus = Vector3.Lerp(focus, shuttle.position, .12f);
             return focus;
         }
@@ -668,7 +672,7 @@ namespace FrutigerBadminton
             // Avoid swapping formation every time the player crosses the centre by a few pixels.
             if (player.position.x > .65f) friendlyHomeSide = -1f;
             else if (player.position.x < -.65f) friendlyHomeSide = 1f;
-            MoveFriendlySupport(partner, assignedFriendlyReceiver, friendlyHomeSide * 1.65f, -4.8f, deltaTime);
+            MoveFriendlySupport(partner, assignedFriendlyReceiver, friendlyHomeSide * 1.65f, -2.1f, deltaTime);
             MoveFriendlySupport(partnerTwo, assignedFriendlyReceiver, -friendlyHomeSide * .85f, -2.9f, deltaTime);
         }
 
@@ -1143,12 +1147,20 @@ namespace FrutigerBadminton
         void UpdateCameraFeedback(float deltaTime)
         {
             if (!courtCamera) return;
+            Camera camera = courtCamera.GetComponent<Camera>();
+            if (camera)
+            {
+                float targetFieldOfView = courtLevelView ? (titleScreenActive ? 55f : 76f) : 44f;
+                camera.fieldOfView = Mathf.MoveTowards(camera.fieldOfView, targetFieldOfView, deltaTime * 90f);
+            }
             if (!isPaused && deltaTime > 0f)
             {
                 cameraRestPosition = Vector3.SmoothDamp(cameraRestPosition, CameraTargetPosition(), ref cameraFollowVelocity,
-                    .24f, 8f, deltaTime);
+                    .2f, 10f, deltaTime);
+                cameraLookRestPosition = Vector3.SmoothDamp(cameraLookRestPosition, CameraLookTarget(),
+                    ref cameraLookFollowVelocity, .15f, 80f, deltaTime);
                 courtCamera.position = cameraRestPosition;
-                courtCamera.LookAt(CameraLookTarget());
+                courtCamera.LookAt(cameraLookRestPosition);
             }
             if (cameraShakeRemaining <= 0f)
             {
@@ -1242,17 +1254,19 @@ namespace FrutigerBadminton
             friendlyHomeSide = -1f;
             messageDelay = 0f;
             player.position = new Vector3(0f, GroundY, -4.6f);
-            partner.position = new Vector3(-1.65f, GroundY, -4.8f);
-            partnerTwo.position = new Vector3(1.65f, GroundY, -4.2f);
+            partner.position = new Vector3(-1.65f, GroundY, -2.1f);
+            partnerTwo.position = new Vector3(1.65f, GroundY, -2.9f);
             rival.position = new Vector3(0f, GroundY, 4.6f);
             rivalPartner.position = new Vector3(1.65f, GroundY, 4.8f);
             rivalWing.position = new Vector3(-1.65f, GroundY, 4.2f);
             cameraFollowVelocity = Vector3.zero;
             cameraRestPosition = CameraTargetPosition();
+            cameraLookFollowVelocity = Vector3.zero;
+            cameraLookRestPosition = CameraLookTarget();
             if (courtCamera)
             {
                 courtCamera.position = cameraRestPosition;
-                courtCamera.LookAt(CameraLookTarget());
+                courtCamera.LookAt(cameraLookRestPosition);
             }
             if (playerAnimation) playerAnimation.ResetMotion();
             if (partnerAnimation) partnerAnimation.ResetMotion();
@@ -1447,6 +1461,11 @@ namespace FrutigerBadminton
             var root = new GameObject("Generated shuttlecock");
             ownedObjects.Add(root);
             shuttle = root.transform;
+            var body = new GameObject("Scaled shuttle body").transform;
+            body.SetParent(shuttle, false);
+            // Keep the shuttle readable at the close following-camera distance
+            // without letting its broad feather skirt obscure the player.
+            body.localScale = Vector3.one * .28f;
             Mesh featherMesh = BuildFeathers();
             ownedObjects.Add(featherMesh);
             Shader featherShader = Resources.Load<Shader>("ShuttleFeather");
@@ -1455,7 +1474,7 @@ namespace FrutigerBadminton
             bandMaterial = CreateMaterial("Universal Render Pipeline/Lit", new Color(.1f, .79f, .89f), .5f, .75f);
 
             var skirt = new GameObject("Generated feather skirt");
-            skirt.transform.SetParent(shuttle, false);
+            skirt.transform.SetParent(body, false);
             skirt.AddComponent<MeshFilter>().sharedMesh = featherMesh;
             var skirtRenderer = skirt.AddComponent<MeshRenderer>();
             skirtRenderer.sharedMaterial = shuttleMaterial;
@@ -1464,7 +1483,7 @@ namespace FrutigerBadminton
             var cork = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             cork.name = "Generated shuttle cork";
             Destroy(cork.GetComponent<Collider>());
-            cork.transform.SetParent(shuttle, false);
+            cork.transform.SetParent(body, false);
             cork.transform.localPosition = Vector3.zero;
             cork.transform.localScale = new Vector3(.13f, .17f, .13f);
             cork.GetComponent<Renderer>().sharedMaterial = corkMaterial;
@@ -1472,7 +1491,7 @@ namespace FrutigerBadminton
             var band = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             band.name = "Aqua cork band";
             Destroy(band.GetComponent<Collider>());
-            band.transform.SetParent(shuttle, false);
+            band.transform.SetParent(body, false);
             band.transform.localPosition = new Vector3(0f, -.105f, 0f);
             band.transform.localScale = new Vector3(.072f, .025f, .072f);
             band.GetComponent<Renderer>().sharedMaterial = bandMaterial;

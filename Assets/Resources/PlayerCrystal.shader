@@ -3,15 +3,18 @@ Shader "Frutiger/Player Crystal"
     Properties
     {
         _Tint ("Crystal tint", Color) = (0.15, 0.8, 0.85, 1)
-        _Opacity ("Inner tint", Range(0, 1)) = 0.12
-        _RimOpacity ("Glass rim", Range(0, 1)) = 0.5
-        _Reflectivity ("Window reflections", Range(0, 1)) = 0.5
+        _Opacity ("Inner tint", Range(0, 1)) = 0.3
+        _RimOpacity ("Glass rim", Range(0, 1)) = 0.42
+        _Reflectivity ("Window reflections", Range(0, 1)) = 0.24
+        _ZWrite ("Depth write", Float) = 1
     }
     SubShader
     {
         Tags { "RenderType"="Transparent" "Queue"="Transparent" "RenderPipeline"="UniversalPipeline" }
         Blend SrcAlpha OneMinusSrcAlpha
-        ZWrite On
+        // Outer shells and racket details depth-test against each other. Inner gel
+        // layers disable depth writes so their color can blend through the shell.
+        ZWrite [_ZWrite]
         Cull Back
         Pass
         {
@@ -60,10 +63,10 @@ Shader "Frutiger/Player Crystal"
                     * smoothstep(.15, .72, abs(localNormal.z));
                 float shine = saturate(broadGloss * .42 + specular * .8 + stripe * .35 + rim * .25 + liquidRibbon * .36);
                 half3 color = lerp(_Tint.rgb * (.7 + .28 * facing), half3(1, 1, 1), shine);
-                color *= 1 - frame * _Reflectivity * .38;
+                color *= 1 - frame * _Reflectivity * .24;
                 color = lerp(color, _Tint.rgb, liquidRibbon * .12);
                 float alpha = saturate(_Opacity + rim * _RimOpacity + specular * .42 + broadGloss * .08
-                    + stripe * .23 + frame * _Reflectivity * .14 + liquidRibbon * .08);
+                    + stripe * .23 + frame * _Reflectivity * .1 + liquidRibbon * .08);
                 return half4(color, alpha);
             }
             ENDHLSL

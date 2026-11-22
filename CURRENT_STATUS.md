@@ -12,12 +12,12 @@
 - The pavilion has a generated illuminated scoreboard mirroring the HUD score. A Linux capture showed both displays updating to 0–2; Windows gameplay verification remains.
 - Translucent, softly tinted bubbles orbit the arena in place of bright solid orbs; a Linux capture confirmed their appearance.
 - A generated right-side glass gallery closes the court-level arena and hides in overview mode. Linux captures confirmed both views and showed the floor remains clear of heavy gallery shadows.
-- Players now use continuous procedurally skinned glass limbs with animated elbows and knees, larger faceless crystal heads, and a wider tapered torso. Stronger squash-and-stretch and a liquid team-coloured racket are awaiting a fresh capture.
+- Players now use continuous procedurally skinned limbs, larger faceless heads, a tapered torso and springy squash-and-stretch. Saturated team-coloured cores sit under glossy gel shells with a soft neck bridge and restrained window-grid sheen. Racket hoops and strings are clearer and angled out from the body. Linux capture `45054130613` confirmed the racket and model read in play; the Windows GameCI build passed in `45054124560`.
 - Generated leafy vines hang at the pavilion canopy corners. Linux captures confirmed they stay above play and hide with the canopy in overview mode.
 - The controls panel can be compacted with F1 or gamepad Select and restored the same way; the compact view retains serve and dash status. Linux capture confirmed the F1 toggle and layout; controller and pointer-boundary checks remain.
 - A single generated double-sided net mesh replaces the coarser individual threads, with finer spacing and fewer renderers. Linux captures confirmed visibility in both camera views.
 - The court and surround use a texture-free HLSL lacquer overlay with an elongated window reflection, soft motion and view-angle glints. Linux captures showed the brighter court while retaining readable markings; Windows checks remain.
-- Players use a shared generated, tapered torso mesh for their translucent coloured cores and shells, with window-grid and moving liquid highlights; inspect the current version in a fresh capture.
+- Players use a shared generated, tapered torso mesh for their translucent coloured cores and shells, with a moving liquid highlight and reduced reflection-grid contrast. The saturated core fill keeps court markings from overwhelming the gel surface while preserving a glassy edge.
 - The procedural sky gradient has a clearer, more saturated blue while retaining the bright cloud layer; visual comparison is pending.
 - Player crystal colours use distinct Aqua and Coral team palettes with varied shades; Linux captures showed both teams clearly. Colour-vision accessibility and Windows checks remain.
 - Generated player legs have knee pivots for stride, airborne and landing bends. Linux stills and a motion clip showed the feet remain attached and the airborne bend is visible; Windows motion and feel remain to be checked.
@@ -42,8 +42,8 @@
 - Procedural body pivots, responsive run/jump/dash/racket-swing animation, and generated shock rings and sparks at racket contact are implemented.
 - Impact ring retraction and the central flash now use the intended time intervals and settle before the effect is removed; visual verification is pending.
 - Completed impact effects are retained in a small pool and reset for reuse, avoiding repeated mesh, material and primitive creation during consecutive rallies. Visual behaviour and performance need player verification.
-- Generated racket frames now use a rounded glass tube, team-coloured strings and a handle that anchors at the wrist; inspect their visibility during swings in a fresh capture.
-- Player silhouettes use generated glass-like heads, torsos and articulated limbs with coloured inner forms; visual checks are pending.
+- Generated racket frames use a rounded gel tube, brighter team-coloured strings and a wrist-anchored handle, with the string face held in front of the frame during play. Linux capture `45054130613` confirmed that the racket remains visible during dash and jump frames.
+- Player silhouettes use faceless generated heads, tapered torsos and articulated limbs with saturated inner forms beneath glossy translucent shells. The visible shuttle mesh now uses a compact child scale so its feather skirt does not cover the foreground athlete; flight and trail remain on the unscaled root. Linux capture `45054130613` confirmed the smaller held shuttle and clear racket silhouette.
 - A generated green-kit doubles partner covers the near court when positioned closer to an incoming landing; the player keeps priority when in racket range, and the partner returns automatically when the player cannot reach.
 - The opponent is now a generated doubles pair too. Both opponents reposition toward their shared landing target, and the closer player returns the shuttle.
 - The local match now has a full 3v3 roster: the player and two AI partners against three generated opponents. Each AI side assigns the closest teammate to its predicted return.
