@@ -775,6 +775,17 @@ namespace FrutigerBadminton
             mesh.SetVertices(vertices);
             mesh.SetTriangles(triangles, 0);
             mesh.RecalculateNormals();
+            // Join normals across the duplicated seam so highlights stay smooth.
+            Vector3[] normals = mesh.normals;
+            for (int ring = 0; ring <= rings; ring++)
+            {
+                int first = ring * (segments + 1), last = first + segments;
+                Vector3 joined = (normals[first] + normals[last]).normalized;
+                if (joined.sqrMagnitude < .001f) joined = ring == 0 ? Vector3.down : Vector3.up;
+                normals[first] = joined;
+                normals[last] = joined;
+            }
+            mesh.normals = normals;
             mesh.RecalculateBounds();
             return mesh;
         }
