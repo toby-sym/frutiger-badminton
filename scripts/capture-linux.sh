@@ -37,6 +37,11 @@ xvfb-run -a -s '-screen 0 1920x1080x24 +extension GLX' bash -c '
   xdotool key Return
   sleep 8
   import -window root "$capture_dir/court.png"
+  xdotool key F1
+  sleep 2
+  import -window root "$capture_dir/compact-controls.png"
+  xdotool key F1
+  sleep 2
   # Attempt a serve and record the ensuing frames for visual review. Timing can
   # vary with software rendering, so these images are observations, not a test.
   xdotool mousemove --window "$window" 960 420

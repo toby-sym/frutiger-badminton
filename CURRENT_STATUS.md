@@ -14,6 +14,7 @@
 - A generated right-side glass gallery closes the court-level arena and hides in overview mode. Linux captures confirmed both views and showed the floor remains clear of heavy gallery shadows.
 - Player jackets use a procedural lacquer glaze with broad specular and soft vertical highlights; a Linux capture showed the new sheen while preserving the team colours.
 - Generated leafy vines hang at the pavilion canopy corners. Linux captures confirmed they stay above play and hide with the canopy in overview mode.
+- The controls panel can be compacted with F1 or gamepad Select and restored the same way; the compact view retains serve and dash status. Linux capture confirmed the F1 toggle and layout; controller and pointer-boundary checks remain.
 - The court now has a texture-free HLSL sheen overlay with animated wave bands and view-angle glints; artifact validation is pending.
 - The floating court now sits on a generated chamfered crystal-mesa island with a bright aqua waist and layered blue underside facets.
 - The camera backdrop now uses a full-sphere pastel-to-azure vertex gradient and a generated sun halo, filling the previously gray below-horizon view.
