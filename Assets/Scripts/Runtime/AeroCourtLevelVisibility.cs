@@ -2,15 +2,15 @@ using UnityEngine;
 
 namespace FrutigerBadminton
 {
-    /// <summary>Keeps the overhead structure out of the elevated gameplay view.</summary>
-    public sealed class AeroCanopyVisibility : MonoBehaviour
+    /// <summary>Keeps nearby arena structures out of the elevated gameplay view.</summary>
+    public sealed class AeroCourtLevelVisibility : MonoBehaviour
     {
-        Renderer[] canopyRenderers;
+        Renderer[] controlledRenderers;
         bool? visible;
 
         void Start()
         {
-            canopyRenderers = GetComponentsInChildren<Renderer>();
+            controlledRenderers = GetComponentsInChildren<Renderer>();
             UpdateVisibility();
         }
 
@@ -22,8 +22,8 @@ namespace FrutigerBadminton
             bool show = !camera || camera.transform.position.y < 5.6f;
             if (visible == show) return;
             visible = show;
-            foreach (Renderer canopyRenderer in canopyRenderers)
-                if (canopyRenderer) canopyRenderer.enabled = show;
+            foreach (Renderer controlledRenderer in controlledRenderers)
+                if (controlledRenderer) controlledRenderer.enabled = show;
         }
     }
 }

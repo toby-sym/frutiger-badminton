@@ -493,6 +493,7 @@ namespace FrutigerBadminton
             ownedMaterials.Add(glass);
             AddGlassPrimitive(PrimitiveType.Cube, "Rear glass", new Vector3(0f, 2.5f, back + .06f), new Vector3(14.45f, 6.3f, .02f), glass);
             AddGlassPrimitive(PrimitiveType.Cube, "Side glass", new Vector3(left - .06f, 2.5f, .05f), new Vector3(.02f, 6.3f, 18f), glass);
+            CreateRightGallery(glass);
             CreatePavilionCanopy(glass);
 
             var bubbleMaterial = new Material(glassShader) { name = "Floating pearl bubbles" };
@@ -508,6 +509,37 @@ namespace FrutigerBadminton
                 var bubble = AddGlassPrimitive(PrimitiveType.Sphere, "Drifting glass bubble", position, Vector3.one * size, bubbleMaterial);
                 bubbleDrifts.Add(new CloudDrift(bubble.transform, position, i * 1.1f, .35f + i * .015f));
             }
+        }
+
+        void CreateRightGallery(Material glass)
+        {
+            var gallery = new GameObject("Right glass gallery");
+            Color frame = new Color(.20f, .42f, .56f);
+            Color trim = new Color(.63f, .88f, .94f);
+            Color ledgeColor = new Color(.09f, .28f, .42f);
+            const float right = 7.25f;
+            for (int i = 0; i <= 6; i++)
+            {
+                float z = Mathf.Lerp(-9f, 9.1f, i / 6f);
+                var mullion = Cube("Right pavilion mullion", new Vector3(right, 2.5f, z), new Vector3(.11f, 6.4f, .07f), frame, .8f, .025f);
+                mullion.transform.SetParent(gallery.transform, true);
+                var support = Cube("Right gallery support", new Vector3(6.45f, 2.69f, z), new Vector3(.045f, .76f, .045f), trim, .78f, .04f);
+                support.transform.SetParent(gallery.transform, true);
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                var rail = Cube("Right pavilion rail", new Vector3(right, .25f + i * 2.25f, .05f), new Vector3(.09f, .055f, 18.1f), trim, .8f, .025f);
+                rail.transform.SetParent(gallery.transform, true);
+            }
+            var crown = Cube("Right pavilion crown", new Vector3(right, 5.7f, .05f), new Vector3(.22f, .18f, 18.2f), frame, .88f, .04f);
+            crown.transform.SetParent(gallery.transform, true);
+            var ledge = Cube("Right gallery ledge", new Vector3(6.85f, 2.3f, .05f), new Vector3(.8f, .14f, 18f), ledgeColor, .86f, .025f);
+            ledge.transform.SetParent(gallery.transform, true);
+            var handrail = Cube("Right gallery handrail", new Vector3(6.45f, 3.05f, .05f), new Vector3(.055f, .055f, 17.9f), trim, .82f, .08f);
+            handrail.transform.SetParent(gallery.transform, true);
+            var panel = AddGlassPrimitive(PrimitiveType.Cube, "Right glass", new Vector3(right + .06f, 2.5f, .05f), new Vector3(.02f, 6.3f, 18f), glass);
+            panel.transform.SetParent(gallery.transform, true);
+            gallery.AddComponent<AeroCourtLevelVisibility>();
         }
 
         void CreatePavilionCanopy(Material glass)
@@ -540,7 +572,7 @@ namespace FrutigerBadminton
                 strip.transform.SetParent(canopy.transform, true);
                 strip.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
-            canopy.AddComponent<AeroCanopyVisibility>();
+            canopy.AddComponent<AeroCourtLevelVisibility>();
         }
 
         GameObject AddGlassPrimitive(PrimitiveType type, string objectName, Vector3 position, Vector3 scale, Material material)

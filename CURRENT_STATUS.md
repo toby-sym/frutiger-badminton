@@ -9,6 +9,7 @@
 - Cloud banks use overlapping, softly faded procedural mist instead of hard, opaque lobes. A Linux capture confirmed their softer appearance; Windows and motion checks remain.
 - A generated glass canopy, ceiling grid and light strips frame the court-level view; Linux captures showed the court remains visible and the elevated camera hides the canopy.
 - The island surround has a deeper blue finish and a procedural glaze extending the reflective court treatment across the floor. A Linux capture confirmed clear court markings; Windows visual checks remain.
+- A generated right-side glass gallery closes the court-level arena and hides in overview mode to avoid obstructing play; both views need inspection.
 - The court now has a texture-free HLSL sheen overlay with animated wave bands and view-angle glints; artifact validation is pending.
 - The floating court now sits on a generated chamfered crystal-mesa island with a bright aqua waist and layered blue underside facets.
 - The camera backdrop now uses a full-sphere pastel-to-azure vertex gradient and a generated sun halo, filling the previously gray below-horizon view.
