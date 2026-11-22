@@ -6,6 +6,7 @@ namespace FrutigerBadminton
     public sealed class AeroPlayerAnimation : MonoBehaviour
     {
         Transform pose;
+        Transform head;
         Transform leftArm;
         Transform rightArm;
         Transform leftLeg;
@@ -20,8 +21,11 @@ namespace FrutigerBadminton
 
         Vector3 poseRestPosition;
         Vector3 poseRestScale;
+        Vector3 headRestPosition;
+        Vector3 headPositionVelocity;
         Vector3 previousRootPosition;
         Quaternion poseRestRotation;
+        Quaternion headRestRotation;
         Quaternion leftArmRestRotation;
         Quaternion rightArmRestRotation;
         Quaternion leftLegRestRotation;
@@ -46,11 +50,12 @@ namespace FrutigerBadminton
         float landingPulse;
         bool wasAirborne;
 
-        public void Initialize(Transform bodyPose, Transform leftArmJoint, Transform rightArmJoint,
+        public void Initialize(Transform bodyPose, Transform headPivot, Transform leftArmJoint, Transform rightArmJoint,
             Transform leftLegJoint, Transform rightLegJoint, Transform leftKneeJoint, Transform rightKneeJoint,
             Transform leftElbowJoint, Transform rightElbowJoint, Transform racketAssembly, Renderer contactShadow)
         {
             pose = bodyPose;
+            head = headPivot;
             leftArm = leftArmJoint;
             rightArm = rightArmJoint;
             leftLeg = leftLegJoint;
@@ -65,6 +70,8 @@ namespace FrutigerBadminton
 
             poseRestPosition = pose.localPosition;
             poseRestScale = pose.localScale;
+            headRestPosition = head.localPosition;
+            headRestRotation = head.localRotation;
             poseRestRotation = pose.localRotation;
             leftArmRestRotation = leftArm.localRotation;
             rightArmRestRotation = rightArm.localRotation;
@@ -106,6 +113,9 @@ namespace FrutigerBadminton
             pose.localPosition = poseRestPosition;
             pose.localScale = poseRestScale;
             pose.localRotation = poseRestRotation;
+            head.localPosition = headRestPosition;
+            headPositionVelocity = Vector3.zero;
+            head.localRotation = headRestRotation;
             leftArm.localRotation = leftArmRestRotation;
             rightArm.localRotation = rightArmRestRotation;
             leftLeg.localRotation = leftLegRestRotation;
@@ -119,7 +129,7 @@ namespace FrutigerBadminton
 
         void LateUpdate()
         {
-            if (!pose || !leftArm || !rightArm || !leftLeg || !rightLeg || !leftKnee || !rightKnee || !leftElbow || !rightElbow || !racket) return;
+            if (!pose || !head || !leftArm || !rightArm || !leftLeg || !rightLeg || !leftKnee || !rightKnee || !leftElbow || !rightElbow || !racket) return;
             float deltaTime = Time.deltaTime;
             if (deltaTime <= 0f) return;
 
@@ -157,6 +167,13 @@ namespace FrutigerBadminton
             float idleCycle = Mathf.Sin(Time.time * 2.15f + idlePhase);
             float idleSpring = idleCycle * idleWeight;
             float idleBob = (idleCycle * .5f + .5f) * .065f * idleWeight;
+            float headSway = Mathf.Sin(gaitPhase * .5f + idlePhase) * (.018f * stride + .026f * idleWeight);
+            Vector3 headTarget = headRestPosition + new Vector3(
+                -localMovement.x * .009f + headSway,
+                breathing * .014f + Mathf.Abs(Mathf.Sin(gaitPhase * 2f)) * .018f * stride,
+                -localMovement.z * .007f - dashBlend * .025f);
+            head.localPosition = Vector3.SmoothDamp(head.localPosition, headTarget, ref headPositionVelocity,
+                .095f, Mathf.Infinity, deltaTime);
             float bounce = Mathf.Abs(Mathf.Sin(gaitPhase * 2f)) * .09f * stride * (1f - airBlend)
                 + .07f * airBlend + idleBob + breathing * .012f;
             pose.localPosition = poseRestPosition + Vector3.up * bounce;
@@ -173,6 +190,12 @@ namespace FrutigerBadminton
             float roll = Mathf.Clamp(-localMovement.x * 3.4f, -12f, 12f) + breathing * 1.2f;
             Quaternion targetRotation = poseRestRotation * Quaternion.Euler(pitch, yaw, roll);
             pose.localRotation = Quaternion.Slerp(pose.localRotation, targetRotation, 1f - Mathf.Exp(-14f * deltaTime));
+            Quaternion headTargetRotation = headRestRotation * Quaternion.Euler(
+                -pitch * .16f - breathing * 1.5f,
+                Mathf.Sin(Time.time * 1.35f + idlePhase) * 3.2f * idleWeight,
+                -roll * .62f - localMovement.x * .7f);
+            head.localRotation = Quaternion.Slerp(head.localRotation, headTargetRotation,
+                1f - Mathf.Exp(-8.5f * deltaTime));
 
             float raisedArms = Mathf.Lerp(-12f * dashBlend, -24f, airBlend);
             leftArm.localRotation = leftArmRestRotation * Quaternion.Euler(-step * 24f + raisedArms, 0f, -Mathf.Abs(step) * 7f);
