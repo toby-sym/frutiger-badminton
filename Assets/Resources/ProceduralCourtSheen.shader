@@ -91,6 +91,7 @@ Shader "Frutiger/Procedural Court Sheen"
                 float alpha = saturate(_Opacity * (.70 + glint * .25 + fresnel * _FresnelStrength));
                 float3 color = lerp(_BaseColor.rgb * (.74 + .38 * field), _GlintColor.rgb,
                     saturate(glint * .68 + fresnel * .18));
+                color = lerp(color, _GlintColor.rgb * 1.15, lightRibbon * .48);
                 color *= 1 - frameReflection * .20;
                 return half4(color * alpha, alpha);
             }
