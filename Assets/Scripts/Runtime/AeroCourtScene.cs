@@ -964,7 +964,7 @@ namespace FrutigerBadminton
             if (racketTrailMaterial)
             {
                 var trail = ring.AddComponent<TrailRenderer>();
-                trail.time = .16f;
+                trail.time = .24f;
                 trail.minVertexDistance = .018f;
                 trail.startWidth = .085f;
                 trail.endWidth = .003f;

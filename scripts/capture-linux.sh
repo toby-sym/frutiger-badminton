@@ -46,7 +46,7 @@ xvfb-run -a -s '-screen 0 1920x1080x24 +extension GLX' bash -c '
   # vary with software rendering, so these images are observations, not a test.
   xdotool mousemove --window "$window" 960 420
   xdotool click 1
-  sleep .1
+  sleep .25
   import -window root "$capture_dir/racket-swing.png"
   sleep 2
   import -window root "$capture_dir/rally-early.png"
