@@ -2,6 +2,9 @@
 
 An original arcade badminton project with a bright, glossy world above the clouds. The first increment builds its court, cloud banks, lighting, characters, rackets, and sky procedurally from Unity primitives, generated meshes, and a vertex-color shader. It uses no imported 3D models or image textures.
 
+PRODOMINENTLY AI CODING LINES
+
+
 ## Open and run
 
 1. Install Unity Editor **6000.0.64f1** through Unity Hub. The project uses URP **17.0.4**; Unity Package Manager resolves it from `Packages/manifest.json` on first open.
