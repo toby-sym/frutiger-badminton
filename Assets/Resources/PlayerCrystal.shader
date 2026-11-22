@@ -73,7 +73,7 @@ Shader "Frutiger/Player Crystal"
                 half3 color = lerp(_Tint.rgb * (.7 + .28 * facing), half3(1, 1, 1), shine);
                 color *= 1 - frame * _Reflectivity * .24;
                 color = lerp(color, _Tint.rgb, liquidRibbon * .12);
-                color = lerp(color, _Tint.rgb * .5, weave * .38);
+                color = lerp(color, _Tint.rgb * .5, weave * .54);
                 float alpha = saturate(_Opacity + rim * _RimOpacity + specular * .42 + broadGloss * .08
                     + stripe * .23 + frame * _Reflectivity * .1 + liquidRibbon * .08 + weave * .045);
                 return half4(color, alpha);
