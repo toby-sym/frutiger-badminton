@@ -1,10 +1,11 @@
-Shader "Frutiger/Player Lacquer Glaze"
+Shader "Frutiger/Player Crystal"
 {
     Properties
     {
-        _Tint ("Highlight tint", Color) = (0.76, 0.95, 1, 1)
-        _Opacity ("Base opacity", Range(0, 1)) = 0
-        _RimOpacity ("Rim opacity", Range(0, 1)) = 0.27
+        _Tint ("Crystal tint", Color) = (0.15, 0.8, 0.85, 1)
+        _Opacity ("Inner tint", Range(0, 1)) = 0.12
+        _RimOpacity ("Glass rim", Range(0, 1)) = 0.5
+        _Reflectivity ("Window reflections", Range(0, 1)) = 0.5
     }
     SubShader
     {
@@ -23,6 +24,7 @@ Shader "Frutiger/Player Lacquer Glaze"
                 float4 _Tint;
                 float _Opacity;
                 float _RimOpacity;
+                float _Reflectivity;
             CBUFFER_END
             struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; };
             struct Varyings { float4 positionCS : SV_POSITION; float3 positionWS : TEXCOORD0; float3 normalWS : TEXCOORD1; float3 normalOS : TEXCOORD2; };
@@ -40,13 +42,23 @@ Shader "Frutiger/Player Lacquer Glaze"
                 float3 normal = normalize(input.normalWS);
                 float3 localNormal = normalize(input.normalOS);
                 float3 view = normalize(GetWorldSpaceViewDir(input.positionWS));
-                float rim = pow(1 - saturate(dot(normal, view)), 2.4);
-                float highlight = pow(saturate(dot(normal, normalize(view + float3(-.4, .8, -.35)))), 36);
-                float stripePosition = (localNormal.x + .32) * 7;
+                float facing = saturate(dot(normal, view));
+                float rim = pow(1 - facing, 1.8);
+                float specular = pow(saturate(dot(normal, normalize(view + float3(-.38, .8, -.3)))), 38);
+                float stripePosition = (localNormal.x + .3) * 7;
                 float stripe = exp(-stripePosition * stripePosition)
-                    * smoothstep(.1, .65, abs(localNormal.z)) * (1 - smoothstep(.6, .95, abs(localNormal.y)));
-                float alpha = saturate(_Opacity + rim * _RimOpacity + highlight * .42 + stripe * .28);
-                return half4(lerp(_Tint.rgb, 1, saturate(highlight + stripe * .55 + rim * .45)), alpha);
+                    * smoothstep(.12, .7, abs(localNormal.z)) * (1 - smoothstep(.6, .98, abs(localNormal.y)));
+                float3 reflection = reflect(-view, normal);
+                float2 gridPosition = float2(atan2(reflection.z, reflection.x) * .159155, asin(clamp(reflection.y, -1, 1)) * .31831);
+                float2 grid = abs(frac(gridPosition * float2(12, 7)) - .5);
+                float2 filterWidth = max(fwidth(grid), float2(.01, .01));
+                float2 frameLine = smoothstep(float2(.48, .48) - filterWidth, float2(.48, .48) + filterWidth, grid);
+                float frame = max(frameLine.x, frameLine.y) * facing;
+                float shine = saturate(specular * .8 + stripe * .35 + rim * .25);
+                half3 color = lerp(_Tint.rgb * (.72 + .25 * facing), half3(1, 1, 1), shine);
+                color *= 1 - frame * _Reflectivity * .38;
+                float alpha = saturate(_Opacity + rim * _RimOpacity + specular * .5 + stripe * .23 + frame * _Reflectivity * .14);
+                return half4(color, alpha);
             }
             ENDHLSL
         }

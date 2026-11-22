@@ -16,8 +16,8 @@ namespace FrutigerBadminton
         readonly List<CloudDrift> bubbleDrifts = new List<CloudDrift>();
         readonly Dictionary<string, Material> materialCache = new Dictionary<string, Material>();
         Material playerShadowMaterial;
-        Material playerGlazeMaterial;
-        Mesh playerJacketMesh;
+        readonly Dictionary<string, Material> playerCrystalMaterials = new Dictionary<string, Material>();
+        Mesh playerTorsoMesh;
 
         struct CloudDrift
         {
@@ -98,6 +98,7 @@ namespace FrutigerBadminton
             foreach (var mesh in ownedMeshes)
                 if (mesh) Destroy(mesh);
             materialCache.Clear();
+            playerCrystalMaterials.Clear();
         }
 
         void BuildWorld()
@@ -748,14 +749,16 @@ namespace FrutigerBadminton
             var pose = new GameObject("Animated pose").transform;
             pose.SetParent(root.transform, false);
 
-            CreatePlayerJacket(pose, suit);
-            CreatePlayerGlaze(pose);
-            Sphere("Head", pose.TransformPoint(new Vector3(0f, 1.66f, 0f)), new Vector3(.36f, .39f, .35f), new Color(.94f, .72f, .56f), .55f, .025f).transform.SetParent(pose, true);
+            CreatePlayerTorsoCore(pose, suit);
+            CreatePlayerGlaze(pose, suit);
+            var headCore = Sphere("Crystal head core", pose.TransformPoint(new Vector3(0f, 1.66f, 0f)), Vector3.one * .31f, PlayerCoreColor(suit), .96f, .025f);
+            headCore.transform.SetParent(pose, true);
+            var head = AddGlassPrimitive(PrimitiveType.Sphere, "Crystal head shell", pose.TransformPoint(new Vector3(0f, 1.66f, 0f)), Vector3.one * .45f, PlayerCrystalMaterial(suit));
+            head.transform.SetParent(pose, true);
             Transform leftLeg = ArticulatedLeg(pose, "Left leg", new Vector3(-.18f, .58f, 0f), new Vector3(-.32f, .07f, 0f), .16f, suit, out Transform leftKnee);
             Transform rightLeg = ArticulatedLeg(pose, "Right leg", new Vector3(.18f, .58f, 0f), new Vector3(.32f, .07f, 0f), .16f, suit, out Transform rightKnee);
             Transform leftArm = Limb(pose, "Left arm", new Vector3(-.3f, 1.08f, 0f), new Vector3(-.48f, .52f, .05f), .12f, suit);
             Transform rightArm = Limb(pose, "Right arm", new Vector3(.3f, 1.08f, 0f), new Vector3(.52f, 1.38f, 0f), .12f, suit);
-            CreatePlayerKit(pose, leftKnee, rightKnee, name, suit);
             bool rival = name == "Rival" || name == "Rival Partner" || name == "Rival Wing";
             Color racketColor = rival ? new Color(1f, .88f, .77f) : new Color(.8f, 1f, .98f);
             Transform racket = CreateRacket(rightArm, pose.TransformPoint(new Vector3(.62f, 1.14f, 0f)), racketColor);
@@ -764,21 +767,22 @@ namespace FrutigerBadminton
             return root.transform;
         }
 
-        void CreatePlayerJacket(Transform pose, Color suit)
+        void CreatePlayerTorsoCore(Transform pose, Color suit)
         {
-            if (!playerJacketMesh)
+            if (!playerTorsoMesh)
             {
-                playerJacketMesh = BuildPlayerJacketMesh();
-                ownedMeshes.Add(playerJacketMesh);
+                playerTorsoMesh = BuildPlayerTorsoMesh();
+                ownedMeshes.Add(playerTorsoMesh);
             }
-            var jacket = new GameObject("Glossy sport jacket");
+            var jacket = new GameObject("Crystal torso core");
             jacket.transform.SetParent(pose, false);
             jacket.transform.localPosition = new Vector3(0f, .92f, 0f);
-            jacket.AddComponent<MeshFilter>().sharedMesh = playerJacketMesh;
-            jacket.AddComponent<MeshRenderer>().sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", suit, .9f, .07f);
+            jacket.transform.localScale = Vector3.one * .82f;
+            jacket.AddComponent<MeshFilter>().sharedMesh = playerTorsoMesh;
+            jacket.AddComponent<MeshRenderer>().sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", PlayerCoreColor(suit), .96f, .025f);
         }
 
-        static Mesh BuildPlayerJacketMesh()
+        static Mesh BuildPlayerTorsoMesh()
         {
             const int rings = 20, segments = 32;
             var vertices = new List<Vector3>((rings + 1) * (segments + 1));
@@ -803,7 +807,7 @@ namespace FrutigerBadminton
                 triangles.Add(a); triangles.Add(b); triangles.Add(a + 1);
                 triangles.Add(a + 1); triangles.Add(b); triangles.Add(b + 1);
             }
-            var mesh = new Mesh { name = "Generated tailored player jacket" };
+            var mesh = new Mesh { name = "Generated crystal player torso" };
             mesh.SetVertices(vertices);
             mesh.SetTriangles(triangles, 0);
             mesh.RecalculateNormals();
@@ -822,26 +826,40 @@ namespace FrutigerBadminton
             return mesh;
         }
 
-        void CreatePlayerGlaze(Transform pose)
-        {
-            if (!playerGlazeMaterial)
-            {
-                Shader shader = Resources.Load<Shader>("PlayerLacquerGlaze");
-                if (!shader) return;
-                playerGlazeMaterial = new Material(shader) { name = "Player pearl glaze" };
-                playerGlazeMaterial.SetColor("_Tint", new Color(.76f, .95f, 1f));
-                playerGlazeMaterial.SetFloat("_Opacity", 0f);
-                playerGlazeMaterial.SetFloat("_RimOpacity", .27f);
-                ownedMaterials.Add(playerGlazeMaterial);
-            }
+        static Color PlayerCoreColor(Color suit) => Color.Lerp(suit, Color.black, .2f);
 
-            var glaze = new GameObject("Pearl jacket highlights");
+        Material PlayerCrystalMaterial(Color suit)
+        {
+            string key = ColorUtility.ToHtmlStringRGBA(suit);
+            if (playerCrystalMaterials.TryGetValue(key, out Material cached)) return cached;
+            Shader shader = Resources.Load<Shader>("PlayerCrystal");
+            if (!shader)
+            {
+                Debug.LogWarning("The player crystal shader is missing; using the glass fallback.");
+                shader = Resources.Load<Shader>("AeroGlass");
+            }
+            if (!shader) return null;
+            var material = new Material(shader) { name = "Crystal athlete " + key };
+            material.SetColor("_Tint", suit);
+            material.SetFloat("_Opacity", .12f);
+            material.SetFloat("_RimOpacity", .52f);
+            if (material.HasProperty("_Reflectivity")) material.SetFloat("_Reflectivity", .55f);
+            playerCrystalMaterials.Add(key, material);
+            ownedMaterials.Add(material);
+            return material;
+        }
+
+        void CreatePlayerGlaze(Transform pose, Color suit)
+        {
+            Material material = PlayerCrystalMaterial(suit);
+            if (!material) return;
+            var glaze = new GameObject("Crystal torso shell");
             glaze.transform.SetParent(pose, false);
             glaze.transform.localPosition = new Vector3(0f, .92f, 0f);
             glaze.transform.localScale = Vector3.one * 1.035f;
-            glaze.AddComponent<MeshFilter>().sharedMesh = playerJacketMesh;
+            glaze.AddComponent<MeshFilter>().sharedMesh = playerTorsoMesh;
             var renderer = glaze.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = playerGlazeMaterial;
+            renderer.sharedMaterial = material;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
         }
@@ -868,28 +886,6 @@ namespace FrutigerBadminton
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
             return renderer;
-        }
-
-        void CreatePlayerKit(Transform pose, Transform leftLeg, Transform rightLeg, string name, Color suit)
-        {
-            bool rival = name == "Rival" || name == "Rival Partner" || name == "Rival Wing";
-            Color trim = rival ? new Color(1f, .78f, .7f) : new Color(.58f, 1f, .95f);
-            Color shorts = rival ? new Color(.71f, .26f, .42f) : new Color(.04f, .37f, .47f);
-            Color hair = rival ? new Color(.24f, .1f, .27f) : new Color(.035f, .18f, .27f);
-
-            Sphere("Tailored rally shorts", pose.TransformPoint(new Vector3(0f, .53f, 0f)), new Vector3(.55f, .42f, .36f), shorts, .62f, .12f).transform.SetParent(pose, true);
-            Sphere("Sculpted sport hair", pose.TransformPoint(new Vector3(0f, 1.82f, -.015f)), new Vector3(.39f, .2f, .38f), hair, .24f, .05f).transform.SetParent(pose, true);
-            Sphere("Pearl rally headband", pose.TransformPoint(new Vector3(0f, 1.76f, .21f)), new Vector3(.38f, .075f, .2f), trim, .65f, .35f).transform.SetParent(pose, true);
-            Sphere("Swept back hair lock", pose.TransformPoint(new Vector3(0f, 1.62f, -.27f)), new Vector3(.2f, .26f, .22f), hair, .22f, .04f).transform.SetParent(pose, true);
-
-            for (int side = -1; side <= 1; side += 2)
-            {
-                Vector3 shoe = new Vector3(side * .31f, .16f, .12f);
-                Transform leg = side < 0 ? leftLeg : rightLeg;
-                Sphere("Pearl court shoe", pose.TransformPoint(shoe), new Vector3(.31f, .15f, .4f), new Color(.91f, .99f, 1f), .8f, .14f).transform.SetParent(leg, true);
-                Sphere("Aqua traction sole", pose.TransformPoint(shoe + Vector3.down * .075f), new Vector3(.32f, .055f, .41f), trim, .48f, .32f).transform.SetParent(leg, true);
-                Sphere("Shoe side flash", pose.TransformPoint(shoe + new Vector3(side * .115f, .015f, .015f)), new Vector3(.06f, .055f, .2f), suit, .72f, .3f).transform.SetParent(leg, true);
-            }
         }
 
         Transform CreateRacket(Transform arm, Vector3 center, Color color)
@@ -1035,13 +1031,22 @@ namespace FrutigerBadminton
             joint.localPosition = from;
 
             var limb = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            limb.name = "Rounded " + name.ToLowerInvariant();
+            limb.name = "Crystal " + name.ToLowerInvariant();
             limb.GetComponent<Collider>().enabled = false;
-            limb.GetComponent<Renderer>().sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", color, .84f, .06f);
+            var shellRenderer = limb.GetComponent<Renderer>();
+            shellRenderer.sharedMaterial = PlayerCrystalMaterial(color);
+            shellRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            shellRenderer.receiveShadows = false;
             limb.transform.SetParent(joint, false);
             limb.transform.localScale = new Vector3(radius, delta.magnitude * .5f, radius);
             limb.transform.localPosition = delta * .5f;
             limb.transform.localRotation = Quaternion.FromToRotation(Vector3.up, delta.normalized);
+            var core = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            core.name = "Crystal limb core";
+            core.GetComponent<Collider>().enabled = false;
+            core.GetComponent<Renderer>().sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", PlayerCoreColor(color), .96f, .025f);
+            core.transform.SetParent(limb.transform, false);
+            core.transform.localScale = new Vector3(.72f, .82f, .72f);
             return joint;
         }
 
