@@ -48,20 +48,20 @@ xvfb-run -a -s '-screen 0 1920x1080x24 +extension GLX' bash -c '
   sleep 4
   import -window root "$capture_dir/rally-late.png"
 
-  # Capture representative movement poses; timing on software rendering varies.
+  # Capture frames after movement inputs; timing on software rendering varies.
   xdotool keydown d
   sleep 1
-  import -window root "$capture_dir/move.png"
+  import -window root "$capture_dir/after-move-input.png"
   xdotool keyup d
   xdotool keydown space
-  sleep .25
-  import -window root "$capture_dir/jump.png"
+  sleep .55
+  import -window root "$capture_dir/after-jump-input.png"
   xdotool keyup space
   sleep 1
   xdotool keydown d
   xdotool keydown Shift_L
-  sleep .25
-  import -window root "$capture_dir/dash.png"
+  sleep .55
+  import -window root "$capture_dir/after-dash-input.png"
   xdotool keyup Shift_L
   xdotool keyup d
   sleep 1
