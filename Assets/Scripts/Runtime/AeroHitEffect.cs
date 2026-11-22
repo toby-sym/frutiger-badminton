@@ -129,9 +129,9 @@ namespace FrutigerBadminton
             float expansion = Mathf.SmoothStep(0f, 1f, Mathf.Min(1f, progress * 1.45f));
             float retract = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.68f, 1f, progress)) * .82f;
 
-            ring.localScale = Vector3.one * Mathf.Lerp(.1f, .52f * strength, expansion) * retract;
+            ring.localScale = Vector3.one * Mathf.Lerp(.08f, .32f * strength, expansion) * retract;
             ring.localRotation = Quaternion.Euler(0f, 0f, progress * 36f);
-            SetGlow(ringRenderer, Color.Lerp(tint, Color.white, .42f), fade, 1.8f);
+            SetGlow(ringRenderer, Color.Lerp(tint, Color.white, .42f), fade, 1.4f);
 
             float flashIn = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / .055f));
             float flashOut = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.08f, .31f, elapsed));
@@ -140,11 +140,11 @@ namespace FrutigerBadminton
 
             for (int i = 0; i < shards.Length; i++)
             {
-                float distance = Mathf.SmoothStep(0f, .72f * strength, progress);
+                float distance = Mathf.SmoothStep(0f, .52f * strength, progress);
                 shards[i].localPosition = shardDirections[i] * distance;
                 shards[i].localRotation = shardRestRotations[i] * Quaternion.Euler(progress * (120f + i * 11f), progress * 90f, 0f);
                 shards[i].localScale = new Vector3(.045f, .11f, .045f) * (1f - progress);
-                SetGlow(shardRenderers[i], Color.Lerp(tint, Color.white, .34f), fade, 2.1f);
+                SetGlow(shardRenderers[i], Color.Lerp(tint, Color.white, .34f), fade, 1.65f);
             }
 
         }
