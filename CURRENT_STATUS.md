@@ -7,6 +7,7 @@
 - The island supports now sit below its top surface rather than protruding as posts through the court surround; a Linux capture confirmed the posts no longer appear above the floor.
 - Rally messages use a wider, text-sized panel that wraps on narrow screens; a Linux capture showed the serve prompt fitting on one line. Narrow-screen and Windows checks remain.
 - Cloud banks use overlapping, softly faded procedural mist instead of hard, opaque lobes. A Linux capture confirmed their softer appearance; Windows and motion checks remain.
+- The island surround now has a deeper blue finish and a procedural glaze that extends the reflective court treatment across the floor; capture and Windows checks are pending.
 - The court now has a texture-free HLSL sheen overlay with animated wave bands and view-angle glints; artifact validation is pending.
 - The floating court now sits on a generated chamfered crystal-mesa island with a bright aqua waist and layered blue underside facets.
 - The camera backdrop now uses a full-sphere pastel-to-azure vertex gradient and a generated sun halo, filling the previously gray below-horizon view.
