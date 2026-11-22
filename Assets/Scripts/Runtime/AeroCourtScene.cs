@@ -932,7 +932,7 @@ namespace FrutigerBadminton
             var mf = ring.AddComponent<MeshFilter>(); var mr = ring.AddComponent<MeshRenderer>();
             var ringMesh = BuildRacketHoop(.235f, .305f, .035f, 64, 10);
             ownedMeshes.Add(ringMesh);
-            mf.sharedMesh = ringMesh; mr.sharedMaterial = PlayerCrystalMaterial(color, .38f, .22f);
+            mf.sharedMesh = ringMesh; mr.sharedMaterial = PlayerCrystalMaterial(color, .55f, .26f);
             ring.transform.SetParent(racket, false);
             ring.transform.localPosition = new Vector3(0f, .66f, .035f);
 
@@ -942,7 +942,7 @@ namespace FrutigerBadminton
             ownedMeshes.Add(stringMesh);
             stringFilter.sharedMesh = stringMesh;
             var stringRenderer = stringBed.AddComponent<MeshRenderer>();
-            stringRenderer.sharedMaterial = PlayerCrystalMaterial(Color.Lerp(color, Color.white, .15f), .58f, .18f);
+            stringRenderer.sharedMaterial = PlayerCrystalMaterial(Color.Lerp(color, Color.white, .25f), .68f, .16f);
             stringRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             stringRenderer.receiveShadows = false;
             stringBed.transform.SetParent(racket, false);
@@ -952,11 +952,17 @@ namespace FrutigerBadminton
             shaft.name = "Soft glass racket throat and shaft";
             shaft.GetComponent<Collider>().enabled = false;
             var shaftRenderer = shaft.GetComponent<Renderer>();
-            shaftRenderer.sharedMaterial = PlayerCrystalMaterial(color, .3f, .18f);
+            shaftRenderer.sharedMaterial = PlayerCrystalMaterial(color, .62f, .22f);
             shaftRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             shaft.transform.SetParent(racket, false);
             shaft.transform.localPosition = new Vector3(0f, .19f, .005f);
             shaft.transform.localScale = new Vector3(.1f, .19f, .1f);
+            var shaftCore = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            shaftCore.name = "Coloured racket shaft inside";
+            shaftCore.GetComponent<Collider>().enabled = false;
+            shaftCore.GetComponent<Renderer>().sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", PlayerCoreColor(color), .98f, .08f);
+            shaftCore.transform.SetParent(shaft.transform, false);
+            shaftCore.transform.localScale = new Vector3(.62f, .86f, .62f);
 
             var grip = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             grip.name = "Jelly racket handle";
@@ -967,6 +973,16 @@ namespace FrutigerBadminton
             grip.transform.SetParent(racket, false);
             grip.transform.localPosition = new Vector3(0f, .035f, .005f);
             grip.transform.localScale = new Vector3(.13f, .105f, .13f);
+            var palm = AddGlassPrimitive(PrimitiveType.Sphere, "Soft glass racket palm", Vector3.zero,
+                new Vector3(.2f, .18f, .17f), PlayerCrystalMaterial(color, .42f, .2f));
+            palm.transform.SetParent(racket, false);
+            palm.transform.localPosition = new Vector3(0f, .04f, .025f);
+            var palmCore = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            palmCore.name = "Coloured racket palm inside";
+            palmCore.GetComponent<Collider>().enabled = false;
+            palmCore.GetComponent<Renderer>().sharedMaterial = MakeMaterial("Universal Render Pipeline/Lit", PlayerCoreColor(color), 1f, .08f);
+            palmCore.transform.SetParent(palm.transform, false);
+            palmCore.transform.localScale = new Vector3(.58f, .62f, .58f);
             return racket;
         }
 
