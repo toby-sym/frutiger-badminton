@@ -1926,10 +1926,12 @@ namespace FrutigerBadminton
         string RallyGuidance(bool compact)
         {
             if (playerServeReady) return compact ? "YOUR SERVE" : "SERVE  ·  Tap a shot";
-            if (servePending || !flightActive) return compact ? "GET READY" : "READY  ·  Receive the serve";
+            if (servePending || !flightActive)
+                return playerServesNext ? (compact ? "SERVE NEXT" : "READY  ·  Serve next")
+                    : (compact ? "RECEIVE NEXT" : "READY  ·  Receive next");
             if (!playerMustReturn) return compact ? "TO RIVALS" : "SHOT AWAY  ·  Recover";
             if (assignedFriendlyReceiver) return compact ? "TEAMMATE" : "TEAMMATE COVERING  ·  Be ready";
-            return compact ? "YOUR RETURN" : "RETURN  ·  Move in, tap a shot";
+            return compact ? "YOUR RETURN" : "RETURN  ·  Move to the ring";
         }
 
         string MatchHudSummary()
