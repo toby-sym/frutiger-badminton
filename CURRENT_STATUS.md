@@ -76,7 +76,7 @@
 - Rally movement eases into and out of direction changes, with generated character squash on landing, stretch in the air, and a quicker racket strike with follow-through.
 - Movement now follows the camera's screen directions, and a dash with no input uses the last movement direction. Verify keyboard and controller movement in the Windows artifact.
 - A brief higher-deceleration recovery returns dash momentum toward the requested movement speed, limiting post-dash sliding. Dash feel and match pacing need player verification.
-- Rally shot presses are buffered briefly while the incoming shuttle approaches reach, preserving the chosen shot type. The buffer clears at the end of the point or match; timing still needs play verification.
+- Rally shot presses are buffered for .32 seconds while the incoming shuttle approaches reach, preserving the chosen shot type. The buffer clears at the end of the point or match; timing still needs play verification.
 - Player limbs use rounded generated shapes with articulated knees. Landing compresses the body, torso lean eases between poses, racket swings settle back to rest, and restarting a match resets motion state; visual verification is pending.
 - Running blends into a tucked airborne pose instead of continuing the full leg cycle in a jump, while the torso turns gently with lateral movement. Motion verification is pending.
 - Players have subtle, individually phased idle breathing and sway, with varied gait phases, to avoid synchronized stillness between exchanges. Visual verification is pending.
