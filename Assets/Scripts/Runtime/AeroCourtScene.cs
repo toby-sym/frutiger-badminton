@@ -21,6 +21,7 @@ namespace FrutigerBadminton
         readonly List<CloudDrift> cloudDrifts = new List<CloudDrift>();
         readonly List<LanternOrbit> lanternOrbits = new List<LanternOrbit>();
         readonly List<CloudDrift> bubbleDrifts = new List<CloudDrift>();
+        readonly List<CrowdMember> crowdMembers = new List<CrowdMember>();
         readonly Dictionary<string, Material> materialCache = new Dictionary<string, Material>();
         Material playerShadowMaterial;
         readonly Dictionary<string, Material> playerCrystalMaterials = new Dictionary<string, Material>();
@@ -29,6 +30,28 @@ namespace FrutigerBadminton
         Mesh playerLimbCoreNearMesh;
         Mesh playerLimbShellFarMesh;
         Mesh playerLimbCoreFarMesh;
+
+        struct CrowdMember
+        {
+            public Transform root;
+            public Transform model;
+            public Vector3 origin;
+            public Quaternion facing;
+            public float phase;
+            public float bounce;
+            public float size;
+
+            public CrowdMember(Transform root, Transform model, Vector3 origin, Quaternion facing, float phase, float bounce, float size)
+            {
+                this.root = root;
+                this.model = model;
+                this.origin = origin;
+                this.facing = facing;
+                this.phase = phase;
+                this.bounce = bounce;
+                this.size = size;
+            }
+        }
 
         struct CloudDrift
         {
@@ -100,6 +123,17 @@ namespace FrutigerBadminton
                 float phase = time * bubble.speed + bubble.phase;
                 bubble.root.position = bubble.origin + new Vector3(Mathf.Sin(phase) * .28f, Mathf.Sin(phase * .7f) * .35f, 0f);
             }
+
+            for (int i = 0; i < crowdMembers.Count; i++)
+            {
+                CrowdMember member = crowdMembers[i];
+                float sway = Mathf.Sin(time * 1.7f + member.phase);
+                float hop = (Mathf.Max(0f, sway) + .12f) * member.bounce;
+                member.root.position = member.origin + Vector3.up * hop;
+                member.root.rotation = member.facing * Quaternion.Euler(0f, sway * 2.4f, 0f);
+                member.model.localScale = member.size * new Vector3(1f - Mathf.Abs(sway) * .025f,
+                    1f + Mathf.Max(0f, sway) * .045f, 1f - Mathf.Abs(sway) * .02f);
+            }
         }
 
         void OnDestroy()
@@ -146,6 +180,7 @@ namespace FrutigerBadminton
             CreateNet();
             CreateCloudBanks();
             CreateSpectatorOrbs();
+            CreateGalleryCrowd();
             CreateCamera();
             CreateSolarHalo();
         }
@@ -1078,6 +1113,144 @@ namespace FrutigerBadminton
                     new Vector3(Mathf.Cos(angle) * 10.3f, height, Mathf.Sin(angle) * 10.3f),
                     Vector3.one * size, i % 3 == 0 ? pearl : aqua);
                 lanternOrbits.Add(new LanternOrbit(orb.transform, 10.3f, height, angle, angle, .014f + (i % 3) * .002f, size));
+            }
+        }
+
+        void CreateGalleryCrowd()
+        {
+            Shader glassShader = Resources.Load<Shader>("AeroGlass");
+            if (!glassShader) return;
+
+            var audience = new GameObject("Gallery jelly audience").transform;
+            Mesh calmBlob = BuildAudienceBlobMesh(false);
+            Mesh cheeringBlob = BuildAudienceBlobMesh(true);
+            ownedMeshes.Add(calmBlob);
+            ownedMeshes.Add(cheeringBlob);
+
+            Color[] palette =
+            {
+                new Color(.11f, .78f, .88f),
+                new Color(.24f, .78f, .61f),
+                new Color(.96f, .39f, .57f),
+                new Color(.64f, .51f, .91f),
+                new Color(.92f, .72f, .28f)
+            };
+            var coreMaterials = new Material[palette.Length];
+            var shellMaterials = new Material[palette.Length];
+            for (int i = 0; i < palette.Length; i++)
+            {
+                coreMaterials[i] = MakeMaterial("Universal Render Pipeline/Lit", palette[i], .9f, .07f);
+                shellMaterials[i] = new Material(glassShader) { name = "Gallery jelly glaze " + i };
+                shellMaterials[i].SetColor("_Tint", Color.Lerp(palette[i], Color.white, .34f));
+                shellMaterials[i].SetFloat("_Opacity", .075f);
+                shellMaterials[i].SetFloat("_RimOpacity", .42f);
+                ownedMaterials.Add(shellMaterials[i]);
+            }
+
+            int memberIndex = 0;
+            const int rearCount = 14;
+            for (int i = 0; i < rearCount; i++)
+            {
+                float t = i / (float)(rearCount - 1);
+                float x = Mathf.Lerp(-5.9f, 5.9f, t) + Mathf.Sin(i * 4.37f) * .12f;
+                float z = 8.78f + Mathf.Cos(i * 3.1f) * .035f;
+                bool cheers = i % 4 == 1;
+                AddGallerySpectator(audience, calmBlob, cheeringBlob, coreMaterials, shellMaterials,
+                    new Vector3(x, 2.37f, z), Quaternion.Euler(0f, 180f, 0f), memberIndex++, cheers, 1f);
+            }
+
+            const int sideCount = 8;
+            for (int side = -1; side <= 1; side += 2)
+            for (int i = 0; i < sideCount; i++)
+            {
+                float t = i / (float)(sideCount - 1);
+                float z = Mathf.Lerp(StadiumFront + 11f, StadiumBack - 2.3f, t) + Mathf.Sin(i * 5.2f + side) * .12f;
+                float x = side * (6.92f + Mathf.Cos(i * 3.7f + side) * .035f);
+                bool cheers = (i + side) % 4 == 0;
+                AddGallerySpectator(audience, calmBlob, cheeringBlob, coreMaterials, shellMaterials,
+                    new Vector3(x, 2.37f, z), Quaternion.Euler(0f, side < 0 ? 90f : -90f, 0f), memberIndex++, cheers, .68f);
+            }
+
+            audience.gameObject.AddComponent<AeroCourtLevelVisibility>();
+        }
+
+        void AddGallerySpectator(Transform audience, Mesh calmBlob, Mesh cheeringBlob,
+            Material[] coreMaterials, Material[] shellMaterials, Vector3 position, Quaternion facing, int index, bool cheers, float size)
+        {
+            var root = new GameObject(cheers ? "Cheering jelly spectator" : "Jelly spectator").transform;
+            root.position = position;
+            root.rotation = facing;
+            root.SetParent(audience, true);
+
+            var model = new GameObject("Soft bouncing silhouette").transform;
+            model.SetParent(root, false);
+            Mesh blob = cheers ? cheeringBlob : calmBlob;
+            AddAudienceBlobLayer(model, "Candy gel", blob, coreMaterials[index % coreMaterials.Length], 1f);
+            AddAudienceBlobLayer(model, "Pearl glaze", blob, shellMaterials[index % shellMaterials.Length], 1.045f);
+
+            crowdMembers.Add(new CrowdMember(root, model, position, facing, index * 1.71f, cheers ? .085f : .033f, size));
+        }
+
+        static void AddAudienceBlobLayer(Transform parent, string objectName, Mesh mesh, Material material, float scale)
+        {
+            var layer = new GameObject(objectName);
+            layer.transform.SetParent(parent, false);
+            layer.transform.localScale = Vector3.one * scale;
+            layer.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = layer.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+        }
+
+        static Mesh BuildAudienceBlobMesh(bool cheering)
+        {
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>();
+            AppendAudienceEllipsoid(vertices, triangles, new Vector3(0f, .46f, 0f), new Vector3(.35f, .43f, .26f), Quaternion.identity);
+            AppendAudienceEllipsoid(vertices, triangles, new Vector3(0f, 1f, .015f), new Vector3(.30f, .3f, .28f), Quaternion.identity);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                Vector3 armCenter = new Vector3(side * (cheering ? .34f : .33f), cheering ? .72f : .55f, 0f);
+                float outwardTilt = -side * (cheering ? 11f : 30f);
+                AppendAudienceEllipsoid(vertices, triangles, armCenter, new Vector3(.13f, .21f, .14f), Quaternion.Euler(0f, 0f, outwardTilt));
+                AppendAudienceEllipsoid(vertices, triangles, new Vector3(side * .145f, .13f, 0f), new Vector3(.14f, .17f, .16f), Quaternion.identity);
+            }
+
+            var mesh = new Mesh { name = cheering ? "Generated cheering jelly silhouette" : "Generated jelly silhouette" };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        static void AppendAudienceEllipsoid(List<Vector3> vertices, List<int> triangles,
+            Vector3 center, Vector3 scale, Quaternion rotation)
+        {
+            const int segments = 12;
+            const int rings = 8;
+            int firstVertex = vertices.Count;
+            for (int ring = 0; ring <= rings; ring++)
+            {
+                float latitude = Mathf.Lerp(-Mathf.PI * .5f, Mathf.PI * .5f, ring / (float)rings);
+                float ringRadius = Mathf.Cos(latitude);
+                float y = Mathf.Sin(latitude);
+                for (int segment = 0; segment <= segments; segment++)
+                {
+                    float longitude = segment / (float)segments * Mathf.PI * 2f;
+                    Vector3 point = new Vector3(Mathf.Cos(longitude) * ringRadius, y, Mathf.Sin(longitude) * ringRadius);
+                    vertices.Add(center + rotation * Vector3.Scale(point, scale));
+                }
+            }
+
+            for (int ring = 0; ring < rings; ring++)
+            for (int segment = 0; segment < segments; segment++)
+            {
+                int a = firstVertex + ring * (segments + 1) + segment;
+                int b = a + segments + 1;
+                triangles.Add(a); triangles.Add(b); triangles.Add(a + 1);
+                triangles.Add(a + 1); triangles.Add(b); triangles.Add(b + 1);
             }
         }
 
