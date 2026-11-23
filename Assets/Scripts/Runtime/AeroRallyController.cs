@@ -1851,8 +1851,8 @@ namespace FrutigerBadminton
                 GUI.Label(new Rect(28f, 46f, 298f, 20f), ControlsHudTitle(controllerConnected), hintStyle);
                 GUI.Label(new Rect(28f, 72f, 66f, 22f), "MOVE", hintStyle);
                 GUI.Label(new Rect(104f, 72f, 220f, 22f), controllerConnected ? "Left stick / D-pad" : "WASD / arrows", labelStyle);
-                GUI.Label(new Rect(28f, 94f, 66f, 22f), "TARGET", hintStyle);
-                GUI.Label(new Rect(104f, 94f, 220f, 22f), "Auto placement", labelStyle);
+                GUI.Label(new Rect(28f, 94f, 78f, 22f), "POSITION", hintStyle);
+                GUI.Label(new Rect(112f, 94f, 212f, 22f), "Move to place shots", labelStyle);
                 GUI.Label(new Rect(28f, 116f, 66f, 22f), "MOVE+", hintStyle);
                 GUI.Label(new Rect(104f, 116f, 220f, 22f), controllerConnected ? "A jump   ·   RB dash" : "Space jump   ·   Shift dash", hintStyle);
                 GUI.Label(new Rect(28f, 138f, 66f, 22f), "SHOTS", hintStyle);
@@ -2071,7 +2071,7 @@ namespace FrutigerBadminton
                 GUI.color = Color.white;
                 GUI.Label(new Rect(mainPanel.x + 36f, top + 238f, mainWidth - 72f, 34f), "RALLY CONTROLS", titleSubtitleStyle);
                 string move = controllerConnected ? "LEFT STICK / D-PAD     MOVE" : "WASD / ARROWS     MOVE";
-                string placement = "AUTO PLACEMENT     Move into position";
+                string placement = "MOVE FOR POSITION     Auto shot placement";
                 string jump = controllerConnected ? "A     JUMP" : "SPACE     JUMP";
                 string dash = controllerConnected ? "RB     AERO DASH" : "SHIFT     AERO DASH";
                 string clear = controllerConnected ? "LB     CLEAR" : "LEFT CLICK     CLEAR";
