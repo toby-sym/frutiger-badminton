@@ -44,7 +44,6 @@ namespace FrutigerBadminton
         readonly SoloUpgrade[] upgradeOffers = new SoloUpgrade[3];
         readonly AudioClip[] shotAudioClips = new AudioClip[4];
         MaterialPropertyBlock landingMarkerProperties;
-        MaterialPropertyBlock aimMarkerProperties;
         Transform player;
         Transform partner;
         Transform partnerTwo;
@@ -55,7 +54,6 @@ namespace FrutigerBadminton
         Transform assignedFriendlyReceiver;
         Transform shuttle;
         Transform landingMarker;
-        Transform aimMarker;
         Transform playerMarker;
         Transform partnerReceiverMarker;
         Transform partnerTwoReceiverMarker;
@@ -76,7 +74,6 @@ namespace FrutigerBadminton
         AudioClip rivalPointAudioClip;
         Transform courtCamera;
         Renderer landingMarkerRenderer;
-        Renderer aimMarkerRenderer;
         Mesh landingMarkerMesh;
         Material shuttleMaterial;
         Material corkMaterial;
@@ -109,8 +106,6 @@ namespace FrutigerBadminton
         Vector3 cameraLookRestPosition;
         Vector3 cameraLookFollowVelocity;
         Vector3 courtCameraFollowOffset;
-        Vector3 lastMouseAim;
-        Vector2 lastStickAim;
         float flightDuration;
         float flightElapsed;
         float shuttleSpinDegreesPerSecond;
@@ -152,9 +147,6 @@ namespace FrutigerBadminton
         bool flightWasPlayerShot;
         bool flightActive;
         bool shotInputBuffered;
-        bool controllerAimActive;
-        bool hasStickAim;
-        bool hasMouseAim;
         bool servePending;
         bool isDashing;
         bool isPaused;
@@ -184,13 +176,11 @@ namespace FrutigerBadminton
         void Awake()
         {
             landingMarkerProperties = new MaterialPropertyBlock();
-            aimMarkerProperties = new MaterialPropertyBlock();
         }
 
         void Start()
         {
             Time.timeScale = 1f;
-            controllerAimActive = Gamepad.current != null;
             audioMuted = PlayerPrefs.GetInt("Frutiger.AudioMuted", 0) != 0;
             courtLevelView = PlayerPrefs.GetInt("Frutiger.CourtLevelView", 1) != 0;
             showControls = PlayerPrefs.GetInt("Frutiger.ShowControls", 1) != 0;
@@ -241,7 +231,6 @@ namespace FrutigerBadminton
             rivalWing.position = new Vector3(-1.65f, GroundY, 4.2f);
             CreateShuttlecock();
             CreateLandingMarker();
-            CreateAimMarker();
             CreatePlayerMarker();
             CreateReceiverMarkers();
             CreateDashTrail();
@@ -287,7 +276,6 @@ namespace FrutigerBadminton
             if (dashCooldown > 0f) dashCooldown -= deltaTime;
 
             MovePlayer(deltaTime);
-            UpdateAimInputSource();
             if (playerServeReady)
             {
                 shuttle.position = PlayerServePosition();
@@ -306,7 +294,6 @@ namespace FrutigerBadminton
             UpdatePlayerMarker();
             UpdateAIReceiverMarkers();
             UpdateLandingMarker();
-            UpdateAimMarker();
             bool shotPressed = IsShotInput() && (!IsMouseShotInput() || !MouseIsOverHud());
             if (playerServeReady && shotPressed) TryPlayerServe();
             else if (flightActive && playerMustReturn)
@@ -953,7 +940,7 @@ namespace FrutigerBadminton
             if (style == ShotStyle.Smash && jumpHeight < .8f)
                 return false;
 
-            Vector3 target = AimTarget(style);
+            Vector3 target = ChooseAutomaticShotTarget(style);
             float duration = style == ShotStyle.Clear ? 1.48f
                            : style == ShotStyle.Drop ? 1.27f
                            : style == ShotStyle.Drive ? 1.22f
@@ -980,7 +967,7 @@ namespace FrutigerBadminton
             if (style == ShotStyle.Smash) style = ShotStyle.Drive;
 
             Vector3 start = PlayerServePosition();
-            Vector3 target = ServeAimTarget(style);
+            Vector3 target = ServiceTarget();
             const float duration = 1f;
             AeroHitEffect.Spawn(start, PlayerShotTint(style), style == ShotStyle.Smash ? 1.55f : 1f);
             PlayShotAudio(style);
@@ -1000,64 +987,44 @@ namespace FrutigerBadminton
             return player.position + Vector3.up * .8f + player.right * .18f;
         }
 
-        void UpdateAimInputSource()
+        Vector3 ChooseAutomaticShotTarget(ShotStyle style)
         {
-            Gamepad gamepad = Gamepad.current;
-            if (gamepad != null)
-            {
-                Vector2 stick = gamepad.rightStick.ReadValue();
-                if (stick.sqrMagnitude > .035f)
-                {
-                    lastStickAim = Vector2.ClampMagnitude(stick, 1f);
-                    hasStickAim = true;
-                    controllerAimActive = true;
-                }
-                else if (IsGamepadShotInput()) controllerAimActive = true;
-            }
-            else controllerAimActive = false;
+            float targetZ = style == ShotStyle.Clear ? CourtHalfLength - .55f
+                : style == ShotStyle.Drop ? 2.25f
+                : style == ShotStyle.Drive ? 3.75f : 4.65f;
+            float leftX = -ActiveHalfWidth * .76f;
+            float rightX = ActiveHalfWidth * .76f;
+            float leftSpace = GetNearestOpponentDistance(new Vector3(leftX, GroundY, targetZ));
+            float rightSpace = GetNearestOpponentDistance(new Vector3(rightX, GroundY, targetZ));
+            float crossCourtBias = Mathf.Clamp(player.position.x / ActiveHalfWidth, -1f, 1f) * .7f;
+            leftSpace += Mathf.Max(0f, crossCourtBias);
+            rightSpace += Mathf.Max(0f, -crossCourtBias);
+            bool sendLeft = leftSpace > rightSpace
+                || (Mathf.Approximately(leftSpace, rightSpace) && (playerReturns & 1) == 0);
 
-            Mouse mouse = Mouse.current;
-            if (mouse != null && !MouseIsOverHud()
-                && (mouse.delta.ReadValue().sqrMagnitude > .25f || IsMouseShotInput()))
-                controllerAimActive = false;
+            float targetX;
+            if (style == ShotStyle.Drive)
+                targetX = IsSingles ? rival.position.x * .55f : 0f;
+            else
+                targetX = sendLeft ? leftX : rightX;
+
+            targetX += Random.Range(-.12f, .12f);
+            return new Vector3(Mathf.Clamp(targetX, -ActiveHalfWidth + .25f, ActiveHalfWidth - .25f),
+                GroundY + .11f, targetZ);
         }
 
-        Vector3 AimTarget(ShotStyle style)
+        float GetNearestOpponentDistance(Vector3 target)
         {
-            float minZ = style == ShotStyle.Drop ? 1.25f : style == ShotStyle.Drive ? 2.2f : 3.6f;
-            float maxZ = style == ShotStyle.Drop ? 3.1f : CourtHalfLength - .45f;
-            Vector3 target = new Vector3(-player.position.x * .45f, GroundY + .11f, 5.65f);
-            Camera camera = Camera.main;
-            Gamepad gamepad = Gamepad.current;
-            if (controllerAimActive && gamepad != null)
+            float nearest = HorizontalDistance(rival.position, target);
+            if (!IsSingles)
             {
-                if (hasStickAim)
-                {
-                    target.x = lastStickAim.x * (ActiveHalfWidth - .25f);
-                    target.z = Mathf.Lerp(minZ, maxZ, Mathf.Clamp01((lastStickAim.y + 1f) * .5f));
-                }
+                nearest = Mathf.Min(nearest, HorizontalDistance(rivalPartner.position, target));
+                nearest = Mathf.Min(nearest, HorizontalDistance(rivalWing.position, target));
             }
-            else if (camera && Mouse.current != null)
-            {
-                if (!MouseIsOverHud())
-                {
-                    Ray ray = camera.ScreenPointToRay(Input.mousePosition);
-                    Plane court = new Plane(Vector3.up, new Vector3(0f, GroundY + .11f, 0f));
-                    if (court.Raycast(ray, out float distance))
-                    {
-                        lastMouseAim = ray.GetPoint(distance);
-                        hasMouseAim = true;
-                    }
-                }
-                if (hasMouseAim) target = lastMouseAim;
-            }
-            target.x = Mathf.Clamp(target.x, -ActiveHalfWidth + .25f, ActiveHalfWidth - .25f);
-            target.z = Mathf.Clamp(target.z, minZ, maxZ);
-            target.y = GroundY + .11f;
-            return target;
+            return nearest;
         }
 
-        Vector3 ServeAimTarget(ShotStyle style)
+        Vector3 ServiceTarget()
         {
             return new Vector3(-GetServiceCourtWorldX(true, playerScore), GroundY + .11f, 3.9f);
         }
@@ -1373,7 +1340,6 @@ namespace FrutigerBadminton
                 shuttleTrail.Clear();
             }
             if (landingMarker) landingMarker.gameObject.SetActive(false);
-            if (aimMarker) aimMarker.gameObject.SetActive(false);
             if (playerMarker) playerMarker.gameObject.SetActive(false);
             UpdateAIReceiverMarkers();
         }
@@ -1615,20 +1581,6 @@ namespace FrutigerBadminton
             marker.SetActive(false);
         }
 
-        void CreateAimMarker()
-        {
-            var marker = new GameObject("Generated aimed shot preview");
-            ownedObjects.Add(marker);
-            aimMarker = marker.transform;
-            aimMarker.position = new Vector3(0f, GroundY + .16f, 5.65f);
-            marker.AddComponent<MeshFilter>().sharedMesh = landingMarkerMesh;
-            aimMarkerRenderer = marker.AddComponent<MeshRenderer>();
-            aimMarkerRenderer.sharedMaterial = CreateMaterial("Universal Render Pipeline/Lit", new Color(.34f, .97f, 1f), .82f, 1.05f);
-            aimMarkerRenderer.shadowCastingMode = ShadowCastingMode.Off;
-            aimMarkerRenderer.receiveShadows = false;
-            marker.SetActive(false);
-        }
-
         void CreateDashTrail()
         {
             var anchor = new GameObject("Dash trail anchor").transform;
@@ -1689,36 +1641,6 @@ namespace FrutigerBadminton
             landingMarkerProperties.SetColor(ColorId, tint * brightness);
             landingMarkerProperties.SetColor(EmissionColorId, tint * Mathf.Lerp(.55f, 1.5f, urgency) * pulse);
             landingMarkerRenderer.SetPropertyBlock(landingMarkerProperties);
-        }
-
-        void UpdateAimMarker()
-        {
-            bool show = playerServeReady || (flightActive && playerMustReturn);
-            if (aimMarker.gameObject.activeSelf != show) aimMarker.gameObject.SetActive(show);
-            if (!show) return;
-
-            ShotStyle previewStyle = PreviewShotStyle();
-            Vector3 target = playerServeReady ? ServeAimTarget(previewStyle) : AimTarget(previewStyle);
-            aimMarker.position = new Vector3(target.x, GroundY + .16f, target.z);
-            float pulse = Mathf.Sin(Time.time * Mathf.PI * 3f) * .5f + .5f;
-            aimMarker.localScale = Vector3.one * Mathf.Lerp(.76f, .92f, pulse);
-
-            Color tint = ShotTint(previewStyle);
-            aimMarkerProperties.Clear();
-            aimMarkerProperties.SetColor(BaseColorId, tint);
-            aimMarkerProperties.SetColor(ColorId, tint);
-            aimMarkerProperties.SetColor(EmissionColorId, tint * Mathf.Lerp(.8f, 1.55f, pulse));
-            aimMarkerRenderer.SetPropertyBlock(aimMarkerProperties);
-        }
-
-        ShotStyle PreviewShotStyle()
-        {
-            if (shotInputBuffered) return bufferedShotStyle;
-            Gamepad gamepad = Gamepad.current;
-            if (Input.GetMouseButton(1) || (gamepad != null && gamepad.buttonWest.isPressed)) return ShotStyle.Drop;
-            if (Input.GetKey(KeyCode.F) || (gamepad != null && gamepad.buttonEast.isPressed)) return ShotStyle.Drive;
-            if (Input.GetKey(KeyCode.R) || (gamepad != null && gamepad.buttonNorth.isPressed)) return ShotStyle.Smash;
-            return ShotStyle.Clear;
         }
 
         static Mesh BuildLandingMarkerMesh()
@@ -1926,11 +1848,11 @@ namespace FrutigerBadminton
                 GUI.color = new Color(.49f, 1f, .94f);
                 GUI.Label(new Rect(28f, 22f, 298f, 24f), "FRUTIGER BADMINTON", labelStyle);
                 GUI.color = new Color(.67f, .86f, .9f);
-                GUI.Label(new Rect(28f, 46f, 298f, 20f), controllerConnected ? MatchHudSummary() + "     SELECT: HIDE" : MatchHudSummary() + "     F1: HIDE", hintStyle);
+                GUI.Label(new Rect(28f, 46f, 298f, 20f), ControlsHudTitle(controllerConnected), hintStyle);
                 GUI.Label(new Rect(28f, 72f, 66f, 22f), "MOVE", hintStyle);
                 GUI.Label(new Rect(104f, 72f, 220f, 22f), controllerConnected ? "Left stick / D-pad" : "WASD / arrows", labelStyle);
-                GUI.Label(new Rect(28f, 94f, 66f, 22f), "AIM", hintStyle);
-                GUI.Label(new Rect(104f, 94f, 220f, 22f), controllerConnected ? "Right stick" : "Mouse", labelStyle);
+                GUI.Label(new Rect(28f, 94f, 66f, 22f), "TARGET", hintStyle);
+                GUI.Label(new Rect(104f, 94f, 220f, 22f), "Auto placement", labelStyle);
                 GUI.Label(new Rect(28f, 116f, 66f, 22f), "MOVE+", hintStyle);
                 GUI.Label(new Rect(104f, 116f, 220f, 22f), controllerConnected ? "A jump   ·   RB dash" : "Space jump   ·   Shift dash", hintStyle);
                 GUI.Label(new Rect(28f, 138f, 66f, 22f), "SHOTS", hintStyle);
@@ -1939,8 +1861,8 @@ namespace FrutigerBadminton
                 GUI.color = new Color(.78f, .95f, .97f);
                 GUI.Label(new Rect(28f, 180f, 298f, 22f), RallyGuidance(false), labelStyle);
                 GUI.color = new Color(.64f, .84f, .88f);
-                GUI.Label(new Rect(28f, 204f, 298f, 18f), "First to " + pointsToWin + "  ·  win by 2  ·  cap " + GetMatchScoreCap(), hintStyle);
-                GUI.Label(new Rect(28f, 220f, 298f, 18f), "Rally winner serves  ·  odd LEFT / even RIGHT", hintStyle);
+                GUI.Label(new Rect(28f, 204f, 298f, 18f), "FIRST TO " + pointsToWin + "  ·  WIN BY 2", hintStyle);
+                GUI.Label(new Rect(28f, 220f, 298f, 18f), "ODD LEFT  ·  EVEN RIGHT", hintStyle);
 
                 float dashDuration = Mathf.Max(.55f, 1.05f - upgradeLevels[(int)SoloUpgrade.TurboDash] * .1f);
                 float dashReady = 1f - Mathf.Clamp01(dashCooldown / dashDuration);
@@ -2003,16 +1925,23 @@ namespace FrutigerBadminton
 
         string RallyGuidance(bool compact)
         {
-            if (playerServeReady) return compact ? "YOUR SERVE" : "SERVE  ·  Winner serves diagonally";
-            if (servePending || !flightActive) return compact ? "GET READY" : "GET READY  ·  Watch for the serve";
-            if (!playerMustReturn) return compact ? "TO RIVALS" : "TO RIVALS  ·  Get ready";
-            if (assignedFriendlyReceiver) return compact ? "PARTNER MOVING" : "PARTNER MOVING  ·  Be ready";
-            return compact ? "YOUR RETURN" : "YOUR RETURN  ·  Move and time your shot";
+            if (playerServeReady) return compact ? "YOUR SERVE" : "SERVE  ·  Tap a shot";
+            if (servePending || !flightActive) return compact ? "GET READY" : "READY  ·  Receive the serve";
+            if (!playerMustReturn) return compact ? "TO RIVALS" : "SHOT AWAY  ·  Recover";
+            if (assignedFriendlyReceiver) return compact ? "TEAMMATE" : "TEAMMATE COVERING  ·  Be ready";
+            return compact ? "YOUR RETURN" : "RETURN  ·  Move in, tap a shot";
         }
 
         string MatchHudSummary()
         {
             return (IsSingles ? "SINGLES" : "3V3") + "  /  FIRST TO " + pointsToWin + "  /  " + matchDifficulty.ToString().ToUpperInvariant();
+        }
+
+        string ControlsHudTitle(bool controllerConnected)
+        {
+            string format = IsSingles ? "SINGLES" : "3V3";
+            string hideKey = controllerConnected ? "SELECT: HIDE" : "F1: HIDE";
+            return format + "  ·  " + matchDifficulty.ToString().ToUpperInvariant() + "  ·  " + hideKey;
         }
 
         int GetMatchScoreCap()
@@ -2142,14 +2071,14 @@ namespace FrutigerBadminton
                 GUI.color = Color.white;
                 GUI.Label(new Rect(mainPanel.x + 36f, top + 238f, mainWidth - 72f, 34f), "RALLY CONTROLS", titleSubtitleStyle);
                 string move = controllerConnected ? "LEFT STICK / D-PAD     MOVE" : "WASD / ARROWS     MOVE";
-                string aim = controllerConnected ? "RIGHT STICK     AIM" : "MOUSE     AIM";
+                string placement = "AUTO PLACEMENT     Move into position";
                 string jump = controllerConnected ? "A     JUMP" : "SPACE     JUMP";
                 string dash = controllerConnected ? "RB     AERO DASH" : "SHIFT     AERO DASH";
                 string clear = controllerConnected ? "LB     CLEAR" : "LEFT CLICK     CLEAR";
                 string drop = controllerConnected ? "X     DROP" : "RIGHT CLICK     DROP";
                 string drive = controllerConnected ? "B     DRIVE" : "F     DRIVE";
                 string smash = controllerConnected ? "Y     AIR SMASH" : "R     AIR SMASH";
-                string[] controls = { move, aim, jump + "      " + dash, clear + "      " + drop, drive + "      " + smash };
+                string[] controls = { move, placement, jump + "      " + dash, clear + "      " + drop, drive + "      " + smash };
                 for (int i = 0; i < controls.Length; i++)
                 {
                     GUI.color = new Color(.66f, .91f, .94f);
