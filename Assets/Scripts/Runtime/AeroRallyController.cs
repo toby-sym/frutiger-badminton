@@ -17,7 +17,7 @@ namespace FrutigerBadminton
         const int UpgradeScoreInterval = 3;
         const int MaxUpgradeLevel = 5;
         const float CameraShakeDuration = .18f;
-        const float ShotInputBufferDuration = .18f;
+        const float ShotInputBufferDuration = .32f;
         static readonly Rect ControlsPanelRect = new Rect(16f, 16f, 320f, 360f);
         static readonly Rect CompactControlsPanelRect = new Rect(16f, 16f, 260f, 112f);
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
