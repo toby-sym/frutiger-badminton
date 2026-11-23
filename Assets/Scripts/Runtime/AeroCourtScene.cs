@@ -398,6 +398,10 @@ namespace FrutigerBadminton
             float lineY = top + .09f;
             Line("Left sideline", new Vector3(-CourtWidth / 2f, lineY, 0f), new Vector3(.075f, .015f, CourtLength), Color.white);
             Line("Right sideline", new Vector3(CourtWidth / 2f, lineY, 0f), new Vector3(.075f, .015f, CourtLength), Color.white);
+            // Singles and doubles share the same court; the inner singles tramlines
+            // remain visible in team mode as they do on a marked badminton court.
+            Line("Singles left sideline", new Vector3(-2.59f, lineY + .002f, 0f), new Vector3(.045f, .012f, CourtLength), new Color(.76f, .98f, 1f));
+            Line("Singles right sideline", new Vector3(2.59f, lineY + .002f, 0f), new Vector3(.045f, .012f, CourtLength), new Color(.76f, .98f, 1f));
             Line("Near baseline", new Vector3(0f, lineY, -CourtLength / 2f), new Vector3(CourtWidth, .015f, .075f), Color.white);
             Line("Far baseline", new Vector3(0f, lineY, CourtLength / 2f), new Vector3(CourtWidth, .015f, .075f), Color.white);
             Line("Short service line near", new Vector3(0f, lineY, -1.98f), new Vector3(CourtWidth, .015f, .075f), new Color(.91f, 1f, 1f));

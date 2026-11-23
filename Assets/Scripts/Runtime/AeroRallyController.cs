@@ -10,17 +10,14 @@ namespace FrutigerBadminton
     {
         const float GroundY = -.72f;
         const float CourtHalfWidth = 3.05f;
+        const float SinglesHalfWidth = 2.59f;
         const float CourtHalfLength = 6.7f;
         const float NetHeight = 1.56f;
         const float Gravity = 9.81f;
-        const int SoloRunTargetScore = 7;
-        const int SoloRunMaximumScore = 9;
         const int UpgradeScoreInterval = 3;
         const int MaxUpgradeLevel = 5;
         const float CameraShakeDuration = .18f;
         const float ShotInputBufferDuration = .18f;
-        const float RivalReactionDelay = .22f;
-        const float RivalMoveSpeed = 4.25f;
         static readonly Rect ControlsPanelRect = new Rect(16f, 16f, 320f, 360f);
         static readonly Rect CompactControlsPanelRect = new Rect(16f, 16f, 260f, 112f);
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -138,6 +135,7 @@ namespace FrutigerBadminton
         int rallyHits;
         int longestRallyHits;
         int smashesHit;
+        int playerReturns;
         int partnerReturns;
         int dashUses;
         int nextUpgradeScore = UpgradeScoreInterval;
@@ -162,14 +160,26 @@ namespace FrutigerBadminton
         bool isPaused;
         bool titleScreenActive = true;
         bool upgradeDraftActive;
-        bool runComplete;
-        bool runWon;
+        bool matchComplete;
+        bool matchWon;
         bool audioMuted;
         bool courtLevelView;
         bool showControls;
+        MatchMode matchMode = MatchMode.Singles;
+        MatchDifficulty matchDifficulty = MatchDifficulty.Club;
+        int pointsToWin = 21;
         TitleMenuPage titleMenuPage;
         int titleMenuSelection;
-        string message = "Move under the return, then time your shot.";
+        string message = "Move under the shuttle and choose your shot.";
+
+        bool IsSingles => matchMode == MatchMode.Singles;
+        float ActiveHalfWidth => IsSingles ? SinglesHalfWidth : CourtHalfWidth;
+        float RivalReactionDelay => matchDifficulty == MatchDifficulty.Relaxed ? .56f
+            : matchDifficulty == MatchDifficulty.Elite ? .14f : .3f;
+        float RivalMoveSpeed => matchDifficulty == MatchDifficulty.Relaxed ? 3.55f
+            : matchDifficulty == MatchDifficulty.Elite ? 5.3f : 4.35f;
+        float RivalReturnReach => matchDifficulty == MatchDifficulty.Relaxed ? .88f
+            : matchDifficulty == MatchDifficulty.Elite ? 1.3f : 1.05f;
 
         void Awake()
         {
@@ -184,6 +194,9 @@ namespace FrutigerBadminton
             audioMuted = PlayerPrefs.GetInt("Frutiger.AudioMuted", 0) != 0;
             courtLevelView = PlayerPrefs.GetInt("Frutiger.CourtLevelView", 1) != 0;
             showControls = PlayerPrefs.GetInt("Frutiger.ShowControls", 1) != 0;
+            matchMode = (MatchMode)Mathf.Clamp(PlayerPrefs.GetInt("Frutiger.MatchMode", (int)MatchMode.Singles), 0, 1);
+            matchDifficulty = (MatchDifficulty)Mathf.Clamp(PlayerPrefs.GetInt("Frutiger.MatchDifficulty", (int)MatchDifficulty.Club), 0, 2);
+            pointsToWin = PlayerPrefs.GetInt("Frutiger.MatchPoints", 21) == 15 ? 15 : 21;
             AudioListener.volume = audioMuted ? 0f : 1f;
             if (PlayerPrefs.HasKey("Frutiger.Fullscreen"))
                 Screen.fullScreen = PlayerPrefs.GetInt("Frutiger.Fullscreen") != 0;
@@ -212,6 +225,7 @@ namespace FrutigerBadminton
             rivalAnimation = rivalObject.GetComponent<AeroPlayerAnimation>();
             rivalPartnerAnimation = rivalPartnerObject.GetComponent<AeroPlayerAnimation>();
             rivalWingAnimation = rivalWingObject.GetComponent<AeroPlayerAnimation>();
+            ApplyRosterVisibility();
             Camera mainCamera = Camera.main;
             if (mainCamera)
             {
@@ -238,7 +252,7 @@ namespace FrutigerBadminton
         void Update()
         {
             Gamepad gamepad = Gamepad.current;
-            if (!titleScreenActive && !isPaused && !upgradeDraftActive && !runComplete
+            if (!titleScreenActive && !isPaused && !upgradeDraftActive && !matchComplete
                 && (Input.GetKeyDown(KeyCode.F1) || (gamepad != null && gamepad.selectButton.wasPressedThisFrame)))
             {
                 showControls = !showControls;
@@ -247,7 +261,7 @@ namespace FrutigerBadminton
             }
             bool pausePressed = Input.GetKeyDown(KeyCode.Escape)
                 || (gamepad != null && gamepad.startButton.wasPressedThisFrame);
-            if (pausePressed && !titleScreenActive && !upgradeDraftActive && !runComplete) SetPaused(!isPaused);
+            if (pausePressed && !titleScreenActive && !upgradeDraftActive && !matchComplete) SetPaused(!isPaused);
 
             float deltaTime = Mathf.Min(Time.deltaTime, .05f);
             UpdateCameraFeedback(isPaused ? Mathf.Min(Time.unscaledDeltaTime, .05f) : deltaTime);
@@ -262,7 +276,7 @@ namespace FrutigerBadminton
                 HandlePauseMenuInput();
                 return;
             }
-            if (upgradeDraftActive || runComplete) return;
+            if (upgradeDraftActive || matchComplete) return;
 
             if (servePending)
             {
@@ -333,6 +347,7 @@ namespace FrutigerBadminton
         {
             if (!titleScreenActive) return;
             titleScreenActive = false;
+            ResetMatchState();
             BeginServe();
         }
 
@@ -354,11 +369,14 @@ namespace FrutigerBadminton
 
             if (titleMenuPage != TitleMenuPage.Home)
             {
-                int optionCount = titleMenuPage == TitleMenuPage.Settings ? 4 : 1;
+                int optionCount = titleMenuPage == TitleMenuPage.Settings ? 4
+                    : titleMenuPage == TitleMenuPage.MatchSetup ? 5 : 1;
                 if (up) titleMenuSelection = (titleMenuSelection + optionCount - 1) % optionCount;
                 if (down) titleMenuSelection = (titleMenuSelection + 1) % optionCount;
                 if (titleMenuPage == TitleMenuPage.Settings && titleMenuSelection < 3 && (left || right))
                     ToggleSetting(titleMenuSelection);
+                if (titleMenuPage == TitleMenuPage.MatchSetup && titleMenuSelection < 3 && (left || right))
+                    ToggleMatchOption(titleMenuSelection);
                 if (back)
                 {
                     titleMenuPage = TitleMenuPage.Home;
@@ -368,10 +386,8 @@ namespace FrutigerBadminton
                 return;
             }
 
-            if (up) titleMenuSelection = titleMenuSelection == 0 ? 3 : titleMenuSelection == 3 ? 1 : 0;
-            else if (down) titleMenuSelection = titleMenuSelection == 0 ? 1 : titleMenuSelection == 3 ? 0 : 3;
-            else if (left && titleMenuSelection == 2) titleMenuSelection = 1;
-            else if (right && titleMenuSelection == 1) titleMenuSelection = 2;
+            if (up) titleMenuSelection = (titleMenuSelection + 4) % 5;
+            else if (down) titleMenuSelection = (titleMenuSelection + 1) % 5;
             if (confirm) ActivateTitleMenuOption(titleMenuSelection);
         }
 
@@ -382,9 +398,22 @@ namespace FrutigerBadminton
                 switch (option)
                 {
                     case 0: StartRally(); break;
-                    case 1: titleMenuPage = TitleMenuPage.Controls; titleMenuSelection = 0; break;
-                    case 2: titleMenuPage = TitleMenuPage.Settings; titleMenuSelection = 0; break;
+                    case 1: titleMenuPage = TitleMenuPage.MatchSetup; titleMenuSelection = 0; break;
+                    case 2: titleMenuPage = TitleMenuPage.Controls; titleMenuSelection = 0; break;
+                    case 3: titleMenuPage = TitleMenuPage.Settings; titleMenuSelection = 0; break;
                     default: Application.Quit(); break;
+                }
+                return;
+            }
+
+            if (titleMenuPage == TitleMenuPage.MatchSetup)
+            {
+                if (option < 3) ToggleMatchOption(option);
+                else if (option == 3) StartRally();
+                else
+                {
+                    titleMenuPage = TitleMenuPage.Home;
+                    titleMenuSelection = 0;
                 }
                 return;
             }
@@ -427,6 +456,36 @@ namespace FrutigerBadminton
                 titleMenuPage = TitleMenuPage.Home;
                 titleMenuSelection = 0;
             }
+        }
+
+        void ToggleMatchOption(int option)
+        {
+            if (option == 0)
+            {
+                matchMode = IsSingles ? MatchMode.ThreeVsThree : MatchMode.Singles;
+                ApplyRosterVisibility();
+                PlayerPrefs.SetInt("Frutiger.MatchMode", (int)matchMode);
+            }
+            else if (option == 1)
+            {
+                matchDifficulty = (MatchDifficulty)(((int)matchDifficulty + 1) % 3);
+                PlayerPrefs.SetInt("Frutiger.MatchDifficulty", (int)matchDifficulty);
+            }
+            else if (option == 2)
+            {
+                pointsToWin = pointsToWin == 15 ? 21 : 15;
+                PlayerPrefs.SetInt("Frutiger.MatchPoints", pointsToWin);
+            }
+            PlayerPrefs.Save();
+        }
+
+        void ApplyRosterVisibility()
+        {
+            bool showTeamSupport = !IsSingles;
+            if (partner) partner.gameObject.SetActive(showTeamSupport);
+            if (partnerTwo) partnerTwo.gameObject.SetActive(showTeamSupport);
+            if (rivalPartner) rivalPartner.gameObject.SetActive(showTeamSupport);
+            if (rivalWing) rivalWing.gameObject.SetActive(showTeamSupport);
         }
 
         void ApplyCameraView()
@@ -536,14 +595,15 @@ namespace FrutigerBadminton
                 - (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow) ? 1f : 0f));
             if (keyboardInput.sqrMagnitude > directionInput.sqrMagnitude) directionInput = keyboardInput;
             directionInput = Vector2.ClampMagnitude(directionInput, 1f);
+            if (playerServeReady) directionInput = Vector2.zero;
             Vector3 forward = CameraForwardOnCourt();
             Vector3 right = Vector3.Cross(Vector3.up, forward);
             Vector3 direction = right * directionInput.x + forward * directionInput.y;
             if (direction.sqrMagnitude > .01f) lastMovementDirection = direction.normalized;
 
-            if ((Input.GetKeyDown(KeyCode.Space) || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame)) && jumpHeight <= .01f)
+            if (!playerServeReady && (Input.GetKeyDown(KeyCode.Space) || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame)) && jumpHeight <= .01f)
                 jumpVelocity = 5.1f;
-            bool dashPressed = Input.GetKeyDown(KeyCode.LeftShift) || (gamepad != null && gamepad.rightShoulder.wasPressedThisFrame);
+            bool dashPressed = !playerServeReady && (Input.GetKeyDown(KeyCode.LeftShift) || (gamepad != null && gamepad.rightShoulder.wasPressedThisFrame));
             if (dashPressed && dashCooldown <= 0f)
             {
                 dashDirection = direction.sqrMagnitude > .01f ? direction.normalized : lastMovementDirection;
@@ -595,7 +655,7 @@ namespace FrutigerBadminton
                 jumpVelocity = 0f;
             }
 
-            float clampedX = Mathf.Clamp(next.x, -CourtHalfWidth + .35f, CourtHalfWidth - .35f);
+            float clampedX = Mathf.Clamp(next.x, -ActiveHalfWidth + .25f, ActiveHalfWidth - .25f);
             float clampedZ = Mathf.Clamp(next.z, -CourtHalfLength + .45f, -.42f);
             if (!Mathf.Approximately(next.x, clampedX)) playerVelocity.x = 0f;
             if (!Mathf.Approximately(next.z, clampedZ)) playerVelocity.z = 0f;
@@ -617,7 +677,7 @@ namespace FrutigerBadminton
         {
             if (!flightActive || playerMustReturn || assignedOpponentReceiver != rival || flightElapsed < RivalReactionDelay) return;
             Vector3 destination = new Vector3(flightTarget.x, GroundY, flightTarget.z + .25f);
-            destination.x = Mathf.Clamp(destination.x, -CourtHalfWidth + .35f, CourtHalfWidth - .35f);
+            destination.x = Mathf.Clamp(destination.x, -ActiveHalfWidth + .3f, ActiveHalfWidth - .3f);
             destination.z = Mathf.Clamp(destination.z, .42f, CourtHalfLength - .45f);
             rival.position = Vector3.MoveTowards(rival.position, destination, RivalMoveSpeed * deltaTime);
         }
@@ -634,11 +694,11 @@ namespace FrutigerBadminton
 
         void MoveRivalSupport(Transform member, float homeX, float homeZ, float deltaTime)
         {
-            if (!member) return;
+            if (!member || IsSingles) return;
             Vector3 destination = new Vector3(homeX, GroundY, homeZ);
             if (flightActive && !playerMustReturn && assignedOpponentReceiver == member && flightElapsed >= RivalReactionDelay)
             {
-                destination.x = Mathf.Clamp(flightTarget.x, -CourtHalfWidth + .45f, CourtHalfWidth - .45f);
+                destination.x = Mathf.Clamp(flightTarget.x, -ActiveHalfWidth + .4f, ActiveHalfWidth - .4f);
                 destination.z = Mathf.Clamp(flightTarget.z, .42f, CourtHalfLength - .45f);
             }
             member.position = Vector3.MoveTowards(member.position, destination, RivalMoveSpeed * deltaTime);
@@ -646,6 +706,7 @@ namespace FrutigerBadminton
 
         Transform ChooseClosestOpponent()
         {
+            if (IsSingles) return rival;
             Transform closest = rival;
             float closestDistance = HorizontalDistance(rival.position, flightTarget);
             float partnerDistance = HorizontalDistance(rivalPartner.position, flightTarget);
@@ -669,6 +730,7 @@ namespace FrutigerBadminton
 
         void MovePartner(float deltaTime)
         {
+            if (IsSingles) return;
             // Avoid swapping formation every time the player crosses the centre by a few pixels.
             if (player.position.x > .65f) friendlyHomeSide = -1f;
             else if (player.position.x < -.65f) friendlyHomeSide = 1f;
@@ -678,7 +740,7 @@ namespace FrutigerBadminton
 
         void UpdateFriendlyReceiver()
         {
-            if (!flightActive || !playerMustReturn)
+            if (IsSingles || !flightActive || !playerMustReturn)
             {
                 assignedFriendlyReceiver = null;
                 return;
@@ -796,7 +858,7 @@ namespace FrutigerBadminton
             Vector3 destination = new Vector3(homeX, GroundY, homeZ);
             if (flightActive && playerMustReturn && member == assignedReceiver)
             {
-                destination.x = Mathf.Clamp(flightTarget.x, -CourtHalfWidth + .45f, CourtHalfWidth - .45f);
+                destination.x = Mathf.Clamp(flightTarget.x, -ActiveHalfWidth + .4f, ActiveHalfWidth - .4f);
                 destination.z = Mathf.Clamp(flightTarget.z, -CourtHalfLength + .45f, -.42f);
             }
 
@@ -806,7 +868,7 @@ namespace FrutigerBadminton
 
         bool TryPartnerReturn()
         {
-            if (!partner || !partnerTwo || !flightActive || !playerMustReturn || shuttle.position.z >= -.15f) return false;
+            if (IsSingles || !partner || !partnerTwo || !flightActive || !playerMustReturn || shuttle.position.z >= -.15f) return false;
 
             float partnerReach = 1.5f + upgradeLevels[(int)SoloUpgrade.PartnerDrills] * .1f;
             float firstPartnerDistance = HorizontalDistance(partner.position, shuttle.position);
@@ -821,7 +883,7 @@ namespace FrutigerBadminton
                 || Mathf.Min(firstPartnerDistance, secondPartnerDistance) > partnerReach) return false;
 
             Vector3 target = new Vector3(
-                Mathf.Clamp(-rival.position.x * .55f + Random.Range(-.85f, .85f), -CourtHalfWidth + .35f, CourtHalfWidth - .35f),
+                Mathf.Clamp(-rival.position.x * .55f + Random.Range(-.85f, .85f), -ActiveHalfWidth + .25f, ActiveHalfWidth - .25f),
                 GroundY + .11f,
                 Random.Range(4.25f, 5.85f));
             AeroHitEffect.Spawn(shuttle.position, PlayerShotTint(ShotStyle.Clear), .98f);
@@ -862,7 +924,7 @@ namespace FrutigerBadminton
 
             if (!playerMustReturn && assignedOpponentReceiver && velocity.y <= 0f
                 && current.z > .15f && current.y > GroundY + .2f && current.y <= GroundY + 2.85f
-                && HorizontalDistance(assignedOpponentReceiver.position, current) <= 1.05f)
+                && HorizontalDistance(assignedOpponentReceiver.position, current) <= RivalReturnReach)
             {
                 Transform returner = assignedOpponentReceiver;
                 BeginRivalReturn(GetOpponentAnimation(returner));
@@ -901,6 +963,7 @@ namespace FrutigerBadminton
             Launch(shuttle.position, target, duration, false, true, style);
             if (playerAnimation) playerAnimation.Swing(style == ShotStyle.Smash);
             rallyHits++;
+            playerReturns++;
             if (style == ShotStyle.Smash) smashesHit++;
             string hit = style == ShotStyle.Clear ? "Aqua clear"
                        : style == ShotStyle.Drop ? "Feather drop"
@@ -914,18 +977,11 @@ namespace FrutigerBadminton
             if (!playerServeReady) return;
 
             ShotStyle style = CurrentShotStyle();
-            if (style == ShotStyle.Smash && jumpHeight < .8f)
-            {
-                ShowMessage("Jump before a smash serve.", .8f);
-                return;
-            }
+            if (style == ShotStyle.Smash) style = ShotStyle.Drive;
 
             Vector3 start = PlayerServePosition();
             Vector3 target = ServeAimTarget(style);
-            float duration = style == ShotStyle.Clear ? 1.48f
-                           : style == ShotStyle.Drop ? 1.27f
-                           : style == ShotStyle.Drive ? 1.22f
-                           : 1.15f;
+            const float duration = 1f;
             AeroHitEffect.Spawn(start, PlayerShotTint(style), style == ShotStyle.Smash ? 1.55f : 1f);
             PlayShotAudio(style);
             Launch(start, target, duration, false, true, style);
@@ -941,7 +997,7 @@ namespace FrutigerBadminton
         Vector3 PlayerServePosition()
         {
             // The player's world position already includes jumpHeight.
-            return player.position + Vector3.up * 1.18f + player.right * .18f;
+            return player.position + Vector3.up * .8f + player.right * .18f;
         }
 
         void UpdateAimInputSource()
@@ -977,7 +1033,7 @@ namespace FrutigerBadminton
             {
                 if (hasStickAim)
                 {
-                    target.x = lastStickAim.x * (CourtHalfWidth - .35f);
+                    target.x = lastStickAim.x * (ActiveHalfWidth - .25f);
                     target.z = Mathf.Lerp(minZ, maxZ, Mathf.Clamp01((lastStickAim.y + 1f) * .5f));
                 }
             }
@@ -995,7 +1051,7 @@ namespace FrutigerBadminton
                 }
                 if (hasMouseAim) target = lastMouseAim;
             }
-            target.x = Mathf.Clamp(target.x, -CourtHalfWidth + .35f, CourtHalfWidth - .35f);
+            target.x = Mathf.Clamp(target.x, -ActiveHalfWidth + .25f, ActiveHalfWidth - .25f);
             target.z = Mathf.Clamp(target.z, minZ, maxZ);
             target.y = GroundY + .11f;
             return target;
@@ -1003,9 +1059,7 @@ namespace FrutigerBadminton
 
         Vector3 ServeAimTarget(ShotStyle style)
         {
-            Vector3 target = AimTarget(style);
-            target.z = Mathf.Max(target.z, 4f);
-            return target;
+            return new Vector3(-GetServiceCourtWorldX(true, playerScore), GroundY + .11f, 3.9f);
         }
 
         void BeginServe()
@@ -1013,7 +1067,21 @@ namespace FrutigerBadminton
             servePending = false;
             rallyHits = 0;
             bool playerServing = playerServesNext;
-            playerServesNext = !playerServesNext;
+            playerVelocity = Vector3.zero;
+            jumpHeight = 0f;
+            jumpVelocity = 0f;
+            if (playerServing)
+            {
+                float serverX = GetServiceCourtWorldX(true, playerScore);
+                player.position = new Vector3(serverX, GroundY, -4.65f);
+                rival.position = new Vector3(-serverX, GroundY, 4.65f);
+            }
+            else
+            {
+                float serverX = GetServiceCourtWorldX(false, rivalScore);
+                rival.position = new Vector3(serverX, GroundY, 4.65f);
+                player.position = new Vector3(-serverX, GroundY, -4.65f);
+            }
             if (playerServing)
             {
                 playerServeReady = true;
@@ -1021,18 +1089,31 @@ namespace FrutigerBadminton
                 shuttleTrail.Clear();
                 shuttle.position = PlayerServePosition();
                 shuttle.up = Vector3.up;
-                ShowMessage("Your serve — aim the ring, then choose a shot.", 2.2f);
+                ShowMessage("Your serve  ·  " + GetServiceCourtName(playerScore) + " court  ·  serve diagonally", 2.2f);
                 return;
             }
 
             playerServeReady = false;
-            Vector3 start = rival.position + Vector3.up * 1.45f;
-            Vector3 target = new Vector3(Mathf.Clamp(player.position.x + Random.Range(-1.1f, 1.1f), -2.2f, 2.2f), GroundY + .11f, Random.Range(-5.7f, -2.1f));
+            Vector3 start = rival.position + Vector3.up * .8f;
+            Vector3 target = new Vector3(-GetServiceCourtWorldX(false, rivalScore), GroundY + .11f, -3.9f);
             AeroHitEffect.Spawn(start, new Color(.42f, .96f, 1f), .9f);
             PlayShotAudio(ShotStyle.Clear);
-            Launch(start, target, 1.42f, true, false);
+            Launch(start, target, 1f, true, false);
             if (rivalAnimation) rivalAnimation.Swing(false);
             ShowMessage("Return the serve.", 1.1f);
+        }
+
+        float GetServiceCourtWorldX(bool nearSide, int serverScore)
+        {
+            // Odd points are served from the server's left court; even points from the right.
+            bool serverLeft = (serverScore & 1) == 1;
+            float worldSign = nearSide ? (serverLeft ? -1f : 1f) : (serverLeft ? 1f : -1f);
+            return worldSign * 1.3f;
+        }
+
+        string GetServiceCourtName(int serverScore)
+        {
+            return (serverScore & 1) == 1 ? "LEFT" : "RIGHT";
         }
 
         void BeginRivalReturn(AeroPlayerAnimation returnerAnimation)
@@ -1041,16 +1122,20 @@ namespace FrutigerBadminton
             float targetZ = style == ShotStyle.Drop ? Random.Range(-2.35f, -1.5f)
                          : style == ShotStyle.Drive ? Random.Range(-4.15f, -3.15f)
                          : Random.Range(-5.8f, -4.9f);
-            float leftCoverage = Mathf.Min(Mathf.Abs(player.position.x + 2.2f), Mathf.Abs(partner.position.x + 2.2f), Mathf.Abs(partnerTwo.position.x + 2.2f));
-            float rightCoverage = Mathf.Min(Mathf.Abs(player.position.x - 2.2f), Mathf.Abs(partner.position.x - 2.2f), Mathf.Abs(partnerTwo.position.x - 2.2f));
+            float leftCoverage = IsSingles ? Mathf.Abs(player.position.x + ActiveHalfWidth * .76f)
+                : Mathf.Min(Mathf.Abs(player.position.x + 2.2f), Mathf.Abs(partner.position.x + 2.2f), Mathf.Abs(partnerTwo.position.x + 2.2f));
+            float rightCoverage = IsSingles ? Mathf.Abs(player.position.x - ActiveHalfWidth * .76f)
+                : Mathf.Min(Mathf.Abs(player.position.x - 2.2f), Mathf.Abs(partner.position.x - 2.2f), Mathf.Abs(partnerTwo.position.x - 2.2f));
             bool aimLeft = leftCoverage > rightCoverage || (Mathf.Approximately(leftCoverage, rightCoverage) && Random.value < .5f);
             bool aimAtPlayer = Random.value < .35f;
-            float targetX = aimAtPlayer ? player.position.x + Random.Range(-.35f, .35f)
-                : (aimLeft ? -2.25f : 2.25f) + Random.Range(-.45f, .45f);
+            float inaccuracy = matchDifficulty == MatchDifficulty.Relaxed ? .75f
+                : matchDifficulty == MatchDifficulty.Elite ? .22f : .45f;
+            float targetX = aimAtPlayer ? player.position.x + Random.Range(-inaccuracy, inaccuracy)
+                : (aimLeft ? -ActiveHalfWidth * .76f : ActiveHalfWidth * .76f) + Random.Range(-inaccuracy, inaccuracy);
             if (aimAtPlayer && style != ShotStyle.Drop)
                 targetZ = Mathf.Clamp(player.position.z + Random.Range(-.5f, .5f), -5.9f, -2.9f);
             Vector3 start = shuttle.position;
-            Vector3 target = new Vector3(Mathf.Clamp(targetX, -CourtHalfWidth + .35f, CourtHalfWidth - .35f), GroundY + .11f, targetZ);
+            Vector3 target = new Vector3(Mathf.Clamp(targetX, -ActiveHalfWidth + .25f, ActiveHalfWidth - .25f), GroundY + .11f, targetZ);
             AeroHitEffect.Spawn(start, ShotTint(style), style == ShotStyle.Drive ? 1.08f : .95f);
             PlayShotAudio(style);
             float duration = style == ShotStyle.Drop ? Random.Range(1.62f, 1.74f)
@@ -1110,22 +1195,23 @@ namespace FrutigerBadminton
         void AwardPlayerPoint(string result)
         {
             playerScore++;
+            playerServesNext = true;
             PlayAudioClip(playerPointAudioClip);
             CelebratePoint(new Color(.36f, 1f, .82f));
-            bool finishedRun = IsSoloRunComplete();
-            bool reachedUpgradeMilestone = !finishedRun && playerScore >= nextUpgradeScore;
-            if (reachedUpgradeMilestone) nextUpgradeScore += UpgradeScoreInterval;
-            FinishPoint("Point  " + playerScore + " — " + rivalScore + "  " + result,
-                reachedUpgradeMilestone, finishedRun, finishedRun);
+            bool finishedMatch = IsMatchComplete(out bool won);
+            string score = playerScore + " — " + rivalScore;
+            FinishPoint((finishedMatch ? "Match point won  " : "Point  ") + score + "  " + result, finishedMatch, won);
         }
 
         void AwardRivalPoint(string result)
         {
             rivalScore++;
+            playerServesNext = false;
             PlayAudioClip(rivalPointAudioClip);
             CelebratePoint(new Color(1f, .54f, .69f));
-            bool finishedRun = IsSoloRunComplete();
-            FinishPoint(result + "  " + playerScore + " — " + rivalScore, false, finishedRun, false);
+            bool finishedMatch = IsMatchComplete(out bool won);
+            FinishPoint((finishedMatch ? "Match point lost  " : "Point  ") + playerScore + " — " + rivalScore + "  " + result,
+                finishedMatch, won);
         }
 
         void CelebratePoint(Color color)
@@ -1177,14 +1263,16 @@ namespace FrutigerBadminton
             courtCamera.position = cameraRestPosition + offset * envelope;
         }
 
-        bool IsSoloRunComplete()
+        bool IsMatchComplete(out bool won)
         {
             int highScore = Mathf.Max(playerScore, rivalScore);
             int lead = Mathf.Abs(playerScore - rivalScore);
-            return highScore >= SoloRunMaximumScore || (highScore >= SoloRunTargetScore && lead >= 2);
+            int cap = pointsToWin == 21 ? 30 : 17;
+            won = playerScore > rivalScore;
+            return highScore >= cap || (highScore >= pointsToWin && lead >= 2);
         }
 
-        void FinishPoint(string result, bool offerUpgrade = false, bool endRun = false, bool won = false)
+        void FinishPoint(string result, bool endMatch = false, bool won = false)
         {
             longestRallyHits = Mathf.Max(longestRallyHits, rallyHits);
             flightActive = false;
@@ -1197,26 +1285,25 @@ namespace FrutigerBadminton
             shuttle.position = new Vector3(0f, GroundY + .25f, 0f);
             shuttle.rotation = Quaternion.identity;
             shuttleSpinAngle = 0f;
-            servePending = !endRun;
-            serveDelay = endRun ? 0f : 1.45f;
+            servePending = !endMatch;
+            serveDelay = endMatch ? 0f : 1.45f;
             ShowMessage(result, 1.45f);
-            if (endRun)
+            if (endMatch)
             {
-                runComplete = true;
-                runWon = won;
+                matchComplete = true;
+                matchWon = won;
                 runEndOpenedFrame = Time.frameCount;
                 return;
             }
-            if (offerUpgrade) BeginUpgradeDraft();
         }
 
-        void StartNewRun()
+        void StartNewMatch()
         {
-            ResetRunState();
+            ResetMatchState();
             BeginServe();
         }
 
-        void ResetRunState()
+        void ResetMatchState()
         {
             isPaused = false;
             Time.timeScale = 1f;
@@ -1226,12 +1313,13 @@ namespace FrutigerBadminton
             rallyHits = 0;
             longestRallyHits = 0;
             smashesHit = 0;
+            playerReturns = 0;
             partnerReturns = 0;
             dashUses = 0;
             nextUpgradeScore = UpgradeScoreInterval;
             System.Array.Clear(upgradeLevels, 0, upgradeLevels.Length);
-            runComplete = false;
-            runWon = false;
+            matchComplete = false;
+            matchWon = false;
             playerServesNext = true;
             playerServeReady = false;
             cameraShakeRemaining = 0f;
@@ -1292,7 +1380,7 @@ namespace FrutigerBadminton
 
         void ReturnToTitle()
         {
-            ResetRunState();
+            ResetMatchState();
             titleScreenActive = true;
             titleMenuPage = TitleMenuPage.Home;
             titleMenuSelection = 0;
@@ -1321,7 +1409,7 @@ namespace FrutigerBadminton
             else if (Input.GetKeyDown(KeyCode.R)
                 || (gamepad != null && gamepad.buttonWest.wasPressedThisFrame))
             {
-                StartNewRun();
+                StartNewMatch();
             }
             else if (Input.GetKeyDown(KeyCode.M)
                 || (gamepad != null && gamepad.buttonEast.wasPressedThisFrame))
@@ -1838,7 +1926,7 @@ namespace FrutigerBadminton
                 GUI.color = new Color(.49f, 1f, .94f);
                 GUI.Label(new Rect(28f, 22f, 298f, 24f), "FRUTIGER BADMINTON", labelStyle);
                 GUI.color = new Color(.67f, .86f, .9f);
-                GUI.Label(new Rect(28f, 46f, 298f, 20f), controllerConnected ? "SOLO CIRCUIT  /  3V3     SELECT: HIDE" : "SOLO CIRCUIT  /  3V3     F1: HIDE", hintStyle);
+                GUI.Label(new Rect(28f, 46f, 298f, 20f), controllerConnected ? MatchHudSummary() + "     SELECT: HIDE" : MatchHudSummary() + "     F1: HIDE", hintStyle);
                 GUI.Label(new Rect(28f, 72f, 66f, 22f), "MOVE", hintStyle);
                 GUI.Label(new Rect(104f, 72f, 220f, 22f), controllerConnected ? "Left stick / D-pad" : "WASD / arrows", labelStyle);
                 GUI.Label(new Rect(28f, 94f, 66f, 22f), "AIM", hintStyle);
@@ -1851,8 +1939,8 @@ namespace FrutigerBadminton
                 GUI.color = new Color(.78f, .95f, .97f);
                 GUI.Label(new Rect(28f, 180f, 298f, 22f), RallyGuidance(false), labelStyle);
                 GUI.color = new Color(.64f, .84f, .88f);
-                GUI.Label(new Rect(28f, 204f, 298f, 18f), "First to 7  ·  Win by 2  ·  Cap 9", hintStyle);
-                GUI.Label(new Rect(28f, 220f, 298f, 18f), "Draft every 3 points", hintStyle);
+                GUI.Label(new Rect(28f, 204f, 298f, 18f), "First to " + pointsToWin + "  ·  win by 2  ·  cap " + GetMatchScoreCap(), hintStyle);
+                GUI.Label(new Rect(28f, 220f, 298f, 18f), "Rally winner serves  ·  odd LEFT / even RIGHT", hintStyle);
 
                 float dashDuration = Mathf.Max(.55f, 1.05f - upgradeLevels[(int)SoloUpgrade.TurboDash] * .1f);
                 float dashReady = 1f - Mathf.Clamp01(dashCooldown / dashDuration);
@@ -1864,7 +1952,6 @@ namespace FrutigerBadminton
                 GUI.DrawTexture(new Rect(28f, 263f, 298f * dashReady, 8f), Texture2D.whiteTexture);
                 GUI.color = Color.white;
                 GUI.Label(new Rect(28f, 278f, 298f, 20f), controllerConnected ? "START  PAUSE   /   A SELECT" : "ESC  PAUSE   /   ENTER SELECT", hintStyle);
-                DrawRunBuild();
             }
             else DrawCompactControls(controllerConnected);
 
@@ -1872,30 +1959,33 @@ namespace FrutigerBadminton
             Color scorePanel = Color.Lerp(new Color(.02f, .23f, .29f, .9f),
                 new Color(scorePulseColor.r * .34f, scorePulseColor.g * .34f, scorePulseColor.b * .34f, .98f), scorePulse);
             float scoreLeft = Mathf.Max(16f, Screen.width - 388f);
-            bool serveLabelVisible = servePending || upgradeDraftActive || playerServeReady || flightActive;
-            bool playerServing = servePending || upgradeDraftActive ? playerServesNext : !playerServesNext;
+            bool playerServing = playerServesNext;
             Color scoreTop = new Color(Mathf.Min(1f, scorePanel.r + .05f), Mathf.Min(1f, scorePanel.g + .08f),
                 Mathf.Min(1f, scorePanel.b + .08f), scorePanel.a);
-            DrawGlassPanel(new Rect(scoreLeft, 16f, 372f, 60f), scoreTop, scorePanel);
+            DrawGlassPanel(new Rect(scoreLeft, 16f, 372f, 76f), scoreTop, scorePanel);
             GUI.color = new Color(.45f, 1f, .91f);
             GUI.Label(new Rect(scoreLeft + 18f, 18f, 128f, 20f),
-                serveLabelVisible && playerServing ? "AQUA  ·  SERVING" : "AQUA  ·  YOU", scoreTeamStyle);
+                playerServing ? "AQUA  ·  SERVING" : "AQUA  ·  YOU", scoreTeamStyle);
             GUI.color = Color.Lerp(Color.white, scorePulseColor, scorePulse * .48f);
-            scoreStyle.fontSize = 22 + Mathf.RoundToInt(5f * scorePulse);
-            GUI.Label(new Rect(scoreLeft + 21f, 37f, 122f, 34f), playerScore.ToString(), scoreStyle);
-            GUI.Label(new Rect(scoreLeft + 145f, 29f, 82f, 38f), "—", scoreStyle);
-            GUI.Label(new Rect(scoreLeft + 229f, 37f, 122f, 34f), rivalScore.ToString(), scoreStyle);
-            scoreStyle.fontSize = 22;
+            scoreStyle.fontSize = 21 + Mathf.RoundToInt(4f * scorePulse);
+            GUI.Label(new Rect(scoreLeft + 21f, 36f, 122f, 30f), playerScore.ToString(), scoreStyle);
+            GUI.Label(new Rect(scoreLeft + 145f, 34f, 82f, 32f), "—", scoreStyle);
+            GUI.Label(new Rect(scoreLeft + 229f, 36f, 122f, 30f), rivalScore.ToString(), scoreStyle);
+            scoreStyle.fontSize = 21;
             GUI.color = new Color(1f, .67f, .74f);
             GUI.Label(new Rect(scoreLeft + 226f, 18f, 128f, 20f),
-                serveLabelVisible && !playerServing ? "CORAL  ·  SERVING" : "CORAL  ·  RIVALS", scoreTeamStyle);
+                !playerServing ? "CORAL  ·  SERVING" : "CORAL  ·  AI", scoreTeamStyle);
+            GUI.color = new Color(.74f, .91f, .94f);
+            string serverCourt = playerServing ? GetServiceCourtName(playerScore) : GetServiceCourtName(rivalScore);
+            GUI.Label(new Rect(scoreLeft + 12f, 64f, 348f, 20f),
+                MatchHudSummary() + "   ·   SERVE " + serverCourt, scoreTeamStyle);
             GUI.color = Color.white;
 
-            if (runComplete) DrawRunEnd(controllerConnected);
+            if (matchComplete) DrawMatchEnd(controllerConnected);
             else if (upgradeDraftActive) DrawUpgradeDraft(controllerConnected);
             else if (isPaused) DrawPauseMenu(controllerConnected);
 
-            if (!runComplete && !upgradeDraftActive && !isPaused && messageDelay > 0f)
+            if (!matchComplete && !upgradeDraftActive && !isPaused && messageDelay > 0f)
             {
                 float panelWidth = Mathf.Max(1f, Mathf.Min(620f, Screen.width - 32f));
                 float textWidth = Mathf.Max(1f, panelWidth - 32f);
@@ -1913,11 +2003,21 @@ namespace FrutigerBadminton
 
         string RallyGuidance(bool compact)
         {
-            if (playerServeReady) return compact ? "YOUR SERVE" : "SERVE  ·  Aim, then tap a shot";
+            if (playerServeReady) return compact ? "YOUR SERVE" : "SERVE  ·  Winner serves diagonally";
             if (servePending || !flightActive) return compact ? "GET READY" : "GET READY  ·  Watch for the serve";
             if (!playerMustReturn) return compact ? "TO RIVALS" : "TO RIVALS  ·  Get ready";
             if (assignedFriendlyReceiver) return compact ? "PARTNER MOVING" : "PARTNER MOVING  ·  Be ready";
-            return compact ? "YOUR RETURN" : "YOUR RETURN  ·  Aim, then tap a shot";
+            return compact ? "YOUR RETURN" : "YOUR RETURN  ·  Move and time your shot";
+        }
+
+        string MatchHudSummary()
+        {
+            return (IsSingles ? "SINGLES" : "3V3") + "  /  FIRST TO " + pointsToWin + "  /  " + matchDifficulty.ToString().ToUpperInvariant();
+        }
+
+        int GetMatchScoreCap()
+        {
+            return pointsToWin == 21 ? 30 : 17;
         }
 
         void DrawCompactControls(bool controllerConnected)
@@ -2008,23 +2108,28 @@ namespace FrutigerBadminton
             if (titleMenuPage == TitleMenuPage.Home)
             {
                 GUI.color = new Color(.58f, .86f, .91f);
-                GUI.Label(new Rect(mainPanel.x + 36f, top + 232f, mainWidth - 72f, 24f), "SELECT YOUR CIRCUIT", hintStyle);
+                GUI.Label(new Rect(mainPanel.x + 36f, top + 232f, mainWidth - 72f, 24f), "STEP ON COURT", hintStyle);
                 float buttonWidth = mainWidth - 72f;
-                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 266f, buttonWidth, 60f), "START SOLO CIRCUIT", titleMenuSelection == 0))
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 266f, buttonWidth, 60f), "PLAY " + (IsSingles ? "SINGLES" : "3V3 MATCH"), titleMenuSelection == 0))
                     StartRally();
 
                 float smallWidth = (buttonWidth - 12f) * .5f;
-                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 340f, smallWidth, 52f), "HOW TO PLAY", titleMenuSelection == 1))
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 340f, smallWidth, 52f), "MATCH SETUP", titleMenuSelection == 1))
+                {
+                    titleMenuPage = TitleMenuPage.MatchSetup;
+                    titleMenuSelection = 0;
+                }
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f + smallWidth + 12f, top + 340f, smallWidth, 52f), "HOW TO PLAY", titleMenuSelection == 2))
                 {
                     titleMenuPage = TitleMenuPage.Controls;
                     titleMenuSelection = 0;
                 }
-                if (DrawTitleButton(new Rect(mainPanel.x + 36f + smallWidth + 12f, top + 340f, smallWidth, 52f), "SETTINGS", titleMenuSelection == 2))
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 406f, smallWidth, 48f), "SETTINGS", titleMenuSelection == 3))
                 {
                     titleMenuPage = TitleMenuPage.Settings;
                     titleMenuSelection = 0;
                 }
-                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 408f, buttonWidth, 44f), "EXIT GAME", titleMenuSelection == 3))
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f + smallWidth + 12f, top + 406f, smallWidth, 48f), "EXIT GAME", titleMenuSelection == 4))
                     Application.Quit();
 
                 GUI.color = new Color(.64f, .86f, .9f);
@@ -2056,6 +2161,30 @@ namespace FrutigerBadminton
                     titleMenuSelection = 0;
                 }
             }
+            else if (titleMenuPage == TitleMenuPage.MatchSetup)
+            {
+                GUI.color = Color.white;
+                GUI.Label(new Rect(mainPanel.x + 36f, top + 238f, mainWidth - 72f, 34f), "MATCH SETUP", titleSubtitleStyle);
+                float buttonWidth = mainWidth - 72f;
+                string mode = IsSingles ? "MODE     SINGLES  ·  1 VS 1" : "MODE     3 VS 3 TEAM";
+                string difficulty = "AI LEVEL     " + matchDifficulty.ToString().ToUpperInvariant();
+                string scoring = "POINTS     FIRST TO " + pointsToWin;
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 282f, buttonWidth, 50f), mode, titleMenuSelection == 0))
+                    ToggleMatchOption(0);
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 344f, buttonWidth, 50f), difficulty, titleMenuSelection == 1))
+                    ToggleMatchOption(1);
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 406f, buttonWidth, 50f), scoring, titleMenuSelection == 2))
+                    ToggleMatchOption(2);
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 468f, buttonWidth, 48f), "START MATCH", titleMenuSelection == 3))
+                    StartRally();
+                if (DrawTitleButton(new Rect(mainPanel.x + 36f, top + 524f, buttonWidth, 44f), "BACK TO MENU", titleMenuSelection == 4))
+                {
+                    titleMenuPage = TitleMenuPage.Home;
+                    titleMenuSelection = 0;
+                }
+                GUI.color = new Color(.66f, .91f, .94f);
+                GUI.Label(new Rect(mainPanel.x + 36f, top + 574f, buttonWidth, 24f), "LEFT / RIGHT TO CHANGE  ·  A TO SELECT", hintStyle);
+            }
             else
             {
                 GUI.color = Color.white;
@@ -2082,18 +2211,18 @@ namespace FrutigerBadminton
             GUI.color = new Color(.48f, 1f, .94f);
             GUI.Label(new Rect(sidePanel.x + 28f, top + 32f, sideWidth - 56f, 22f), "THE AERO COURT", titleEyebrowStyle);
             GUI.color = Color.white;
-            GUI.Label(new Rect(sidePanel.x + 24f, top + 76f, sideWidth - 48f, 66f), "3  ×  3", titleStyle);
+            GUI.Label(new Rect(sidePanel.x + 24f, top + 76f, sideWidth - 48f, 66f), IsSingles ? "1  ×  1" : "3  ×  3", titleStyle);
             GUI.color = new Color(.82f, .96f, .99f);
-            GUI.Label(new Rect(sidePanel.x + 30f, top + 142f, sideWidth - 60f, 30f), "SOLO CIRCUIT", titleSubtitleStyle);
+            GUI.Label(new Rect(sidePanel.x + 30f, top + 142f, sideWidth - 60f, 30f), IsSingles ? "SINGLES BADMINTON" : "TEAM RALLY", titleSubtitleStyle);
             GUI.color = new Color(.27f, .7f, .78f, .72f);
             GUI.DrawTexture(new Rect(sidePanel.x + 30f, top + 192f, sideWidth - 60f, 1f), Texture2D.whiteTexture);
 
             string[] features =
             {
-                "YOU + TWO AI TEAMMATES",
-                "AIM CLEARS, DROPS & SMASHES",
-                "DRAFT RUN UPGRADES",
-                "FIRST TO 7  ·  WIN BY 2  ·  CAP 9"
+                IsSingles ? "YOU VS ONE AI OPPONENT" : "YOU + TWO AI TEAMMATES",
+                "AI LEVEL  ·  " + matchDifficulty.ToString().ToUpperInvariant(),
+                "RALLY WINNER SERVES NEXT",
+                "ODD  ·  LEFT SERVE     EVEN  ·  RIGHT"
             };
             for (int i = 0; i < features.Length; i++)
             {
@@ -2104,9 +2233,9 @@ namespace FrutigerBadminton
             GUI.color = new Color(.11f, .41f, .5f, .88f);
             GUI.Box(new Rect(sidePanel.x + 28f, top + panelHeight - 116f, sideWidth - 56f, 72f), GUIContent.none);
             GUI.color = new Color(.49f, 1f, .94f);
-            GUI.Label(new Rect(sidePanel.x + 38f, top + panelHeight - 103f, sideWidth - 76f, 24f), "A NEW RUN EVERY MATCH", titleEyebrowStyle);
+            GUI.Label(new Rect(sidePanel.x + 38f, top + panelHeight - 103f, sideWidth - 76f, 24f), "FIRST TO " + pointsToWin + "  ·  WIN BY 2", titleEyebrowStyle);
             GUI.color = new Color(.8f, .93f, .96f);
-            GUI.Label(new Rect(sidePanel.x + 38f, top + panelHeight - 77f, sideWidth - 76f, 24f), "Build your style one rally at a time.", titleBodyStyle);
+            GUI.Label(new Rect(sidePanel.x + 38f, top + panelHeight - 77f, sideWidth - 76f, 24f), "Game point cap " + GetMatchScoreCap(), titleBodyStyle);
 
             GUI.color = new Color(.61f, .82f, .87f);
             GUI.Label(new Rect(left, top - 28f, panelWidth, 22f), "FRUTIGER BADMINTON   /   ABOVE THE CLOUDS", hintStyle);
@@ -2167,11 +2296,11 @@ namespace FrutigerBadminton
             GUI.Label(new Rect(left + 24f, top + 24f, panelWidth - 48f, 46f), "RALLY PAUSED", scoreStyle);
             GUI.color = Color.white;
             GUI.Label(new Rect(left + 24f, top + 78f, panelWidth - 48f, 28f),
-                "Take a breather. Your current run and upgrades are still here.", hintStyle);
+                "Take a breather. The match score is saved.", hintStyle);
             if (GUI.Button(new Rect(left + 95f, top + 125f, panelWidth - 190f, 42f), "RESUME RALLY", upgradeButtonStyle))
                 SetPaused(false);
-            if (GUI.Button(new Rect(left + 95f, top + 180f, panelWidth - 190f, 42f), "RESTART RUN", upgradeButtonStyle))
-                StartNewRun();
+            if (GUI.Button(new Rect(left + 95f, top + 180f, panelWidth - 190f, 42f), "RESTART MATCH", upgradeButtonStyle))
+                StartNewMatch();
             if (GUI.Button(new Rect(left + 95f, top + 235f, panelWidth - 190f, 42f), "TITLE MENU", upgradeButtonStyle))
                 ReturnToTitle();
             string inputHint = controllerConnected
@@ -2180,13 +2309,13 @@ namespace FrutigerBadminton
             GUI.Label(new Rect(left + 24f, top + 302f, panelWidth - 48f, 24f), inputHint, hintStyle);
         }
 
-        void DrawRunEnd(bool controllerConnected)
+        void DrawMatchEnd(bool controllerConnected)
         {
             Gamepad gamepad = Gamepad.current;
             if (Time.frameCount > runEndOpenedFrame && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)
                 || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame)))
             {
-                StartNewRun();
+                StartNewMatch();
                 return;
             }
             if (Time.frameCount > runEndOpenedFrame && (Input.GetKeyDown(KeyCode.M)
@@ -2202,18 +2331,18 @@ namespace FrutigerBadminton
             float top = (Screen.height - panelHeight) * .5f;
             DrawGlassPanel(new Rect(left, top, panelWidth, panelHeight),
                 new Color(.045f, .24f, .3f, .97f), new Color(.012f, .075f, .13f, .97f));
-            GUI.color = runWon ? new Color(.55f, 1f, .83f) : new Color(1f, .63f, .69f);
-            GUI.Label(new Rect(left + 24f, top + 22f, panelWidth - 48f, 46f), runWon ? "RUN COMPLETE" : "RUN OVER", scoreStyle);
+            GUI.color = matchWon ? new Color(.55f, 1f, .83f) : new Color(1f, .63f, .69f);
+            GUI.Label(new Rect(left + 24f, top + 22f, panelWidth - 48f, 46f), matchWon ? "MATCH WON" : "MATCH LOST", scoreStyle);
             GUI.color = Color.white;
-            GUI.Label(new Rect(left + 24f, top + 72f, panelWidth - 48f, 40f), "SOLO RALLY   " + playerScore + "  —  " + rivalScore, scoreStyle);
+            GUI.Label(new Rect(left + 24f, top + 72f, panelWidth - 48f, 40f), (IsSingles ? "SINGLES" : "3V3") + "   " + playerScore + "  —  " + rivalScore, scoreStyle);
             GUI.color = new Color(.68f, .91f, .95f);
-            GUI.Label(new Rect(left + 24f, top + 119f, panelWidth - 48f, 20f), "RUN STATS", hintStyle);
+            GUI.Label(new Rect(left + 24f, top + 119f, panelWidth - 48f, 20f), "MATCH STATS", hintStyle);
 
             const float statGap = 8f;
             float statWidth = (panelWidth - 48f - statGap * 3f) / 4f;
             float statTop = top + 145f;
-            string[] statNames = { "BEST RALLY", "SMASHES", "TEAM SAVES", "AERO DASHES" };
-            int[] statValues = { longestRallyHits, smashesHit, partnerReturns, dashUses };
+            string[] statNames = { "BEST RALLY", "SMASHES", IsSingles ? "PLAYER RETURNS" : "PARTNER SAVES", "AERO DASHES" };
+            int[] statValues = { longestRallyHits, smashesHit, IsSingles ? playerReturns : partnerReturns, dashUses };
             for (int i = 0; i < statNames.Length; i++)
             {
                 float x = left + 24f + i * (statWidth + statGap);
@@ -2228,20 +2357,21 @@ namespace FrutigerBadminton
             GUI.color = new Color(.08f, .27f, .32f, .92f);
             GUI.Box(new Rect(left + 24f, top + 234f, panelWidth - 48f, 48f), GUIContent.none);
             GUI.color = new Color(.82f, .98f, 1f);
-            GUI.Label(new Rect(left + 34f, top + 238f, panelWidth - 68f, 40f), RunUpgradeSummary(), upgradeDescriptionStyle);
+            GUI.Label(new Rect(left + 34f, top + 238f, panelWidth - 68f, 40f),
+                MatchHudSummary() + "  ·  RALLY WINNER SERVES  ·  ODD LEFT / EVEN RIGHT", upgradeDescriptionStyle);
             GUI.color = Color.white;
-            GUI.Label(new Rect(left + 24f, top + 290f, panelWidth - 48f, 22f), "First to 7 points, win by 2 (cap 9)", labelStyle);
-            GUI.Label(new Rect(left + 24f, top + 315f, panelWidth - 48f, 22f), "Upgrades reset when you start a new run.", hintStyle);
+            GUI.Label(new Rect(left + 24f, top + 290f, panelWidth - 48f, 22f), "First to " + pointsToWin + "  ·  win by 2  ·  cap " + GetMatchScoreCap(), labelStyle);
+            GUI.Label(new Rect(left + 24f, top + 315f, panelWidth - 48f, 22f), "Serve from LEFT on odd points and RIGHT on even points.", hintStyle);
             bool wasEnabled = GUI.enabled;
             GUI.enabled = wasEnabled && Time.frameCount > runEndOpenedFrame;
             float buttonWidth = (panelWidth - 60f) * .5f;
-            if (GUI.Button(new Rect(left + 24f, top + 348f, buttonWidth, 42f), "NEW RUN", upgradeButtonStyle))
-                StartNewRun();
+            if (GUI.Button(new Rect(left + 24f, top + 348f, buttonWidth, 42f), "NEW MATCH", upgradeButtonStyle))
+                StartNewMatch();
             if (GUI.Button(new Rect(left + 36f + buttonWidth, top + 348f, buttonWidth, 42f), "TITLE MENU", upgradeButtonStyle))
                 ReturnToTitle();
             GUI.enabled = wasEnabled;
             GUI.Label(new Rect(left + 24f, top + 394f, panelWidth - 48f, 22f),
-                controllerConnected ? "A new run  ·  B title menu" : "Enter new run  ·  M title menu", hintStyle);
+                controllerConnected ? "A new match  ·  B title menu" : "Enter new match  ·  M title menu", hintStyle);
         }
 
         string RunUpgradeSummary()
@@ -2321,7 +2451,9 @@ namespace FrutigerBadminton
             return Mathf.Sqrt(dx * dx + dz * dz);
         }
 
-        enum TitleMenuPage { Home, Controls, Settings }
+        enum TitleMenuPage { Home, MatchSetup, Controls, Settings }
+        enum MatchMode { Singles, ThreeVsThree }
+        enum MatchDifficulty { Relaxed, Club, Elite }
         enum SoloUpgrade { AeroLaces, ExtendedSweetSpot, PartnerDrills, TurboDash, ShuttleSense, PrismStrings }
         enum ShotStyle { Clear, Drop, Drive, Smash }
     }
