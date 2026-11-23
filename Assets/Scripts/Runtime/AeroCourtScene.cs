@@ -39,8 +39,9 @@ namespace FrutigerBadminton
             public Quaternion facing;
             public float phase;
             public float bounce;
+            public float size;
 
-            public CrowdMember(Transform root, Transform model, Vector3 origin, Quaternion facing, float phase, float bounce)
+            public CrowdMember(Transform root, Transform model, Vector3 origin, Quaternion facing, float phase, float bounce, float size)
             {
                 this.root = root;
                 this.model = model;
@@ -48,6 +49,7 @@ namespace FrutigerBadminton
                 this.facing = facing;
                 this.phase = phase;
                 this.bounce = bounce;
+                this.size = size;
             }
         }
 
@@ -129,7 +131,7 @@ namespace FrutigerBadminton
                 float hop = (Mathf.Max(0f, sway) + .12f) * member.bounce;
                 member.root.position = member.origin + Vector3.up * hop;
                 member.root.rotation = member.facing * Quaternion.Euler(0f, sway * 2.4f, 0f);
-                member.model.localScale = new Vector3(1f - Mathf.Abs(sway) * .025f,
+                member.model.localScale = member.size * new Vector3(1f - Mathf.Abs(sway) * .025f,
                     1f + Mathf.Max(0f, sway) * .045f, 1f - Mathf.Abs(sway) * .02f);
             }
         }
@@ -1154,7 +1156,7 @@ namespace FrutigerBadminton
                 float z = 8.78f + Mathf.Cos(i * 3.1f) * .035f;
                 bool cheers = i % 4 == 1;
                 AddGallerySpectator(audience, calmBlob, cheeringBlob, coreMaterials, shellMaterials,
-                    new Vector3(x, 2.37f, z), Quaternion.Euler(0f, 180f, 0f), memberIndex++, cheers);
+                    new Vector3(x, 2.37f, z), Quaternion.Euler(0f, 180f, 0f), memberIndex++, cheers, 1f);
             }
 
             const int sideCount = 8;
@@ -1166,14 +1168,14 @@ namespace FrutigerBadminton
                 float x = side * (6.92f + Mathf.Cos(i * 3.7f + side) * .035f);
                 bool cheers = (i + side) % 4 == 0;
                 AddGallerySpectator(audience, calmBlob, cheeringBlob, coreMaterials, shellMaterials,
-                    new Vector3(x, 2.37f, z), Quaternion.Euler(0f, side < 0 ? 90f : -90f, 0f), memberIndex++, cheers);
+                    new Vector3(x, 2.37f, z), Quaternion.Euler(0f, side < 0 ? 90f : -90f, 0f), memberIndex++, cheers, .68f);
             }
 
             audience.gameObject.AddComponent<AeroCourtLevelVisibility>();
         }
 
         void AddGallerySpectator(Transform audience, Mesh calmBlob, Mesh cheeringBlob,
-            Material[] coreMaterials, Material[] shellMaterials, Vector3 position, Quaternion facing, int index, bool cheers)
+            Material[] coreMaterials, Material[] shellMaterials, Vector3 position, Quaternion facing, int index, bool cheers, float size)
         {
             var root = new GameObject(cheers ? "Cheering jelly spectator" : "Jelly spectator").transform;
             root.position = position;
@@ -1186,7 +1188,7 @@ namespace FrutigerBadminton
             AddAudienceBlobLayer(model, "Candy gel", blob, coreMaterials[index % coreMaterials.Length], 1f);
             AddAudienceBlobLayer(model, "Pearl glaze", blob, shellMaterials[index % shellMaterials.Length], 1.045f);
 
-            crowdMembers.Add(new CrowdMember(root, model, position, facing, index * 1.71f, cheers ? .085f : .033f));
+            crowdMembers.Add(new CrowdMember(root, model, position, facing, index * 1.71f, cheers ? .085f : .033f, size));
         }
 
         static void AddAudienceBlobLayer(Transform parent, string objectName, Mesh mesh, Material material, float scale)
