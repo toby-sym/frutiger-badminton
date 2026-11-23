@@ -47,13 +47,10 @@ jobs:
           buildName: FrutigerBadminton
           buildMethod: FrutigerBadminton.Editor.VisualCaptureBuild.BuildLinux
           allowDirtyBuild: true
-      - name: Install virtual display tools
+      - name: Install visual capture tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends xvfb xauth xdotool imagemagick libgl1-mesa-dri libglx-mesa0
-      - name: Install motion capture tools
-        if: ${{ inputs.motion_clip }}
-        run: sudo apt-get install -y --no-install-recommends ffmpeg
+          sudo apt-get install -y --no-install-recommends xvfb xauth xdotool imagemagick ffmpeg libgl1-mesa-dri libglx-mesa0
       - name: Capture title and court
         env:
           CAPTURE_EXTENDED_RALLY: ${{ inputs.extended_rally && '1' || '0' }}
