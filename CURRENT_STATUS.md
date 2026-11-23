@@ -23,7 +23,7 @@
 - Player crystal colours use distinct Aqua and Coral team palettes with varied shades; Linux captures showed both teams clearly. Colour-vision accessibility and Windows checks remain.
 - Generated player legs have knee pivots for stride, airborne and landing bends. Linux stills and a motion clip showed the feet remain attached and the airborne bend is visible; Windows motion and feel remain to be checked.
 - Running uses a fuller stride and blends into a distinct dash pose. A Linux movement clip showed the transition without obvious joint separation; Windows frame pacing and play feel remain to be checked.
-- The closer court-level camera smoothly follows player movement, with gentler follow in overview. Linux captures show the court stays framed through movement, and the Windows development build passed; aiming and play feel still need hands-on checks.
+- The closer court-level camera smoothly follows player movement, with gentler follow in overview. Linux captures show the court stays framed through movement, and the Windows development build passed; shot placement and play feel still need hands-on checks.
 - The stadium now has a raised roof, extended floor and galleries, and a front wall behind the player camera; the roof and near walls hide in overview. Linux captures confirm the full enclosure and court framing, and the Windows development build passed; edge movement and gameplay visibility still need hands-on checks.
 - The floating court now sits on a generated chamfered crystal-mesa island with a bright aqua waist and layered blue underside facets.
 - The camera backdrop now uses a full-sphere pastel-to-azure vertex gradient and a generated sun halo, filling the previously gray below-horizon view.
@@ -34,8 +34,8 @@
 - The pavilion has shallow upper galleries, handrails, and luminous fixtures generated around the rear and side edges of the court; composition and brightness need an artifact check.
 - A long unattended Linux capture reached rally 19 at 0–0. Rivals now sometimes aim at the controlled player, teammates yield when that player is positioned at the landing spot, and opponents have a brief reaction delay and slower coverage. A subsequent unattended Linux capture reached 0–2 and the physical scoreboard matched the HUD. Human-play balance and Windows gameplay checks remain.
 - The full and compact HUDs distinguish the player’s return, a partner moving to cover, and the shuttle travelling to the rivals. Linux capture confirmed the outbound and partner cues; the player-return cue and human gameplay remain to be checked.
-- The title and full HUD state the existing 9-point cap alongside the win-by-two rule; Linux captures confirmed the text fits both layouts.
-- The local practice loop is implemented with WASD movement, jump, dash, aimed clear, drop, drive, smash, scoring, and a returning rival.
+- The title and match HUD show the selected first-to-15/21 target and win-by-two rule; Linux captures confirmed the score panel updates with the service side.
+- The local rally uses WASD or gamepad movement, jump, dash, clear, drop, drive, smash and rally scoring. Player shots now choose a target automatically from the selected shot type and available court space; there is no outgoing mouse or right-stick aim target. A player's court position gently favors the cross-court lane, while shot type controls depth. The incoming landing marker remains as a defensive cue.
 - GitHub Actions uses GameCI to build and package a portable Windows x64 Development player on every branch push. Unity's `Library` folder is cached in development and release workflows, and superseded builds on the same branch are canceled.
 - An optional Linux visual-capture workflow records the title, court, overview, rally and movement-input frames. It also offers a longer rally capture and a short motion clip; run 45016805060 produced a 10-second clip. Mesa software rendering is useful for pose inspection but does not represent Windows frame pacing. A silent ALSA device prevents headless audio errors; ordinary main pushes do not run this workflow.
 - Development uploads skip redundant compression of the already packaged ZIP. After a direct merge to `main`, GameCI reuses the successful feature-branch artifact only when the merge tree is identical, and falls back to a fresh build for other main pushes.
@@ -54,47 +54,40 @@
 - Opponents now return a descending shuttle while it is within reach, using its actual contact position for the return trajectory. Missed shots land as winners instead of teleporting back up to a rival; artifact gameplay verification is pending.
 - A pulsing, team-colored receiver reticle identifies the AI teammate assigned to cover an incoming landing, making the 3v3 coverage decision readable.
 - A small generated aqua-and-pearl court marker follows the controlled player and remains on the floor when jumping; verify legibility against other reticles in the artifact.
-- A shot-colored generated reticle previews the selected clear, drop, drive, or smash target on the opponent's court as the right stick or mouse moves; the HUD now calls out the aim preview and distinguishes it from the incoming landing ring.
-- Player and rival teams alternate service. On player serve turns, the shuttle waits at the racket and the player chooses a shot and aims it with the same reticle before serving; the input HUD blocks mouse clicks over its actual panel bounds.
-- The control panel's drawn rectangle and mouse exclusion share the same bounds, including the dash and run-build area; verify mouse aiming and shots around the panel in the artifact.
+- The outgoing target reticle and mouse/right-stick aiming have been removed. Shot buttons select clear, drop, drive or smash; the game places the shuttle into an open lane with a depth suited to the shot, and position provides a mild cross-court preference.
+- Rally winners serve next from the score-selected court. The serve waits at the racket and travels diagonally into the opposite service box; mouse clicks over the controls panel remain blocked from triggering a shot.
 - The held shuttle and launch position now share one player-relative offset, so jumping while serving does not apply jump height twice. Verify airborne serves in the Windows artifact.
 - Rivals now mix clears, drops, and drives, aiming toward the lane least covered by the near-side team; generated shuttle trails change tint with the shot so trajectory style reads in motion.
 - Point awards now trigger a team-colored procedural impact burst at the shuttle's finish and a brief matching pulse in the score panel; longer rallies get a stronger burst.
 - The in-match score panel labels Aqua (you) and Coral (rivals) in their team colors, sits opposite the controls HUD, and marks the active or next serving side.
 - The fixed full-court camera now gets a brief screen-space shake on shot contact, strongest for smashes and point-ending rallies, then returns to its exact rest position.
 - A controller- or keyboard-labeled aero dash meter fills while dash cooldown recovers and turns aqua when ready; trying to dash early displays a brief recharge cue.
-- Escape or controller Start now pauses the rally; the pause overlay resumes or restarts while preserving the current run and upgrades when resumed.
-- Pause and run-result screens now offer a return to the title menu with mouse, keyboard or controller. Returning resets the run and clears rally markers; flow verification is pending.
+- Escape or controller Start now pauses the match; the pause overlay resumes or restarts the match.
+- Pause and match-result screens now offer a return to the title menu with mouse, keyboard or controller. Returning resets the match and clears rally markers; flow verification is pending.
 - The game now opens on a controller-first Frutiger Badminton title screen over the generated court, with control instructions, an animated shuttlecock, and A/Enter/click start input; artifact smoke test pending.
-- The title screen now has Solo Circuit, How to Play, Settings, and Exit; settings persist audio and fullscreen choices, and the menu supports controller navigation.
-- A lower court-level camera is the default for new players, with the previous elevated overview available in Settings. Camera choice persists; both views and their movement/aim readability need Windows artifact verification.
+- The title screen now has Play, Match Setup, How to Play, Settings, and Exit; match format, AI difficulty and scoring preferences persist alongside audio and fullscreen choices.
+- A lower court-level camera is the default for new players, with the previous elevated overview available in Settings. Camera choice persists; both views and their movement/shot readability need Windows artifact verification.
 - Fullscreen preferences now save the requested state rather than reading back a potentially deferred display change; verify changing and restarting the Windows player.
 - The title layout scales to fit smaller windows, including the controls and settings pages; verify readability and mouse selection at smaller resolutions in the artifact.
 - Title panels use generated glass gradients, fine borders and a soft offset shadow rather than the default box skin; visual verification is pending.
-- The control panel, score, rally message, pause, upgrade and results overlays now use the same generated glass treatment as the title. Contrast and readability need artifact verification.
+- The control panel, score, rally message, pause and match-result overlays use the same generated glass treatment as the title. Contrast and readability need artifact verification.
 - Title navigation accepts the left stick, D-pad, WASD and arrow keys, with left/right movement between the side-by-side options. Settings only toggle when an actual setting is selected; controller verification is pending.
 - Rally movement eases into and out of direction changes, with generated character squash on landing, stretch in the air, and a quicker racket strike with follow-through.
 - Movement now follows the camera's screen directions, and a dash with no input uses the last movement direction. Verify keyboard and controller movement in the Windows artifact.
-- A brief higher-deceleration recovery returns dash momentum toward the requested movement speed, limiting post-dash sliding. Dash feel and upgrade interactions need player verification.
-- Rally shot presses are buffered briefly while the incoming shuttle approaches reach, preserving the chosen shot type while the player can continue aiming. The buffer clears at the end of the point or run; timing still needs play verification.
-- Mouse and controller aim now hand off on input, the right-stick target stays in place when released, and mouse aim holds its last court position while the pointer is over the control panel. Verify mixed-device aiming in the artifact.
-- Player limbs use rounded generated shapes with articulated knees. Landing compresses the body, torso lean eases between poses, racket swings settle back to rest, and restarting a run resets motion state; visual verification is pending.
+- A brief higher-deceleration recovery returns dash momentum toward the requested movement speed, limiting post-dash sliding. Dash feel and match pacing need player verification.
+- Rally shot presses are buffered briefly while the incoming shuttle approaches reach, preserving the chosen shot type. The buffer clears at the end of the point or match; timing still needs play verification.
+- Player limbs use rounded generated shapes with articulated knees. Landing compresses the body, torso lean eases between poses, racket swings settle back to rest, and restarting a match resets motion state; visual verification is pending.
 - Running blends into a tucked airborne pose instead of continuing the full leg cycle in a jump, while the torso turns gently with lateral movement. Motion verification is pending.
 - Players have subtle, individually phased idle breathing and sway, with varied gait phases, to avoid synchronized stillness between exchanges. Visual verification is pending.
 - Player crystal shells use generated rim, highlight and window-like reflection cues; artifact visual verification is pending.
 - Players now have a soft procedural court shadow that spreads and fades with jump height, helping separate airborne motion from the floor; artifact visual verification is pending.
-- The rally control panel now uses short, non-wrapping labels and keeps the serve/return instruction, dash meter, and run-build chips within the panel.
-- Shot controls now occupy two short rows, and the return instruction describes tapping a shot; the dash and run-build elements have been repositioned within the same panel. Visual verification is pending.
+- The rally control panel now uses short labels for movement, automatic shot placement, service rules and dash recovery.
+- Shot controls occupy two short rows, and the return instruction describes tapping a shot. Visual verification of the current panel is pending.
 - All shot types, dash, and both teams' point awards now play short C# synthesized audio clips through a generated audio source and runtime audio listener; no audio files are imported.
-- Every three player points, the run pauses for a choice among three random upgrades: faster movement, longer racket reach, partner speed and reach, dash power, or earlier landing warnings. Upgrades stack for that run.
-- Upgrade selection accepts the left stick or D-pad, arrows or WASD with Enter, number keys, and mouse; controller verification is pending.
-- Upgrade and run-result screens ignore input on the frame they open, preventing the last rally input from immediately selecting an upgrade or restarting the run. Verify both transitions in the player.
-- Roguelite drafts now include Prism Strings, which shortens player-side shot flight time and shifts the generated shuttle trail through a pearl palette as levels stack.
-- The rally HUD shows a compact six-chip run build with the current level of each upgrade, including the new Prism Strings effect.
-- The run-end screen now recaps longest rally, smashes, partner saves, dash uses, and the completed run build before replay.
+- The match loop no longer pauses for upgrade drafts; a new match resets player stats and score.
 - The shuttlecock's generated feather vanes now display their aqua-to-pearl vertex gradient through a custom two-sided Fresnel shader; clears, drops, drives, and smashes each have distinct in-flight axial spin.
 - Smoke-test startup failures are fixed: MaterialPropertyBlocks are created in Awake, and generated Resources material templates retain the URP Lit, Unlit, and Particle Unlit shaders needed by runtime-created materials in player builds.
-- A solo run ends at 7 points with a two-point lead (hard cap 9), shows a win/loss screen, and lets the player replay with scores and upgrades reset.
+- Matches end at the configured 15 or 21 point target with a two-point lead, using a 17 or 30 point cap, and show match stats.
 - Controller-first gamepad mappings and keyboard/mouse fallback are built with both input backends enabled from startup in `ProjectSettings/ProjectSettings.asset`. GameCI run `44843252147` passed in 8m39, uploaded a Windows artifact, and saved a compatible 765 MB Unity Library cache. Verify gamepad behavior in the artifact.
 - Incoming shots now display a generated segmented landing reticle that follows the shuttle's predicted landing spot and pulses from aqua to coral as impact approaches. The HUD explains the cue. Fixed shuttle setup to assign its generated feather mesh directly instead of retrieving it from a mixed object list; artifact verification is pending.
 - Player dashes now emit a short transparent aqua trail from a torso anchor and a procedural impact burst; artifact verification is pending.
