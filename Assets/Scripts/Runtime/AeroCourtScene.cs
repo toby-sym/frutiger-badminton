@@ -1157,12 +1157,12 @@ namespace FrutigerBadminton
                     new Vector3(x, 2.37f, z), Quaternion.Euler(0f, 180f, 0f), memberIndex++, cheers);
             }
 
-            const int sideCount = 9;
+            const int sideCount = 8;
             for (int side = -1; side <= 1; side += 2)
             for (int i = 0; i < sideCount; i++)
             {
                 float t = i / (float)(sideCount - 1);
-                float z = Mathf.Lerp(StadiumFront + 7f, StadiumBack - 2.3f, t) + Mathf.Sin(i * 5.2f + side) * .12f;
+                float z = Mathf.Lerp(StadiumFront + 11f, StadiumBack - 2.3f, t) + Mathf.Sin(i * 5.2f + side) * .12f;
                 float x = side * (6.92f + Mathf.Cos(i * 3.7f + side) * .035f);
                 bool cheers = (i + side) % 4 == 0;
                 AddGallerySpectator(audience, calmBlob, cheeringBlob, coreMaterials, shellMaterials,
