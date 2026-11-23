@@ -1,6 +1,7 @@
 # Current status
 
 - Project version is Unity 6000.0.64f1 with URP 17.0.4.
+- Local matches now default to singles, with 3v3 kept as an optional setup choice. Match setup saves the selected format, AI level and first-to-15/21 target; the rally winner serves next, using their own left service court on odd points and right on even points. Singles player bounds follow the 5.18 m inner sidelines, and the court shows both singles and doubles tramlines. Win by two, with a cap of 17 for 15-point games and 30 for 21-point games. Windows artifact gameplay verification is pending.
 - The generated court pipeline enables 4x MSAA, HDR and soft-shadow support for smoother geometry and lighting. Image quality and performance need Windows artifact verification.
 - The editor bootstrap generates the Aero Court scene and URP assets from C# using procedural meshes, primitives, and materials.
 - Cloud banks drift with gentle parallax while glass bubbles bob and orbit around the court; all motion is generated at runtime.
