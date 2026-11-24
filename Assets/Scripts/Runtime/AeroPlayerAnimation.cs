@@ -194,13 +194,15 @@ namespace FrutigerBadminton
             float idleSpring = idleCycle * idleWeight;
             float idleBob = (idleCycle * .5f + .5f) * .065f * idleWeight;
             float headSway = Mathf.Sin(gaitPhase * .5f + idlePhase) * (.018f * stride + .026f * idleWeight);
+            // One rise per alternating step, with the body lowest as the legs pass beneath it.
+            float footfallLift = Mathf.Abs(Mathf.Sin(gaitPhase)) * stride * (1f - airBlend) * (1f - dashBlend);
             Vector3 headTarget = headRestPosition + new Vector3(
                 -localMovement.x * .009f + headSway,
-                breathing * .014f + Mathf.Abs(Mathf.Sin(gaitPhase * 2f)) * .018f * stride,
+                breathing * .014f + footfallLift * .018f,
                 -localMovement.z * .007f - dashBlend * .025f);
             head.localPosition = Vector3.SmoothDamp(head.localPosition, headTarget, ref headPositionVelocity,
                 .095f, Mathf.Infinity, deltaTime);
-            float bounce = Mathf.Abs(Mathf.Sin(gaitPhase * 2f)) * .09f * stride * (1f - airBlend)
+            float bounce = footfallLift * .09f
                 + .07f * airBlend + idleBob + breathing * .012f;
             pose.localPosition = poseRestPosition + Vector3.up * bounce;
             float airStretch = airborne ? Mathf.Clamp01((transform.position.y - groundHeight) * .22f) * .07f : 0f;
